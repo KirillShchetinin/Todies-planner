@@ -160,6 +160,32 @@ ctxMenu.id = 'ctxMenu';
 document.body.appendChild(ctxMenu);
 let ctxKey = null;
 
+function openTaskCtxMenu(e, taskId) {
+  e.preventDefault();
+  ctxKey = null;
+
+  ctxMenu.innerHTML = '<div class="ctx-heading">change type</div><div class="ctx-sep"></div>';
+
+  legendOrder.filter(k => k !== 'done').forEach(key => {
+    const cfg = typeConfig[key];
+    if (!cfg) return;
+    const btn = document.createElement('button');
+    btn.className = 'ctx-item ctx-type-item';
+    btn.style.cssText = `border-left: 3px solid ${cfg.border}`;
+    btn.textContent = cfg.label;
+    btn.onclick = () => {
+      cols.forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.type = key; }); });
+      saveState(); closeCtxMenu(); render();
+    };
+    ctxMenu.appendChild(btn);
+  });
+
+  ctxMenu.style.display = 'block';
+  const mw = ctxMenu.offsetWidth, mh = ctxMenu.offsetHeight;
+  ctxMenu.style.left = Math.min(e.clientX, window.innerWidth  - mw - 8) + 'px';
+  ctxMenu.style.top  = Math.min(e.clientY, window.innerHeight - mh - 8) + 'px';
+}
+
 function openCtxMenu(e, key) {
   e.preventDefault();
   ctxKey = key;
@@ -368,6 +394,7 @@ function render() {
         actions.appendChild(del);
 
         el.appendChild(actions);
+        el.addEventListener('contextmenu', e => openTaskCtxMenu(e, task.id));
         el.addEventListener('dblclick', () => toggleDone(task.id));
         el.draggable = !task.done;
 

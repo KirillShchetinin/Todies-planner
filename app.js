@@ -39,14 +39,14 @@ const INIT_TASKS = [
 ];
 
 const DEFAULT_TYPE_CONFIG = {
-  't-locked':    { label:'locked',    bg:'#e8f0fa', border:'#b5cff0', text:'#1a4a8a', fixed:true },
+  't-locked':    { label:'locked',    bg:'#e8f0fa', border:'#b5cff0', text:'#1a4a8a' },
   't-interview': { label:'interview', bg:'#eeecfb', border:'#cbc6f0', text:'#3c3489' },
   't-tax':       { label:'taxes',     bg:'#fdf3dc', border:'#f5d98a', text:'#7a4800' },
   't-practice':  { label:'practice',  bg:'#eaf6ee', border:'#a8ddb8', text:'#1a5c30' },
   't-async':     { label:'async',     bg:'#f2f2f0', border:'#d8d8d4', text:'#444444' },
   't-rest':      { label:'rest',      bg:'#fdecea', border:'#f5bdb8', text:'#8a2020' },
   't-unplanned': { label:'unplanned', bg:'#f4f4f2', border:'#c4c4be', text:'#888888', dashed:true, italic:true },
-  'done':        { label:'done',      bg:'#f5f5f5', border:'#dddddd', text:'#bbbbbb', fixed:true },
+  'done':        { label:'done',      bg:'#f5f5f5', border:'#dddddd', text:'#bbbbbb' },
 };
 const DEFAULT_LEGEND_ORDER = ['t-locked','t-interview','t-tax','t-practice','t-async','t-rest','t-unplanned','done'];
 
@@ -65,7 +65,7 @@ const COLOR_PRESETS = [
 
 // ── state ─────────────────────────────────────────────────────────────────────
 
-let cols = [], state = {}, idCounter = 100, colCounter = 200, typeCounter = 0, dragging = null;
+let cols = [], state = {}, idCounter = 100, colCounter = 200, typeCounter = 0, dragging = null, draggingCol = null;
 let typeConfig  = structuredClone(DEFAULT_TYPE_CONFIG);
 let legendOrder = [...DEFAULT_LEGEND_ORDER];
 
@@ -106,6 +106,8 @@ async function loadState() {
       typeConfig  = saved.typeConfig
         ? {...structuredClone(DEFAULT_TYPE_CONFIG), ...saved.typeConfig}
         : structuredClone(DEFAULT_TYPE_CONFIG);
+      // strip legacy fixed flags — all labels are equal
+      Object.values(typeConfig).forEach(cfg => delete cfg.fixed);
       return;
     }
   } catch(e) {}
@@ -133,7 +135,6 @@ function addLabel(name, colors) {
 }
 
 function deleteLabel(key) {
-  if (typeConfig[key]?.fixed) return;
   delete typeConfig[key];
   legendOrder = legendOrder.filter(k => k !== key);
   cols.forEach(c => { (state[c.id]||[]).forEach(t => { if (t.type===key) t.type='t-async'; }); });
@@ -168,7 +169,7 @@ function openCtxMenu(e, key) {
     <button class="ctx-item" id="ctxRename">rename</button>
     <div class="ctx-sep"></div>
     <div class="ctx-colors" id="ctxColors"></div>
-    ${!cfg.fixed ? '<div class="ctx-sep"></div><button class="ctx-item ctx-delete" id="ctxDelete">delete</button>' : ''}
+    <div class="ctx-sep"></div><button class="ctx-item ctx-delete" id="ctxDelete">delete</button>
   `;
 
   ctxMenu.querySelector('#ctxRename').onclick = () => {
@@ -267,13 +268,11 @@ function renderLegend() {
     name.textContent = cfg.label;
     pill.appendChild(name);
 
-    if (!cfg.fixed) {
-      const x = document.createElement('button');
-      x.className = 'leg-del';
-      x.textContent = '×';
-      x.onclick = ev => { ev.stopPropagation(); deleteLabel(key); };
-      pill.appendChild(x);
-    }
+    const x = document.createElement('button');
+    x.className = 'leg-del';
+    x.textContent = '×';
+    x.onclick = ev => { ev.stopPropagation(); deleteLabel(key); };
+    pill.appendChild(x);
 
     pill.addEventListener('contextmenu', e => openCtxMenu(e, key));
     el.appendChild(pill);
@@ -296,7 +295,33 @@ function render() {
 
   cols.forEach(col => {
     const colEl = document.createElement('div');
-    colEl.className = 'col' + (col.id === 'unscheduled' ? ' unscheduled' : '');
+    colEl.className = 'col' + (col.id === 'unscheduled' || col.unscheduled ? ' unscheduled' : '');
+    colEl.draggable = true;
+    colEl.addEventListener('dragstart', e => {
+      if (e.target.closest('.task,.add-btn,.add-form')) return;
+      draggingCol = col.id;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => colEl.style.opacity = '0.4', 0);
+    });
+    colEl.addEventListener('dragend', () => {
+      draggingCol = null; colEl.style.opacity = '';
+      document.querySelectorAll('.col').forEach(c => c.classList.remove('col-drag-over'));
+    });
+    colEl.addEventListener('dragover', e => {
+      if (!draggingCol || draggingCol === col.id) return;
+      e.preventDefault(); e.stopPropagation();
+      document.querySelectorAll('.col').forEach(c => c.classList.remove('col-drag-over'));
+      colEl.classList.add('col-drag-over');
+    });
+    colEl.addEventListener('drop', e => {
+      if (!draggingCol || draggingCol === col.id) return;
+      e.preventDefault(); e.stopPropagation();
+      document.querySelectorAll('.col').forEach(c => c.classList.remove('col-drag-over'));
+      const from = cols.findIndex(c => c.id === draggingCol);
+      const to   = cols.findIndex(c => c.id === col.id);
+      if (from > -1 && to > -1) { const [m] = cols.splice(from, 1); cols.splice(to, 0, m); saveState(); }
+      draggingCol = null; render();
+    });
 
     const hdr  = document.createElement('div');
     hdr.className = 'col-header';
@@ -318,7 +343,7 @@ function render() {
 
     (state[col.id]||[]).forEach(task => {
       const el = document.createElement('div');
-      el.className = 'task' + (task.locked ? ' locked' : '') + (task.done ? ' done' : '');
+      el.className = 'task' + (task.done ? ' done' : '');
       el.dataset.id = task.id;
       applyTaskStyle(el, task.type, task.done);
 
@@ -327,7 +352,7 @@ function render() {
       txt.textContent = task.text;
       el.appendChild(txt);
 
-      if (!task.locked) {
+      {
         const actions = document.createElement('div');
         actions.className = 'task-actions';
 
@@ -346,8 +371,10 @@ function render() {
         el.addEventListener('dblclick', () => toggleDone(task.id));
         el.draggable = !task.done;
 
+
         el.addEventListener('dragstart', e => {
           if (task.done) { e.preventDefault(); return; }
+          e.stopPropagation();
           dragging = task.id;
           e.dataTransfer.effectAllowed = 'move';
           setTimeout(() => el.style.opacity = '0.4', 0);
@@ -473,6 +500,11 @@ function addCol(label, date) {
   saveState(); render();
 }
 
+function addUnscheduledCol() {
+  cols.push({id:'col'+(colCounter++), label:'Unscheduled', date:'', unscheduled:true});
+  saveState(); render();
+}
+
 function deleteCol(colId) {
   const tasks = state[colId] || [];
   if (tasks.length > 0) {
@@ -494,6 +526,7 @@ const addDayForm  = document.getElementById('addDayForm');
 const newDayLabel = document.getElementById('newDayLabel');
 const newDayDate  = document.getElementById('newDayDate');
 
+document.getElementById('addUnscheduledBtn').onclick = addUnscheduledCol;
 addDayBtn.onclick = () => { addDayBtn.style.display='none'; addDayForm.classList.add('open'); newDayDate.focus(); };
 
 const closeDay = () => {

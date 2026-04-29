@@ -68,6 +68,17 @@ const COLOR_PRESETS = [
 let cols = [], state = {}, idCounter = 100, colCounter = 200, typeCounter = 0, dragging = null, draggingCol = null;
 let typeConfig  = structuredClone(DEFAULT_TYPE_CONFIG);
 let legendOrder = [...DEFAULT_LEGEND_ORDER];
+let uiScale = 1;
+
+const UI_SCALES = [0.75, 0.875, 1, 1.125, 1.25];
+
+function applyScale(scale) {
+  uiScale = scale;
+  document.documentElement.style.setProperty('--ui-scale', scale);
+  document.querySelectorAll('.scale-btn').forEach(btn => {
+    btn.classList.toggle('active', parseFloat(btn.dataset.scale) === scale);
+  });
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -105,6 +116,7 @@ async function loadState() {
       typeConfig  = saved.typeConfig
         ? {...structuredClone(DEFAULT_TYPE_CONFIG), ...saved.typeConfig}
         : structuredClone(DEFAULT_TYPE_CONFIG);
+      uiScale     = saved.uiScale     || 1;
       // strip legacy fixed flags — all labels are equal
       Object.values(typeConfig).forEach(cfg => delete cfg.fixed);
       return;
@@ -119,7 +131,7 @@ function saveState() {
   fetch('/api/state', {
     method:  'PUT',
     headers: {'Content-Type':'application/json'},
-    body:    JSON.stringify({cols, state, idCounter, colCounter, typeCounter, typeConfig, legendOrder}),
+    body:    JSON.stringify({cols, state, idCounter, colCounter, typeCounter, typeConfig, legendOrder, uiScale}),
   }).catch(() => {});
 }
 
@@ -631,9 +643,42 @@ function deleteCol(colId) {
   saveState(); render();
 }
 
+// ── scale controls ────────────────────────────────────────────────────────────
+
+function renderScaleBtns() {
+  const container = document.getElementById('scaleBtns');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const minus = document.createElement('button');
+  minus.className = 'scale-btn';
+  minus.textContent = '−';
+  minus.title = 'Smaller';
+  minus.onclick = () => {
+    const idx = UI_SCALES.indexOf(uiScale);
+    if (idx > 0) { applyScale(UI_SCALES[idx - 1]); saveState(); }
+  };
+
+  const plus = document.createElement('button');
+  plus.className = 'scale-btn';
+  plus.textContent = '+';
+  plus.title = 'Larger';
+  plus.onclick = () => {
+    const idx = UI_SCALES.indexOf(uiScale);
+    if (idx < UI_SCALES.length - 1) { applyScale(UI_SCALES[idx + 1]); saveState(); }
+  };
+
+  container.appendChild(minus);
+  container.appendChild(plus);
+}
+
 // ── init ──────────────────────────────────────────────────────────────────────
 
-loadState().then(() => render());
+loadState().then(() => {
+  applyScale(uiScale);
+  render();
+  renderScaleBtns();
+});
 
 const addDayBtn   = document.getElementById('addDayBtn');
 const addDayForm  = document.getElementById('addDayForm');

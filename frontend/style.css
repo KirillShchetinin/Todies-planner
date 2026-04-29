@@ -14,38 +14,51 @@
   --accent:       #2a2a2a;
   --mono:         'DM Mono', 'Consolas', 'Courier New', monospace;
   --sans:         'DM Sans', system-ui, -apple-system, sans-serif;
+  --ui-scale:     1;
 }
 
-body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; padding: 24px; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; padding: calc(24px * var(--ui-scale)); }
 
 /* ── header ── */
-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 14px; }
-.header-left { display: flex; align-items: baseline; gap: 14px; }
-header h1 { font-family: var(--mono); font-size: 17px; font-weight: 500; color: var(--accent); letter-spacing: -0.02em; }
-header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono); }
+header { display: flex; align-items: center; justify-content: space-between; gap: calc(16px * var(--ui-scale)); margin-bottom: calc(18px * var(--ui-scale)); border-bottom: 1px solid var(--border); padding-bottom: calc(14px * var(--ui-scale)); }
+.header-left { display: flex; align-items: baseline; gap: calc(14px * var(--ui-scale)); }
+header h1 { font-family: var(--mono); font-size: calc(17px * var(--ui-scale)); font-weight: 500; color: var(--accent); letter-spacing: -0.02em; }
+header .hint { font-size: calc(11px * var(--ui-scale)); color: var(--text-dim); font-family: var(--mono); }
 
-.add-day-btn { font-size: 11px; font-family: var(--mono); color: var(--text-muted); background: var(--surface); border: 1px solid var(--border-hover); border-radius: 6px; padding: 5px 12px; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+.add-day-btn { font-size: calc(11px * var(--ui-scale)); font-family: var(--mono); color: var(--text-muted); background: var(--surface); border: 1px solid var(--border-hover); border-radius: 6px; padding: calc(5px * var(--ui-scale)) calc(12px * var(--ui-scale)); cursor: pointer; transition: background 0.15s; white-space: nowrap; }
 .add-day-btn:hover { background: var(--surface2); color: var(--text); }
 
-.add-day-form { display: none; align-items: center; gap: 6px; }
+.add-day-form { display: none; align-items: center; gap: calc(6px * var(--ui-scale)); }
 .add-day-form.open { display: flex; }
-.add-day-form input { font-size: 12px; font-family: var(--sans); background: var(--surface); border: 1px solid var(--border-hover); border-radius: 6px; padding: 4px 8px; color: var(--text); outline: none; width: 100px; }
-.add-day-form input.date-in { width: 75px; }
+.add-day-form input { font-size: calc(12px * var(--ui-scale)); font-family: var(--sans); background: var(--surface); border: 1px solid var(--border-hover); border-radius: 6px; padding: calc(4px * var(--ui-scale)) calc(8px * var(--ui-scale)); color: var(--text); outline: none; width: calc(100px * var(--ui-scale)); }
+.add-day-form input.date-in { width: calc(75px * var(--ui-scale)); }
 .add-day-form input:focus { border-color: rgba(0,0,0,0.3); }
-.add-day-form button { font-size: 11px; font-family: var(--mono); padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border-hover); cursor: pointer; background: var(--surface); color: var(--text-muted); }
+.add-day-form button { font-size: calc(11px * var(--ui-scale)); font-family: var(--mono); padding: calc(4px * var(--ui-scale)) calc(10px * var(--ui-scale)); border-radius: 5px; border: 1px solid var(--border-hover); cursor: pointer; background: var(--surface); color: var(--text-muted); }
 .add-day-form button:hover { background: var(--surface2); color: var(--text); }
 
+/* ── scale controls ── */
+.scale-btns { display: flex; align-items: center; gap: 2px; }
+.scale-btn {
+  font-size: calc(11px * var(--ui-scale)); font-family: var(--mono);
+  padding: calc(4px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  border-radius: 5px; border: 1px solid var(--border-hover);
+  cursor: pointer; background: var(--surface); color: var(--text-muted);
+  line-height: 1; transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.scale-btn:hover { background: var(--surface2); color: var(--text); }
+
 /* ── legend ── */
-.legend { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 16px; align-items: center; }
+.legend { display: flex; flex-wrap: wrap; gap: calc(5px * var(--ui-scale)); margin-bottom: calc(16px * var(--ui-scale)); align-items: center; }
 
 .leg {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: 11px; font-family: var(--mono); padding: 3px 7px 3px 9px;
+  display: inline-flex; align-items: center; gap: calc(3px * var(--ui-scale));
+  font-size: calc(11px * var(--ui-scale)); font-family: var(--mono); padding: calc(3px * var(--ui-scale)) calc(7px * var(--ui-scale)) calc(3px * var(--ui-scale)) calc(9px * var(--ui-scale));
   border-radius: 4px; border: 1px solid; cursor: default;
   position: relative;
 }
 .leg-del {
-  font-size: 12px; font-family: var(--mono); line-height: 1;
+  font-size: calc(12px * var(--ui-scale)); font-family: var(--mono); line-height: 1;
   background: none; border: none; cursor: pointer; color: inherit;
   opacity: 0; padding: 0 1px; transition: opacity 0.12s;
 }
@@ -53,7 +66,7 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 .leg-del:hover { opacity: 1 !important; }
 
 .leg-add {
-  font-size: 11px; font-family: var(--mono); padding: 3px 9px;
+  font-size: calc(11px * var(--ui-scale)); font-family: var(--mono); padding: calc(3px * var(--ui-scale)) calc(9px * var(--ui-scale));
   border-radius: 4px; border: 1px dashed var(--border-hover);
   background: none; color: var(--text-dim); cursor: pointer; transition: all 0.12s;
 }
@@ -63,34 +76,34 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 .board {
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
-  gap: 9px;
+  gap: calc(9px * var(--ui-scale));
   align-items: flex-start;
-  padding-bottom: 16px;
+  padding-bottom: calc(16px * var(--ui-scale));
 }
 
 /* ── columns ── */
-.col { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.col { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: calc(9px * var(--ui-scale)); display: flex; flex-direction: column; gap: calc(5px * var(--ui-scale)); min-width: 0; }
 .col.unscheduled { border-style: dashed; border-color: var(--border-hover); background: var(--surface2); }
 
-.col-ghost { border: 1.5px dashed var(--border); border-radius: 10px; min-height: 52px; cursor: pointer; opacity: 0; transition: opacity 0.15s; }
+.col-ghost { border: 1.5px dashed var(--border); border-radius: 10px; min-height: calc(52px * var(--ui-scale)); cursor: pointer; opacity: 0; transition: opacity 0.15s; }
 .board:hover .col-ghost { opacity: 1; }
 .col-ghost:hover { border-color: var(--border-hover); background: var(--surface); opacity: 1; }
 
 .col.col-drag-over { outline: 2px dashed var(--accent); outline-offset: 3px; }
-.col-header { cursor: grab; display: flex; align-items: flex-start; justify-content: space-between; font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; padding-bottom: 6px; border-bottom: 1px solid var(--border); margin-bottom: 1px; }
+.col-header { cursor: grab; display: flex; align-items: flex-start; justify-content: space-between; font-family: var(--mono); font-size: calc(11px * var(--ui-scale)); font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; padding-bottom: calc(6px * var(--ui-scale)); border-bottom: 1px solid var(--border); margin-bottom: 1px; }
 .col-header-left { display: flex; flex-direction: column; gap: 1px; }
-.col-header .date { font-size: 10px; font-weight: 400; color: var(--text-dim); text-transform: none; letter-spacing: 0; }
+.col-header .date { font-size: calc(10px * var(--ui-scale)); font-weight: 400; color: var(--text-dim); text-transform: none; letter-spacing: 0; }
 
-.del-col { font-size: 13px; color: var(--text-dim); background: none; border: none; cursor: pointer; line-height: 1; padding: 0; font-family: var(--mono); opacity: 0; transition: opacity 0.15s; }
+.del-col { font-size: calc(13px * var(--ui-scale)); color: var(--text-dim); background: none; border: none; cursor: pointer; line-height: 1; padding: 0; font-family: var(--mono); opacity: 0; transition: opacity 0.15s; }
 .col:hover .del-col { opacity: 1; }
 .del-col:hover { color: #c0392b; }
 
 /* ── drop zone ── */
-.drop-zone { min-height: 48px; display: flex; flex-direction: column; gap: 4px; border-radius: 6px; transition: background 0.12s; }
+.drop-zone { min-height: calc(48px * var(--ui-scale)); display: flex; flex-direction: column; gap: calc(4px * var(--ui-scale)); border-radius: 6px; transition: background 0.12s; }
 .drop-zone.drag-over { background: rgba(0,0,0,0.03); outline: 1.5px dashed rgba(0,0,0,0.15); outline-offset: 2px; }
 
 /* ── tasks ── */
-.task { font-size: 12px; font-family: var(--sans); padding: 5px 8px; border-radius: 6px; border: 1px solid; cursor: grab; user-select: none; line-height: 1.4; display: flex; align-items: flex-start; justify-content: space-between; gap: 5px; transition: opacity 0.15s, transform 0.1s; }
+.task { font-size: calc(12px * var(--ui-scale)); font-family: var(--sans); padding: calc(5px * var(--ui-scale)) calc(8px * var(--ui-scale)); border-radius: 6px; border: 1px solid; cursor: grab; user-select: none; line-height: 1.4; display: flex; align-items: flex-start; justify-content: space-between; gap: calc(5px * var(--ui-scale)); transition: opacity 0.15s, transform 0.1s; }
 .task:active { cursor: grabbing; opacity: 0.5; transform: scale(0.97); }
 .task-text { flex: 1; word-break: break-word; }
 
@@ -99,22 +112,22 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 .task.insert-after  { box-shadow: 0  2px 0 0 var(--accent); }
 
 .task-actions { display: flex; gap: 2px; flex-shrink: 0; align-items: center; }
-.task .del, .task .check { font-size: 16px; color: inherit; opacity: 0.22; cursor: pointer; line-height: 1; background: none; border: none; font-family: var(--mono); padding: 2px 4px; transition: opacity 0.1s; }
+.task .del, .task .check { font-size: calc(16px * var(--ui-scale)); color: inherit; opacity: 0.22; cursor: pointer; line-height: 1; background: none; border: none; font-family: var(--mono); padding: calc(2px * var(--ui-scale)) calc(4px * var(--ui-scale)); transition: opacity 0.1s; }
 .task .del:hover  { opacity: 1; color: #c0392b; }
 .task .check:hover { opacity: 1; color: #27ae60; }
 .task.done .check { opacity: 1; color: #27ae60; }
 
 /* ── add task form ── */
-.add-btn { font-size: 11px; font-family: var(--mono); color: var(--text-dim); background: none; border: 1px dashed var(--border); border-radius: 6px; padding: 4px 8px; cursor: pointer; width: 100%; text-align: left; transition: border-color 0.15s, color 0.15s; margin-top: 1px; }
+.add-btn { font-size: calc(11px * var(--ui-scale)); font-family: var(--mono); color: var(--text-dim); background: none; border: 1px dashed var(--border); border-radius: 6px; padding: calc(4px * var(--ui-scale)) calc(8px * var(--ui-scale)); cursor: pointer; width: 100%; text-align: left; transition: border-color 0.15s, color 0.15s; margin-top: 1px; }
 .add-btn:hover { border-color: var(--border-hover); color: var(--text-muted); }
 
-.add-form { display: none; flex-direction: column; gap: 5px; margin-top: 3px; }
+.add-form { display: none; flex-direction: column; gap: calc(5px * var(--ui-scale)); margin-top: 3px; }
 .add-form.open { display: flex; }
 
 /* step 1 — type picker pills */
-.add-type-picker { display: flex; flex-wrap: wrap; gap: 4px; }
+.add-type-picker { display: flex; flex-wrap: wrap; gap: calc(4px * var(--ui-scale)); }
 .add-type-pill {
-  font-size: 10px; font-family: var(--mono); padding: 3px 8px;
+  font-size: calc(10px * var(--ui-scale)); font-family: var(--mono); padding: calc(3px * var(--ui-scale)) calc(8px * var(--ui-scale));
   border-radius: 20px; border: 1px solid transparent;
   cursor: pointer; line-height: 1.4;
   transition: opacity 0.1s, transform 0.1s, box-shadow 0.1s;
@@ -125,7 +138,7 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 
 /* step 2 — name input (bg/border/color set inline to match selected type) */
 .add-name-row { display: flex; }
-.add-name-row input { flex: 1; font-size: 12px; font-family: var(--sans); border: 1px solid transparent; border-radius: 6px; padding: 5px 8px; outline: none; }
+.add-name-row input { flex: 1; font-size: calc(12px * var(--ui-scale)); font-family: var(--sans); border: 1px solid transparent; border-radius: 6px; padding: calc(5px * var(--ui-scale)) calc(8px * var(--ui-scale)); outline: none; }
 
 /* ── right-click context menu ── */
 #ctxMenu {
@@ -136,7 +149,7 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 }
 .ctx-item {
   display: block; width: 100%; text-align: left;
-  font-size: 12px; font-family: var(--mono); padding: 6px 10px;
+  font-size: calc(12px * var(--ui-scale)); font-family: var(--mono); padding: calc(6px * var(--ui-scale)) calc(10px * var(--ui-scale));
   border: none; background: none; color: var(--text-muted);
   cursor: pointer; border-radius: 5px;
 }
@@ -144,7 +157,7 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 .ctx-delete { color: #c0392b !important; }
 .ctx-delete:hover { background: #fdecea !important; }
 .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
-.ctx-heading { font-size: 10px; font-family: var(--mono); color: var(--text-dim); padding: 4px 10px 2px; text-transform: uppercase; letter-spacing: 0.07em; }
+.ctx-heading { font-size: calc(10px * var(--ui-scale)); font-family: var(--mono); color: var(--text-dim); padding: calc(4px * var(--ui-scale)) calc(10px * var(--ui-scale)) 2px; text-transform: uppercase; letter-spacing: 0.07em; }
 .ctx-type-item { border-left: 3px solid transparent; padding-left: 8px !important; }
 .ctx-colors { display: flex; flex-wrap: wrap; gap: 5px; padding: 6px 8px; }
 .ctx-swatch {
@@ -156,21 +169,21 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 
 /* ── add label panel ── */
 #addLabelPanel {
-  display: none; position: fixed; top: 56px; right: 24px; z-index: 200;
+  display: none; position: fixed; top: calc(56px * var(--ui-scale)); right: calc(24px * var(--ui-scale)); z-index: 200;
   background: var(--surface); border: 1px solid var(--border-hover);
-  border-radius: 10px; padding: 14px 16px; width: 220px;
+  border-radius: 10px; padding: calc(14px * var(--ui-scale)) calc(16px * var(--ui-scale)); width: calc(220px * var(--ui-scale));
   box-shadow: 0 4px 20px rgba(0,0,0,0.10);
 }
 .add-panel-title {
-  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  font-family: var(--mono); font-size: calc(11px * var(--ui-scale)); font-weight: 500;
   color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em;
-  margin-bottom: 9px;
+  margin-bottom: calc(9px * var(--ui-scale));
 }
 #addLabelPanel input {
-  width: 100%; font-size: 12px; font-family: var(--sans);
+  width: 100%; font-size: calc(12px * var(--ui-scale)); font-family: var(--sans);
   background: var(--surface2); border: 1px solid var(--border-hover);
-  border-radius: 6px; padding: 5px 8px; color: var(--text); outline: none;
-  margin-bottom: 8px;
+  border-radius: 6px; padding: calc(5px * var(--ui-scale)) calc(8px * var(--ui-scale)); color: var(--text); outline: none;
+  margin-bottom: calc(8px * var(--ui-scale));
 }
 #addLabelPanel input:focus { border-color: rgba(0,0,0,0.3); }
 

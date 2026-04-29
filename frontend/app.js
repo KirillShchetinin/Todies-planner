@@ -152,10 +152,9 @@ async function loadState() {
   INIT_TASKS.forEach(t => { if (!state[t.col]) state[t.col]=[]; state[t.col].push({...t}); });
 }
 
-// ensure weekUnscheduled has exactly one entry per week row
+// ensure weekUnscheduled has at least one entry (render() adds more as needed)
 function ensureWeekUnscheduled() {
-  const weekCount = Math.max(1, Math.ceil(cols.length / 7));
-  while (weekUnscheduled.length < weekCount) {
+  if (weekUnscheduled.length === 0) {
     weekUnscheduled.push({id: 'unsched_w' + (colCounter++), label: 'Unscheduled'});
   }
 }
@@ -643,6 +642,22 @@ function buildColEl(col) {
     return colEl;
 }
 
+// Returns ISO week key "YYYY-Www" and day-of-week index (0=Mon…6=Sun) for a col.
+function colWeekInfo(col) {
+  const base = (col.date || '').replace(/\+$/, '');
+  const m = base.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (!m) return null;
+  const yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
+  const d  = new Date(yr, parseInt(m[1]) - 1, parseInt(m[2]));
+  if (isNaN(d)) return null;
+  // ISO week: Thursday determines the year; Monday = day 0
+  const day = (d.getDay() + 6) % 7; // 0=Mon…6=Sun
+  const thu  = new Date(d); thu.setDate(d.getDate() + (3 - day));
+  const jan4 = new Date(thu.getFullYear(), 0, 4);
+  const week = 1 + Math.round((thu - jan4) / 604800000);
+  return { key: `${thu.getFullYear()}-W${String(week).padStart(2,'0')}`, day };
+}
+
 function render() {
   renderLegend();
 
@@ -651,36 +666,94 @@ function render() {
 
   ensureWeekUnscheduled();
 
-  const WEEK = 7;
-  const weekCount = Math.max(1, Math.ceil(cols.length / WEEK));
+  // Group cols by calendar week; cols without a parseable date get their own bucket.
+  const weekMap = new Map(); // key → { key, slots: Array(7|null), order }
+  let noDateBucket = null;
+  let weekOrder = 0;
 
-  for (let wi = 0; wi < weekCount; wi++) {
-    const weekDays = cols.slice(wi * WEEK, (wi + 1) * WEEK);
+  cols.forEach(col => {
+    const info = colWeekInfo(col);
+    if (!info) {
+      if (!noDateBucket) { noDateBucket = { key: '__nodate__', slots: [], order: weekOrder++ }; weekMap.set('__nodate__', noDateBucket); }
+      noDateBucket.slots.push({ col, day: noDateBucket.slots.length });
+      return;
+    }
+    if (!weekMap.has(info.key)) {
+      weekMap.set(info.key, { key: info.key, slots: new Array(7).fill(null), order: weekOrder++ });
+    }
+    weekMap.get(info.key).slots[info.day] = col;
+  });
+
+  // Sort weeks by their first-seen order (cols are already date-sorted).
+  const weeks = [...weekMap.values()].sort((a, b) => a.order - b.order);
+
+  // Sync weekUnscheduled length to number of weeks.
+  const weekCount = Math.max(1, weeks.length);
+  while (weekUnscheduled.length < weekCount) {
+    weekUnscheduled.push({ id: 'unsched_w' + (colCounter++), label: 'Unscheduled' });
+  }
+
+  weeks.forEach((week, wi) => {
     const unschedCol = weekUnscheduled[wi];
 
     const weekRow = document.createElement('div');
     weekRow.className = 'week-row';
 
-    // exactly one unscheduled bar per week row
     const bar = document.createElement('div');
     bar.className = 'unscheduled-bar';
     bar.appendChild(buildColEl(unschedCol));
     weekRow.appendChild(bar);
 
-    // day columns grid
     const daysGrid = document.createElement('div');
     daysGrid.className = 'week-days';
-    weekDays.forEach(col => daysGrid.appendChild(buildColEl(col)));
 
-    // ghost placeholder in the last week row only
-    if (wi === weekCount - 1) {
-      const ghost = document.createElement('div');
-      ghost.className = 'col-ghost';
-      ghost.title = 'Double-click to add next day';
-      ghost.addEventListener('dblclick', e => { e.stopPropagation(); addNextDay(); });
-      daysGrid.appendChild(ghost);
+    const slots = week.key === '__nodate__'
+      ? week.slots.map(s => s.col)
+      : week.slots; // Array(7), entries are col or null
+
+    const isLastWeek = wi === weeks.length - 1;
+    let ghostAdded = false;
+
+    for (let di = 0; di < 7; di++) {
+      const entry = week.key === '__nodate__' ? (slots[di] || null) : slots[di];
+      if (entry) {
+        daysGrid.appendChild(buildColEl(entry));
+      } else if (isLastWeek && !ghostAdded) {
+        // put the ghost placeholder in the first empty slot of the last week
+        const ghost = document.createElement('div');
+        ghost.className = 'col-ghost';
+        ghost.title = 'Double-click to add next day';
+        ghost.addEventListener('dblclick', e => { e.stopPropagation(); addNextDay(); });
+        daysGrid.appendChild(ghost);
+        ghostAdded = true;
+      } else {
+        // empty spacer to keep grid alignment
+        const spacer = document.createElement('div');
+        spacer.className = 'col-spacer';
+        daysGrid.appendChild(spacer);
+      }
     }
 
+    weekRow.appendChild(daysGrid);
+    board.appendChild(weekRow);
+  });
+
+  // Edge case: no cols at all — show an empty week row with just a ghost.
+  if (weeks.length === 0) {
+    const weekRow = document.createElement('div');
+    weekRow.className = 'week-row';
+    const bar = document.createElement('div');
+    bar.className = 'unscheduled-bar';
+    bar.appendChild(buildColEl(weekUnscheduled[0]));
+    weekRow.appendChild(bar);
+    const daysGrid = document.createElement('div');
+    daysGrid.className = 'week-days';
+    const ghost = document.createElement('div');
+    ghost.className = 'col-ghost';
+    ghost.title = 'Double-click to add next day';
+    ghost.addEventListener('dblclick', e => { e.stopPropagation(); addNextDay(); });
+    daysGrid.appendChild(ghost);
+    for (let i = 1; i < 7; i++) { const sp = document.createElement('div'); sp.className = 'col-spacer'; daysGrid.appendChild(sp); }
     weekRow.appendChild(daysGrid);
     board.appendChild(weekRow);
   }

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Planner</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>weekly planner</h1>
+    <span class="hint">drag · dbl-click = done</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button class="add-day-btn" id="labelsBtn">labels</button>
+    <button class="add-day-btn" id="addDayBtn">+ add day</button>
+    <div class="add-day-form" id="addDayForm">
+      <input type="text" id="newDayLabel" placeholder="Mon" maxlength="12" />
+      <input type="text" id="newDayDate" class="date-in" placeholder="04/28" maxlength="10" />
+      <button id="addDayConfirm">add</button>
+      <button id="addDayCancel">cancel</button>
+    </div>
+  </div>
+</header>
+
+<div class="legend" id="legend"></div>
+<div class="board" id="board"></div>
+
+<div id="labelsPanel">
+  <h2>edit labels</h2>
+  <div id="labelRows"></div>
+  <button id="labelsSave">save</button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

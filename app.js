@@ -1,76 +1,96 @@
+// ── constants ─────────────────────────────────────────────────────────────────
+
 const DEFAULT_COLS = [
   {id:'unscheduled', label:'Unscheduled', date:'', fixed:true},
-  {id:'mon', label:'Mon', date:'04/20'},
-  {id:'tue', label:'Tue', date:'04/21'},
-  {id:'wed', label:'Wed', date:'04/22'},
-  {id:'thu', label:'Thu', date:'04/23'},
-  {id:'fri', label:'Fri', date:'04/24'},
-  {id:'sat', label:'Sat', date:'04/25'},
-  {id:'sun', label:'Sun', date:'04/26'},
+  {id:'mon',    label:'Mon',       date:'04/20'},
+  {id:'tue',    label:'Tue',       date:'04/21'},
+  {id:'wed',    label:'Wed',       date:'04/22'},
+  {id:'thu',    label:'Thu',       date:'04/23'},
+  {id:'fri',    label:'Fri',       date:'04/24'},
+  {id:'sat',    label:'Sat',       date:'04/25'},
+  {id:'sun',    label:'Sun',       date:'04/26'},
   {id:'nxtwed', label:'Next Wed+', date:'04/29+'},
 ];
 
 const INIT_TASKS = [
-  {id:'t1',  text:'Bloomberg interview 12pm',  type:'t-locked',    col:'tue',         locked:true},
-  {id:'t2',  text:'InterviewingIO 8:30pm',      type:'t-locked',    col:'tue',         locked:true},
-  {id:'t3',  text:'Uber recruiter 10am',         type:'t-locked',    col:'wed',         locked:true},
-  {id:'t4',  text:'Spanish 4pm (last class)',    type:'t-locked',    col:'wed',         locked:true},
-  {id:'t5',  text:'Reply Lara Peterson',         type:'t-async',     col:'mon'},
-  {id:'t6',  text:'Check Olivia startups',       type:'t-async',     col:'mon'},
-  {id:'t7',  text:'Send resume IBKR',            type:'t-async',     col:'mon'},
-  {id:'t8',  text:'Send resume James',           type:'t-async',     col:'fri'},
-  {id:'t9',  text:'Bloomberg prep call',         type:'t-interview', col:'unscheduled'},
-  {id:'t10', text:'Vaneveer behavioral',         type:'t-interview', col:'unscheduled'},
-  {id:'t11', text:'Bloomberg Buy-Side x2',       type:'t-interview', col:'nxtwed'},
-  {id:'t12', text:'Optiver phone screen',        type:'t-interview', col:'nxtwed'},
-  {id:'t13', text:'Doordash coding screen',      type:'t-interview', col:'nxtwed'},
-  {id:'t14', text:'Amazon SDE2 OA',              type:'t-interview', col:'tue'},
-  {id:'t15', text:'Highland Tech C++ OA',        type:'t-interview', col:'sat'},
-  {id:'t16', text:'Taxes - Fidelity PDFs',       type:'t-tax',       col:'mon'},
-  {id:'t17', text:'Taxes - investments',         type:'t-tax',       col:'wed'},
-  {id:'t18', text:'Taxes - finalize + Q1',       type:'t-tax',       col:'thu'},
-  {id:'t19', text:'C++ practice',                type:'t-practice',  col:'thu'},
-  {id:'t20', text:'System design prep',          type:'t-practice',  col:'fri'},
-  {id:'t21', text:'Check Prampt',                type:'t-practice',  col:'sun'},
-  {id:'t22', text:'Car inspection',              type:'t-async',     col:'thu'},
-  {id:'t23', text:'Rest / recover',              type:'t-rest',      col:'mon'},
+  {id:'t1',  text:'Bloomberg interview 12pm', type:'t-locked',    col:'tue',         locked:true},
+  {id:'t2',  text:'InterviewingIO 8:30pm',    type:'t-locked',    col:'tue',         locked:true},
+  {id:'t3',  text:'Uber recruiter 10am',       type:'t-locked',    col:'wed',         locked:true},
+  {id:'t4',  text:'Spanish 4pm (last class)',  type:'t-locked',    col:'wed',         locked:true},
+  {id:'t5',  text:'Reply Lara Peterson',       type:'t-async',     col:'mon'},
+  {id:'t6',  text:'Check Olivia startups',     type:'t-async',     col:'mon'},
+  {id:'t7',  text:'Send resume IBKR',          type:'t-async',     col:'mon'},
+  {id:'t8',  text:'Send resume James',         type:'t-async',     col:'fri'},
+  {id:'t9',  text:'Bloomberg prep call',       type:'t-interview', col:'unscheduled'},
+  {id:'t10', text:'Vaneveer behavioral',       type:'t-interview', col:'unscheduled'},
+  {id:'t11', text:'Bloomberg Buy-Side x2',     type:'t-interview', col:'nxtwed'},
+  {id:'t12', text:'Optiver phone screen',      type:'t-interview', col:'nxtwed'},
+  {id:'t13', text:'Doordash coding screen',    type:'t-interview', col:'nxtwed'},
+  {id:'t14', text:'Amazon SDE2 OA',            type:'t-interview', col:'tue'},
+  {id:'t15', text:'Highland Tech C++ OA',      type:'t-interview', col:'sat'},
+  {id:'t16', text:'Taxes - Fidelity PDFs',     type:'t-tax',       col:'mon'},
+  {id:'t17', text:'Taxes - investments',       type:'t-tax',       col:'wed'},
+  {id:'t18', text:'Taxes - finalize + Q1',     type:'t-tax',       col:'thu'},
+  {id:'t19', text:'C++ practice',              type:'t-practice',  col:'thu'},
+  {id:'t20', text:'System design prep',        type:'t-practice',  col:'fri'},
+  {id:'t21', text:'Check Prampt',              type:'t-practice',  col:'sun'},
+  {id:'t22', text:'Car inspection',            type:'t-async',     col:'thu'},
+  {id:'t23', text:'Rest / recover',            type:'t-rest',      col:'mon'},
 ];
 
-const TYPE_STYLES = {
-  't-locked':    'background:var(--c-locked-bg);border-color:var(--c-locked-b);color:var(--c-locked-t)',
-  't-interview': 'background:var(--c-interview-bg);border-color:var(--c-interview-b);color:var(--c-interview-t)',
-  't-tax':       'background:var(--c-tax-bg);border-color:var(--c-tax-b);color:var(--c-tax-t)',
-  't-practice':  'background:var(--c-practice-bg);border-color:var(--c-practice-b);color:var(--c-practice-t)',
-  't-async':     'background:var(--c-async-bg);border-color:var(--c-async-b);color:var(--c-async-t)',
-  't-rest':      'background:var(--c-rest-bg);border-color:var(--c-rest-b);color:var(--c-rest-t)',
-  't-unplanned': 'background:var(--c-unplanned-bg);border-color:var(--c-unplanned-b);color:var(--c-unplanned-t)',
-  'done':        'background:var(--c-done-bg);border-color:var(--c-done-b);color:var(--c-done-t)',
+const DEFAULT_TYPE_CONFIG = {
+  't-locked':    { label:'locked',    bg:'#e8f0fa', border:'#b5cff0', text:'#1a4a8a', fixed:true },
+  't-interview': { label:'interview', bg:'#eeecfb', border:'#cbc6f0', text:'#3c3489' },
+  't-tax':       { label:'taxes',     bg:'#fdf3dc', border:'#f5d98a', text:'#7a4800' },
+  't-practice':  { label:'practice',  bg:'#eaf6ee', border:'#a8ddb8', text:'#1a5c30' },
+  't-async':     { label:'async',     bg:'#f2f2f0', border:'#d8d8d4', text:'#444444' },
+  't-rest':      { label:'rest',      bg:'#fdecea', border:'#f5bdb8', text:'#8a2020' },
+  't-unplanned': { label:'unplanned', bg:'#f4f4f2', border:'#c4c4be', text:'#888888', dashed:true, italic:true },
+  'done':        { label:'done',      bg:'#f5f5f5', border:'#dddddd', text:'#bbbbbb', fixed:true },
 };
-const LEGEND_ORDER   = ['t-locked','t-interview','t-tax','t-practice','t-async','t-rest','t-unplanned','done'];
-const DROPDOWN_TYPES = ['t-interview','t-tax','t-practice','t-async','t-rest','t-unplanned'];
+const DEFAULT_LEGEND_ORDER = ['t-locked','t-interview','t-tax','t-practice','t-async','t-rest','t-unplanned','done'];
 
-const DEFAULT_TYPE_LABELS = {
-  't-locked':    'locked',
-  't-interview': 'interview',
-  't-tax':       'taxes',
-  't-practice':  'practice',
-  't-async':     'async',
-  't-rest':      'rest',
-  't-unplanned': 'unplanned',
-  'done':        'done',
-};
+const COLOR_PRESETS = [
+  { bg:'#e8f0fa', border:'#b5cff0', text:'#1a4a8a' },
+  { bg:'#eeecfb', border:'#cbc6f0', text:'#3c3489' },
+  { bg:'#fdf3dc', border:'#f5d98a', text:'#7a4800' },
+  { bg:'#eaf6ee', border:'#a8ddb8', text:'#1a5c30' },
+  { bg:'#f2f2f0', border:'#d8d8d4', text:'#444444' },
+  { bg:'#fdecea', border:'#f5bdb8', text:'#8a2020' },
+  { bg:'#e0f5f5', border:'#90d0d0', text:'#1a5555' },
+  { bg:'#fef0e6', border:'#f5c895', text:'#7a3000' },
+  { bg:'#fceaf4', border:'#e8b0d8', text:'#6a1a4a' },
+  { bg:'#f4f4f2', border:'#c4c4be', text:'#888888' },
+];
 
-let cols = [], state = {}, idCounter = 100, colCounter = 200, dragging = null;
-let typeLabels = {...DEFAULT_TYPE_LABELS};
+// ── state ─────────────────────────────────────────────────────────────────────
+
+let cols = [], state = {}, idCounter = 100, colCounter = 200, typeCounter = 0, dragging = null;
+let typeConfig  = structuredClone(DEFAULT_TYPE_CONFIG);
+let legendOrder = [...DEFAULT_LEGEND_ORDER];
+
+// ── helpers ───────────────────────────────────────────────────────────────────
 
 function inferDay(dateStr) {
   const m = dateStr.trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
   if (!m) return '';
   const yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
   const d  = new Date(yr, parseInt(m[1]) - 1, parseInt(m[2]));
-  if (isNaN(d)) return '';
-  return d.toLocaleDateString('en-US', {weekday: 'short'});
+  return isNaN(d) ? '' : d.toLocaleDateString('en-US', {weekday:'short'});
 }
+
+function applyTaskStyle(el, type, done) {
+  const cfg = done
+    ? (typeConfig['done'] || DEFAULT_TYPE_CONFIG['done'])
+    : (typeConfig[type]   || typeConfig['t-async'] || {bg:'#f2f2f0', border:'#d8d8d4', text:'#444'});
+  el.style.background  = cfg.bg;
+  el.style.borderColor = cfg.border;
+  el.style.color       = cfg.text;
+  el.style.borderStyle = (!done && cfg.dashed) ? 'dashed' : 'solid';
+  el.style.fontStyle   = (!done && cfg.italic)  ? 'italic' : '';
+}
+
+// ── persistence ───────────────────────────────────────────────────────────────
 
 async function loadState() {
   try {
@@ -81,7 +101,11 @@ async function loadState() {
       state       = saved.state;
       idCounter   = saved.idCounter   || 100;
       colCounter  = saved.colCounter  || 200;
-      typeLabels  = saved.typeLabels  ? {...DEFAULT_TYPE_LABELS, ...saved.typeLabels} : {...DEFAULT_TYPE_LABELS};
+      typeCounter = saved.typeCounter || 0;
+      legendOrder = saved.legendOrder || [...DEFAULT_LEGEND_ORDER];
+      typeConfig  = saved.typeConfig
+        ? {...structuredClone(DEFAULT_TYPE_CONFIG), ...saved.typeConfig}
+        : structuredClone(DEFAULT_TYPE_CONFIG);
       return;
     }
   } catch(e) {}
@@ -93,59 +117,176 @@ async function loadState() {
 function saveState() {
   fetch('/api/state', {
     method:  'PUT',
-    headers: {'Content-Type': 'application/json'},
-    body:    JSON.stringify({cols, state, idCounter, colCounter, typeLabels}),
+    headers: {'Content-Type':'application/json'},
+    body:    JSON.stringify({cols, state, idCounter, colCounter, typeCounter, typeConfig, legendOrder}),
   }).catch(() => {});
 }
 
-function addTask(colId, text, type) {
-  if (!text.trim()) return;
-  if (!state[colId]) state[colId] = [];
-  state[colId].push({id:'u'+(idCounter++), text:text.trim(), type, col:colId, locked:false, done:false});
+// ── label ops ─────────────────────────────────────────────────────────────────
+
+function addLabel(name, colors) {
+  const key = 't-custom-' + (typeCounter++);
+  typeConfig[key] = { label: name.trim(), ...colors };
+  const doneIdx = legendOrder.indexOf('done');
+  legendOrder.splice(doneIdx < 0 ? legendOrder.length : doneIdx, 0, key);
   saveState(); render();
 }
 
-function deleteTask(id) {
-  cols.forEach(c => { if (state[c.id]) state[c.id] = state[c.id].filter(t => t.id !== id); });
+function deleteLabel(key) {
+  if (typeConfig[key]?.fixed) return;
+  delete typeConfig[key];
+  legendOrder = legendOrder.filter(k => k !== key);
+  cols.forEach(c => { (state[c.id]||[]).forEach(t => { if (t.type===key) t.type='t-async'; }); });
   saveState(); render();
 }
 
-function toggleDone(id) {
-  cols.forEach(c => { if (!state[c.id]) return; const t = state[c.id].find(t => t.id===id); if (t) t.done = !t.done; });
+function renameLabel(key, newName) {
+  if (!typeConfig[key] || !newName.trim()) return;
+  typeConfig[key].label = newName.trim();
   saveState(); render();
 }
 
-function addCol(label, date) {
-  if (!label.trim()) return;
-  const id = 'col'+(colCounter++);
-  cols.push({id, label:label.trim(), date:date.trim()});
+function recolorLabel(key, colors) {
+  if (!typeConfig[key]) return;
+  Object.assign(typeConfig[key], colors);
   saveState(); render();
 }
 
-function deleteCol(colId) {
-  const tasks = state[colId] || [];
-  if (tasks.length > 0) {
-    if (!confirm('Move tasks to Unscheduled?')) return;
-    if (!state['unscheduled']) state['unscheduled'] = [];
-    tasks.forEach(t => { t.col='unscheduled'; state['unscheduled'].push(t); });
-  }
-  delete state[colId];
-  cols = cols.filter(c => c.id !== colId);
-  saveState(); render();
+// ── context menu ──────────────────────────────────────────────────────────────
+
+const ctxMenu = document.createElement('div');
+ctxMenu.id = 'ctxMenu';
+document.body.appendChild(ctxMenu);
+let ctxKey = null;
+
+function openCtxMenu(e, key) {
+  e.preventDefault();
+  ctxKey = key;
+  const cfg = typeConfig[key] || {};
+
+  ctxMenu.innerHTML = `
+    <button class="ctx-item" id="ctxRename">rename</button>
+    <div class="ctx-sep"></div>
+    <div class="ctx-colors" id="ctxColors"></div>
+    ${!cfg.fixed ? '<div class="ctx-sep"></div><button class="ctx-item ctx-delete" id="ctxDelete">delete</button>' : ''}
+  `;
+
+  ctxMenu.querySelector('#ctxRename').onclick = () => {
+    closeCtxMenu();
+    const n = prompt('New name:', typeConfig[ctxKey]?.label || ctxKey);
+    if (n) renameLabel(ctxKey, n);
+  };
+  const delBtn = ctxMenu.querySelector('#ctxDelete');
+  if (delBtn) delBtn.onclick = () => { closeCtxMenu(); deleteLabel(ctxKey); };
+
+  const grid = ctxMenu.querySelector('#ctxColors');
+  COLOR_PRESETS.forEach(preset => {
+    const sw = document.createElement('button');
+    sw.className = 'ctx-swatch';
+    sw.style.cssText = `background:${preset.bg};border-color:${preset.border}`;
+    sw.onclick = () => { recolorLabel(ctxKey, preset); closeCtxMenu(); };
+    grid.appendChild(sw);
+  });
+
+  ctxMenu.style.display = 'block';
+  const mw = ctxMenu.offsetWidth, mh = ctxMenu.offsetHeight;
+  ctxMenu.style.left = Math.min(e.clientX, window.innerWidth  - mw - 8) + 'px';
+  ctxMenu.style.top  = Math.min(e.clientY, window.innerHeight - mh - 8) + 'px';
 }
+
+function closeCtxMenu() { ctxMenu.style.display = 'none'; ctxKey = null; }
+
+document.addEventListener('click',   closeCtxMenu);
+document.addEventListener('keydown', e => { if (e.key==='Escape') { closeCtxMenu(); closeAddPanel(); } });
+
+// ── add label panel ───────────────────────────────────────────────────────────
+
+const addPanel = document.createElement('div');
+addPanel.id = 'addLabelPanel';
+addPanel.innerHTML = `
+  <p class="add-panel-title">new label</p>
+  <input id="newLabelName" type="text" placeholder="label name..." maxlength="20" />
+  <div class="ctx-colors" id="addPanelColors"></div>
+  <div class="add-form-btns" style="margin-top:8px">
+    <button class="btn-confirm" id="newLabelConfirm">add</button>
+    <button class="btn-cancel"  id="newLabelCancel">cancel</button>
+  </div>
+`;
+document.body.appendChild(addPanel);
+
+let selectedPreset = COLOR_PRESETS[4];
+
+function openAddPanel() {
+  const grid = addPanel.querySelector('#addPanelColors');
+  grid.innerHTML = '';
+  COLOR_PRESETS.forEach(preset => {
+    const sw = document.createElement('button');
+    sw.className = 'ctx-swatch' + (preset === selectedPreset ? ' selected' : '');
+    sw.style.cssText = `background:${preset.bg};border-color:${preset.border}`;
+    sw.onclick = () => {
+      selectedPreset = preset;
+      grid.querySelectorAll('.ctx-swatch').forEach(s => s.classList.remove('selected'));
+      sw.classList.add('selected');
+    };
+    grid.appendChild(sw);
+  });
+  addPanel.style.display = 'block';
+  addPanel.querySelector('#newLabelName').value = '';
+  addPanel.querySelector('#newLabelName').focus();
+}
+
+function closeAddPanel() { addPanel.style.display = 'none'; }
+
+addPanel.querySelector('#newLabelCancel').onclick  = closeAddPanel;
+addPanel.querySelector('#newLabelConfirm').onclick = () => {
+  const name = addPanel.querySelector('#newLabelName').value.trim();
+  if (!name) return;
+  addLabel(name, selectedPreset);
+  closeAddPanel();
+};
+addPanel.querySelector('#newLabelName').addEventListener('keydown', e => {
+  if (e.key === 'Enter')  addPanel.querySelector('#newLabelConfirm').click();
+  if (e.key === 'Escape') closeAddPanel();
+});
+
+// ── legend ────────────────────────────────────────────────────────────────────
 
 function renderLegend() {
   const el = document.getElementById('legend');
   el.innerHTML = '';
-  LEGEND_ORDER.forEach(key => {
+
+  legendOrder.forEach(key => {
+    const cfg = typeConfig[key];
+    if (!cfg) return;
+
     const pill = document.createElement('span');
-    pill.className   = 'leg';
-    pill.style.cssText = TYPE_STYLES[key] || '';
-    pill.textContent = typeLabels[key] || key;
-    pill.title = 'click "labels" to rename';
+    pill.className = 'leg';
+    pill.style.cssText = `background:${cfg.bg};border-color:${cfg.border};color:${cfg.text}`;
+
+    const name = document.createElement('span');
+    name.textContent = cfg.label;
+    pill.appendChild(name);
+
+    if (!cfg.fixed) {
+      const x = document.createElement('button');
+      x.className = 'leg-del';
+      x.textContent = '×';
+      x.onclick = ev => { ev.stopPropagation(); deleteLabel(key); };
+      pill.appendChild(x);
+    }
+
+    pill.addEventListener('contextmenu', e => openCtxMenu(e, key));
     el.appendChild(pill);
   });
+
+  const addBtn = document.createElement('button');
+  addBtn.className   = 'leg-add';
+  addBtn.textContent = '+ label';
+  addBtn.onclick     = ev => { ev.stopPropagation(); openAddPanel(); };
+  el.appendChild(addBtn);
 }
+
+// ── board ─────────────────────────────────────────────────────────────────────
 
 function render() {
   renderLegend();
@@ -155,7 +296,7 @@ function render() {
 
   cols.forEach(col => {
     const colEl = document.createElement('div');
-    colEl.className = 'col' + (col.id==='unscheduled' ? ' unscheduled' : '');
+    colEl.className = 'col' + (col.id === 'unscheduled' ? ' unscheduled' : '');
 
     const hdr  = document.createElement('div');
     hdr.className = 'col-header';
@@ -177,8 +318,9 @@ function render() {
 
     (state[col.id]||[]).forEach(task => {
       const el = document.createElement('div');
-      el.className = 'task ' + task.type + (task.locked?' locked':'') + (task.done?' done':'');
+      el.className = 'task' + (task.locked ? ' locked' : '') + (task.done ? ' done' : '');
       el.dataset.id = task.id;
+      applyTaskStyle(el, task.type, task.done);
 
       const txt = document.createElement('span');
       txt.className = 'task-text';
@@ -190,7 +332,7 @@ function render() {
         actions.className = 'task-actions';
 
         const chk = document.createElement('button');
-        chk.className = 'check';
+        chk.className   = 'check';
         chk.textContent = task.done ? '✓' : '○';
         chk.onclick = e => { e.stopPropagation(); toggleDone(task.id); };
         actions.appendChild(chk);
@@ -203,46 +345,91 @@ function render() {
         el.appendChild(actions);
         el.addEventListener('dblclick', () => toggleDone(task.id));
         el.draggable = !task.done;
+
         el.addEventListener('dragstart', e => {
           if (task.done) { e.preventDefault(); return; }
-          dragging = task.id; e.dataTransfer.effectAllowed='move';
-          setTimeout(() => el.style.opacity='0.4', 0);
+          dragging = task.id;
+          e.dataTransfer.effectAllowed = 'move';
+          setTimeout(() => el.style.opacity = '0.4', 0);
         });
         el.addEventListener('dragend', () => {
-          dragging=null; el.style.opacity='';
+          dragging = null; el.style.opacity = '';
+          document.querySelectorAll('.task').forEach(t => t.classList.remove('insert-before','insert-after'));
           document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('drag-over'));
         });
+
+        // within-column drag positioning indicator
+        el.addEventListener('dragover', e => {
+          if (!dragging || dragging === task.id) return;
+          e.preventDefault(); e.stopPropagation();
+          const mid = el.getBoundingClientRect().top + el.getBoundingClientRect().height / 2;
+          document.querySelectorAll('.task').forEach(t => t.classList.remove('insert-before','insert-after'));
+          el.classList.toggle('insert-before', e.clientY < mid);
+          el.classList.toggle('insert-after',  e.clientY >= mid);
+          zone.classList.remove('drag-over');
+        });
+        el.addEventListener('dragleave', () => el.classList.remove('insert-before','insert-after'));
       }
       zone.appendChild(el);
     });
 
-    zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag-over'); });
-    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    // drop on zone (append) or on a task (insert at position)
+    zone.addEventListener('dragover', e => {
+      e.preventDefault();
+      // only highlight zone if not hovering over a task
+      if (!e.target.closest('.task')) zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', e => {
+      if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over');
+    });
     zone.addEventListener('drop', e => {
-      e.preventDefault(); zone.classList.remove('drag-over');
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      document.querySelectorAll('.task').forEach(t => t.classList.remove('insert-before','insert-after'));
       if (!dragging) return;
-      const tc = zone.dataset.col; let task=null;
+
+      const tc = zone.dataset.col;
+      const targetEl = e.target.closest('.task[data-id]');
+
+      // find and remove from source
+      let task = null;
       cols.forEach(c => {
         if (!state[c.id]) return;
-        const i = state[c.id].findIndex(t => t.id===dragging);
-        if (i>-1) task = state[c.id].splice(i,1)[0];
+        const i = state[c.id].findIndex(t => t.id === dragging);
+        if (i > -1) task = state[c.id].splice(i, 1)[0];
       });
-      if (task) { task.col=tc; if (!state[tc]) state[tc]=[]; state[tc].push(task); saveState(); }
-      render();
+      if (!task) return;
+
+      task.col = tc;
+      if (!state[tc]) state[tc] = [];
+
+      if (targetEl && targetEl.dataset.id !== task.id) {
+        const rect     = targetEl.getBoundingClientRect();
+        const before   = e.clientY < rect.top + rect.height / 2;
+        const targetId = targetEl.dataset.id;
+        const idx      = state[tc].findIndex(t => t.id === targetId);
+        state[tc].splice(before ? idx : idx + 1, 0, task);
+      } else {
+        state[tc].push(task);
+      }
+
+      saveState(); render();
     });
 
     colEl.appendChild(zone);
 
+    // add task form
     const addBtn = document.createElement('button');
-    addBtn.className = 'add-btn'; addBtn.textContent = '+ add task';
+    addBtn.className   = 'add-btn';
+    addBtn.textContent = '+ add task';
 
     const form = document.createElement('div');
     form.className = 'add-form';
-
-    const opts = DROPDOWN_TYPES
-      .map(k => `<option value="${k}"${k==='t-async'?' selected':''}>${typeLabels[k]||k}</option>`)
+    const dropKeys = legendOrder.filter(k => k !== 't-locked' && k !== 'done');
+    const opts = dropKeys
+      .map(k => `<option value="${k}"${k==='t-async'?' selected':''}>${typeConfig[k]?.label||k}</option>`)
       .join('');
-    form.innerHTML = `<input type="text" placeholder="task name..." maxlength="60" /><select>${opts}</select><div class="add-form-btns"><button class="btn-confirm">add</button><button class="btn-cancel">cancel</button></div>`;
+    form.innerHTML = `<input type="text" placeholder="task name..." maxlength="60"/><select>${opts}</select><div class="add-form-btns"><button class="btn-confirm">add</button><button class="btn-cancel">cancel</button></div>`;
 
     const reset = () => { addBtn.style.display=''; form.classList.remove('open'); form.querySelector('input').value=''; };
     addBtn.onclick = () => { addBtn.style.display='none'; form.classList.add('open'); form.querySelector('input').focus(); };
@@ -256,6 +443,49 @@ function render() {
     board.appendChild(colEl);
   });
 }
+
+// ── task / col ops ────────────────────────────────────────────────────────────
+
+function addTask(colId, text, type) {
+  if (!text.trim()) return;
+  if (!state[colId]) state[colId] = [];
+  state[colId].push({id:'u'+(idCounter++), text:text.trim(), type, col:colId, locked:false, done:false});
+  saveState(); render();
+}
+
+function deleteTask(id) {
+  cols.forEach(c => { if (state[c.id]) state[c.id] = state[c.id].filter(t => t.id !== id); });
+  saveState(); render();
+}
+
+function toggleDone(id) {
+  cols.forEach(c => {
+    if (!state[c.id]) return;
+    const t = state[c.id].find(t => t.id === id);
+    if (t) t.done = !t.done;
+  });
+  saveState(); render();
+}
+
+function addCol(label, date) {
+  if (!label.trim()) return;
+  cols.push({id:'col'+(colCounter++), label:label.trim(), date:date.trim()});
+  saveState(); render();
+}
+
+function deleteCol(colId) {
+  const tasks = state[colId] || [];
+  if (tasks.length > 0) {
+    if (!confirm('Move tasks to Unscheduled?')) return;
+    if (!state['unscheduled']) state['unscheduled'] = [];
+    tasks.forEach(t => { t.col='unscheduled'; state['unscheduled'].push(t); });
+  }
+  delete state[colId];
+  cols = cols.filter(c => c.id !== colId);
+  saveState(); render();
+}
+
+// ── init ──────────────────────────────────────────────────────────────────────
 
 loadState().then(() => render());
 
@@ -278,8 +508,7 @@ newDayDate.addEventListener('input', () => {
 
 document.getElementById('addDayCancel').onclick  = closeDay;
 document.getElementById('addDayConfirm').onclick = () => {
-  const l = newDayLabel.value;
-  const d = newDayDate.value;
+  const l = newDayLabel.value, d = newDayDate.value;
   if (!l.trim()) return;
   addCol(l, d); closeDay();
 };
@@ -288,61 +517,4 @@ document.getElementById('addDayConfirm').onclick = () => {
     if (e.key==='Enter')  document.getElementById('addDayConfirm').click();
     if (e.key==='Escape') closeDay();
   });
-});
-
-const labelsPanel = document.getElementById('labelsPanel');
-
-function openLabelsPanel() {
-  const rows = document.getElementById('labelRows');
-  rows.innerHTML = '';
-  LEGEND_ORDER.forEach(key => {
-    const style   = TYPE_STYLES[key] || '';
-    const bgMatch = style.match(/background:([^;]+)/);
-    const bMatch  = style.match(/border-color:([^;]+)/);
-
-    const row = document.createElement('div');
-    row.className = 'label-row';
-
-    const swatch = document.createElement('div');
-    swatch.className = 'label-swatch';
-    if (bgMatch) swatch.style.background  = bgMatch[1].trim();
-    if (bMatch)  swatch.style.borderColor = bMatch[1].trim();
-
-    const inp = document.createElement('input');
-    inp.type        = 'text';
-    inp.value       = typeLabels[key] || key;
-    inp.dataset.key = key;
-    inp.maxLength   = 20;
-
-    row.appendChild(swatch);
-    row.appendChild(inp);
-    rows.appendChild(row);
-  });
-
-  labelsPanel.classList.add('open');
-}
-
-document.getElementById('labelsBtn').onclick = (e) => {
-  e.stopPropagation();
-  if (labelsPanel.classList.contains('open')) {
-    labelsPanel.classList.remove('open');
-  } else {
-    openLabelsPanel();
-  }
-};
-
-document.getElementById('labelsSave').onclick = () => {
-  document.querySelectorAll('#labelRows input').forEach(inp => {
-    const val = inp.value.trim();
-    if (val) typeLabels[inp.dataset.key] = val;
-  });
-  saveState();
-  render();
-  labelsPanel.classList.remove('open');
-};
-
-document.addEventListener('click', e => {
-  if (!labelsPanel.contains(e.target) && e.target.id !== 'labelsBtn') {
-    labelsPanel.classList.remove('open');
-  }
 });

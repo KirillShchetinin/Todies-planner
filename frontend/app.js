@@ -373,6 +373,17 @@ function render() {
       dc.onclick = () => deleteCol(col.id);
       hdr.appendChild(dc);
     }
+
+    // click header to collapse/expand; distinguish from drag via mousedown pos
+    let hdrMouseX = 0, hdrMouseY = 0;
+    hdr.addEventListener('mousedown', e => { hdrMouseX = e.clientX; hdrMouseY = e.clientY; });
+    hdr.addEventListener('mouseup', e => {
+      if (e.target.closest('.del-col')) return;
+      const dx = Math.abs(e.clientX - hdrMouseX), dy = Math.abs(e.clientY - hdrMouseY);
+      if (dx >= 5 || dy >= 5) return;
+      if (Collapse.toggle(col.id, state)) render();
+    });
+
     colEl.appendChild(hdr);
 
     const zone = document.createElement('div');
@@ -565,6 +576,11 @@ function render() {
 
     colEl.appendChild(addBtn);
     colEl.appendChild(form);
+
+    if (Collapse.isShort(col.id)) {
+      Collapse.applyShort(colEl, zone, state[col.id] || [], typeConfig);
+    }
+
     board.appendChild(colEl);
   });
 

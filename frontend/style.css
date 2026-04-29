@@ -91,6 +91,9 @@ header .hint { font-size: calc(11px * var(--ui-scale)); color: var(--text-dim); 
 
 .col.col-drag-over { outline: 2px dashed var(--accent); outline-offset: 3px; }
 .col-header { cursor: grab; display: flex; align-items: flex-start; justify-content: space-between; font-family: var(--mono); font-size: calc(11px * var(--ui-scale)); font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; padding-bottom: calc(6px * var(--ui-scale)); border-bottom: 1px solid var(--border); margin-bottom: 1px; }
+.col-dots { display: flex; flex-wrap: wrap; gap: calc(4px * var(--ui-scale)); padding-top: calc(6px * var(--ui-scale)); }
+.col-dot { width: calc(10px * var(--ui-scale)); height: calc(10px * var(--ui-scale)); border-radius: 50%; flex-shrink: 0; }
+.col-dot--done { opacity: 0.3; }
 .col-header-left { display: flex; flex-direction: column; gap: 1px; }
 .col-header .date { font-size: calc(10px * var(--ui-scale)); font-weight: 400; color: var(--text-dim); text-transform: none; letter-spacing: 0; }
 

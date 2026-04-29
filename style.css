@@ -72,7 +72,8 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 .col { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .col.unscheduled { border-style: dashed; border-color: var(--border-hover); background: var(--surface2); }
 
-.col-header { display: flex; align-items: flex-start; justify-content: space-between; font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; padding-bottom: 6px; border-bottom: 1px solid var(--border); margin-bottom: 1px; }
+.col.col-drag-over { outline: 2px dashed var(--accent); outline-offset: 3px; }
+.col-header { cursor: grab; display: flex; align-items: flex-start; justify-content: space-between; font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; padding-bottom: 6px; border-bottom: 1px solid var(--border); margin-bottom: 1px; }
 .col-header-left { display: flex; flex-direction: column; gap: 1px; }
 .col-header .date { font-size: 10px; font-weight: 400; color: var(--text-dim); text-transform: none; letter-spacing: 0; }
 
@@ -87,7 +88,6 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 /* ── tasks ── */
 .task { font-size: 12px; font-family: var(--sans); padding: 5px 8px; border-radius: 6px; border: 1px solid; cursor: grab; user-select: none; line-height: 1.4; display: flex; align-items: flex-start; justify-content: space-between; gap: 5px; transition: opacity 0.15s, transform 0.1s; }
 .task:active { cursor: grabbing; opacity: 0.5; transform: scale(0.97); }
-.task.locked { cursor: default; font-style: italic; }
 .task-text { flex: 1; word-break: break-word; }
 
 /* drag-to-insert position indicators */
@@ -99,7 +99,6 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 .task .del:hover  { opacity: 1; color: #c0392b; }
 .task .check:hover { opacity: 1; color: #27ae60; }
 .task.done .check { opacity: 0.7; color: #27ae60; }
-.task.locked .del, .task.locked .check { display: none; }
 
 /* ── add task form ── */
 .add-btn { font-size: 11px; font-family: var(--mono); color: var(--text-dim); background: none; border: 1px dashed var(--border); border-radius: 6px; padding: 4px 8px; cursor: pointer; width: 100%; text-align: left; transition: border-color 0.15s, color 0.15s; margin-top: 1px; }

@@ -420,11 +420,10 @@ function render() {
         el.appendChild(actions);
         el.addEventListener('contextmenu', e => openTaskCtxMenu(e, task.id));
         el.addEventListener('dblclick', () => toggleDone(task.id));
-        el.draggable = !task.done;
+        el.draggable = true;
 
 
         el.addEventListener('dragstart', e => {
-          if (task.done) { e.preventDefault(); return; }
           e.stopPropagation();
           dragging = task.id;
           e.dataTransfer.effectAllowed = 'move';

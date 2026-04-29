@@ -446,6 +446,7 @@ function buildColEl(col) {
       const el = document.createElement('div');
       el.className = 'task' + (task.done ? ' done' : '');
       el.dataset.id = task.id;
+      el.title = task.text;
       applyTaskStyle(el, task.type, task.done);
 
       if (task.important) {
@@ -701,6 +702,8 @@ function render() {
 
     const bar = document.createElement('div');
     bar.className = 'unscheduled-bar';
+    const unschedTasks = state[unschedCol.id] || [];
+    if (unschedTasks.length > 0) bar.classList.add('has-tasks');
     bar.appendChild(buildColEl(unschedCol));
     weekRow.appendChild(bar);
 
@@ -744,6 +747,8 @@ function render() {
     weekRow.className = 'week-row';
     const bar = document.createElement('div');
     bar.className = 'unscheduled-bar';
+    const emptyTasks = state[weekUnscheduled[0].id] || [];
+    if (emptyTasks.length > 0) bar.classList.add('has-tasks');
     bar.appendChild(buildColEl(weekUnscheduled[0]));
     weekRow.appendChild(bar);
     const daysGrid = document.createElement('div');

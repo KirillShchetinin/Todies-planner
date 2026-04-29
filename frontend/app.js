@@ -176,7 +176,32 @@ function openTaskCtxMenu(e, taskId) {
   e.preventDefault();
   ctxKey = null;
 
-  ctxMenu.innerHTML = '<div class="ctx-heading">change type</div><div class="ctx-sep"></div>';
+  let task = null;
+  cols.forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) task = t; }); });
+
+  ctxMenu.innerHTML = '';
+
+  const impBtn = document.createElement('button');
+  impBtn.className = 'ctx-item ctx-important-item';
+  impBtn.textContent = task?.important ? '! unmark important' : '! mark important';
+  impBtn.onclick = () => {
+    cols.forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.important = !t.important; }); });
+    saveState(); closeCtxMenu(); render();
+  };
+  ctxMenu.appendChild(impBtn);
+
+  const sep = document.createElement('div');
+  sep.className = 'ctx-sep';
+  ctxMenu.appendChild(sep);
+
+  const heading = document.createElement('div');
+  heading.className = 'ctx-heading';
+  heading.textContent = 'change type';
+  ctxMenu.appendChild(heading);
+
+  const sep2 = document.createElement('div');
+  sep2.className = 'ctx-sep';
+  ctxMenu.appendChild(sep2);
 
   legendOrder.filter(k => k !== 'done').forEach(key => {
     const cfg = typeConfig[key];
@@ -396,6 +421,13 @@ function render() {
       el.className = 'task' + (task.done ? ' done' : '');
       el.dataset.id = task.id;
       applyTaskStyle(el, task.type, task.done);
+
+      if (task.important) {
+        const imp = document.createElement('span');
+        imp.className = 'task-important';
+        imp.textContent = '!';
+        el.appendChild(imp);
+      }
 
       const txt = document.createElement('span');
       txt.className = 'task-text';

@@ -114,6 +114,7 @@ header .hint { font-size: calc(11px * var(--ui-scale)); color: var(--text-dim); 
 .task.insert-before { box-shadow: 0 -2px 0 0 var(--accent); }
 .task.insert-after  { box-shadow: 0  2px 0 0 var(--accent); }
 
+.task-important { flex-shrink: 0; color: #e8130d; font-weight: 700; font-size: calc(16px * var(--ui-scale)); line-height: 1; margin-right: calc(2px * var(--ui-scale)); align-self: center; }
 .task-actions { display: flex; gap: 2px; flex-shrink: 0; align-items: center; }
 .task .del, .task .check { font-size: calc(16px * var(--ui-scale)); color: inherit; opacity: 0.22; cursor: pointer; line-height: 1; background: none; border: none; font-family: var(--mono); padding: calc(2px * var(--ui-scale)) calc(4px * var(--ui-scale)); transition: opacity 0.1s; }
 .task .del:hover  { opacity: 1; color: #c0392b; }
@@ -159,6 +160,8 @@ header .hint { font-size: calc(11px * var(--ui-scale)); color: var(--text-dim); 
 .ctx-item:hover { background: var(--surface2); color: var(--text); }
 .ctx-delete { color: #c0392b !important; }
 .ctx-delete:hover { background: #fdecea !important; }
+.ctx-important-item { color: #c0392b !important; font-weight: 600; }
+.ctx-important-item:hover { background: #fdecea !important; }
 .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
 .ctx-heading { font-size: calc(10px * var(--ui-scale)); font-family: var(--mono); color: var(--text-dim); padding: calc(4px * var(--ui-scale)) calc(10px * var(--ui-scale)) 2px; text-transform: uppercase; letter-spacing: 0.07em; }
 .ctx-type-item { border-left: 3px solid transparent; padding-left: 8px !important; }

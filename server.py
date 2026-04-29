@@ -58,6 +58,11 @@ def set_state():
 
 
 if __name__ == '__main__':
+    # backup DB on every startup
+    if os.path.exists(DB_PATH):
+        import shutil, datetime
+        ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        shutil.copy2(DB_PATH, os.path.join(BASE_DIR, f'planner_backup_{ts}.db'))
     init_db()
     def _open():
         import time; time.sleep(0.9)

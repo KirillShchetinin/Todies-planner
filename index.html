@@ -11,10 +11,9 @@
 <header>
   <div class="header-left">
     <h1>weekly planner</h1>
-    <span class="hint">drag · dbl-click = done</span>
+    <span class="hint">drag to reorder · dbl-click = done · right-click label = edit</span>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
-    <button class="add-day-btn" id="labelsBtn">labels</button>
     <button class="add-day-btn" id="addDayBtn">+ add day</button>
     <div class="add-day-form" id="addDayForm">
       <input type="text" id="newDayLabel" placeholder="Mon" maxlength="12" />
@@ -27,12 +26,6 @@
 
 <div class="legend" id="legend"></div>
 <div class="board" id="board"></div>
-
-<div id="labelsPanel">
-  <h2>edit labels</h2>
-  <div id="labelRows"></div>
-  <button id="labelsSave">save</button>
-</div>
 
 <script src="app.js"></script>
 </body>

@@ -1,7 +1,6 @@
 // ── constants ─────────────────────────────────────────────────────────────────
 
 const DEFAULT_COLS = [
-  {id:'unscheduled', label:'Unscheduled', date:'', fixed:true},
   {id:'mon',    label:'Mon',       date:'04/20'},
   {id:'tue',    label:'Tue',       date:'04/21'},
   {id:'wed',    label:'Wed',       date:'04/22'},
@@ -10,6 +9,12 @@ const DEFAULT_COLS = [
   {id:'sat',    label:'Sat',       date:'04/25'},
   {id:'sun',    label:'Sun',       date:'04/26'},
   {id:'nxtwed', label:'Next Wed+', date:'04/29+'},
+];
+
+// one unscheduled col per week row, indexed by week index
+const DEFAULT_WEEK_UNSCHEDULED = [
+  {id:'unscheduled', label:'Unscheduled'},
+  {id:'unscheduled_w1', label:'Unscheduled'},
 ];
 
 const INIT_TASKS = [
@@ -65,7 +70,7 @@ const COLOR_PRESETS = [
 
 // ── state ─────────────────────────────────────────────────────────────────────
 
-let cols = [], state = {}, idCounter = 100, colCounter = 200, typeCounter = 0, dragging = null, draggingCol = null;
+let cols = [], weekUnscheduled = [], state = {}, idCounter = 100, colCounter = 200, typeCounter = 0, dragging = null, draggingCol = null;
 let typeConfig  = structuredClone(DEFAULT_TYPE_CONFIG);
 let legendOrder = [...DEFAULT_LEGEND_ORDER];
 let uiScale = 1;
@@ -81,6 +86,19 @@ function applyScale(scale) {
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
+
+function parseDateToSortKey(dateStr) {
+  if (!dateStr) return Infinity;
+  const base = dateStr.replace(/\+$/, '');
+  const m = base.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (!m) return Infinity;
+  const yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
+  return yr * 10000 + parseInt(m[1]) * 100 + parseInt(m[2]);
+}
+
+function sortColsByDate() {
+  cols.sort((a, b) => parseDateToSortKey(a.date) - parseDateToSortKey(b.date));
+}
 
 function inferDay(dateStr) {
   const m = dateStr.trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
@@ -107,7 +125,11 @@ async function loadState() {
     const res   = await fetch('/api/state');
     const saved = await res.json();
     if (saved) {
-      cols        = saved.cols;
+      // migrate: if cols still contains unscheduled entries, pull them out
+      const rawCols = saved.cols || [];
+      cols           = rawCols.filter(c => c.id !== 'unscheduled' && !c.unscheduled);
+      const oldUnsched = rawCols.filter(c => c.id === 'unscheduled' || c.unscheduled);
+      weekUnscheduled = saved.weekUnscheduled || oldUnsched.map(c => ({id: c.id, label: 'Unscheduled'}));
       state       = saved.state;
       idCounter   = saved.idCounter   || 100;
       colCounter  = saved.colCounter  || 200;
@@ -118,21 +140,31 @@ async function loadState() {
         : structuredClone(DEFAULT_TYPE_CONFIG);
       uiScale     = saved.uiScale     || 1;
       Collapse.loadAll(saved.collapseState);
-      // strip legacy fixed flags — all labels are equal
       Object.values(typeConfig).forEach(cfg => delete cfg.fixed);
+      ensureWeekUnscheduled();
+      sortColsByDate();
       return;
     }
   } catch(e) {}
   cols  = DEFAULT_COLS.map(c => ({...c}));
+  weekUnscheduled = DEFAULT_WEEK_UNSCHEDULED.map(c => ({...c}));
   state = {};
   INIT_TASKS.forEach(t => { if (!state[t.col]) state[t.col]=[]; state[t.col].push({...t}); });
+}
+
+// ensure weekUnscheduled has exactly one entry per week row
+function ensureWeekUnscheduled() {
+  const weekCount = Math.max(1, Math.ceil(cols.length / 7));
+  while (weekUnscheduled.length < weekCount) {
+    weekUnscheduled.push({id: 'unsched_w' + (colCounter++), label: 'Unscheduled'});
+  }
 }
 
 function saveState() {
   fetch('/api/state', {
     method:  'PUT',
     headers: {'Content-Type':'application/json'},
-    body:    JSON.stringify({cols, state, idCounter, colCounter, typeCounter, typeConfig, legendOrder, uiScale, collapseState: Collapse.getAll()}),
+    body:    JSON.stringify({cols, weekUnscheduled, state, idCounter, colCounter, typeCounter, typeConfig, legendOrder, uiScale, collapseState: Collapse.getAll()}),
   }).catch(() => {});
 }
 
@@ -149,7 +181,7 @@ function addLabel(name, colors) {
 function deleteLabel(key) {
   delete typeConfig[key];
   legendOrder = legendOrder.filter(k => k !== key);
-  cols.forEach(c => { (state[c.id]||[]).forEach(t => { if (t.type===key) t.type='t-async'; }); });
+  allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.type===key) t.type='t-async'; }); });
   saveState(); render();
 }
 
@@ -177,7 +209,7 @@ function openTaskCtxMenu(e, taskId) {
   ctxKey = null;
 
   let task = null;
-  cols.forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) task = t; }); });
+  allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) task = t; }); });
 
   ctxMenu.innerHTML = '';
 
@@ -185,7 +217,7 @@ function openTaskCtxMenu(e, taskId) {
   impBtn.className = 'ctx-item ctx-important-item';
   impBtn.textContent = task?.important ? '! unmark important' : '! mark important';
   impBtn.onclick = () => {
-    cols.forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.important = !t.important; }); });
+    allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.important = !t.important; }); });
     saveState(); closeCtxMenu(); render();
   };
   ctxMenu.appendChild(impBtn);
@@ -211,7 +243,7 @@ function openTaskCtxMenu(e, taskId) {
     btn.style.cssText = `border-left: 3px solid ${cfg.border}`;
     btn.textContent = cfg.label;
     btn.onclick = () => {
-      cols.forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.type = key; }); });
+      allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.type = key; }); });
       saveState(); closeCtxMenu(); render();
     };
     ctxMenu.appendChild(btn);
@@ -351,16 +383,11 @@ function renderLegend() {
 
 // ── board ─────────────────────────────────────────────────────────────────────
 
-function render() {
-  renderLegend();
-
-  const board = document.getElementById('board');
-  board.innerHTML = '';
-
-  cols.forEach(col => {
+function buildColEl(col) {
+    const isUnscheduled = col.id === 'unscheduled' || col.unscheduled || weekUnscheduled.some(u => u.id === col.id);
     const colEl = document.createElement('div');
-    colEl.className = 'col' + (col.id === 'unscheduled' || col.unscheduled ? ' unscheduled' : '');
-    colEl.draggable = true;
+    colEl.className = 'col' + (isUnscheduled ? ' unscheduled' : '');
+    colEl.draggable = !isUnscheduled;
     colEl.addEventListener('dragstart', e => {
       if (e.target.closest('.task,.add-btn,.add-form')) return;
       draggingCol = col.id;
@@ -393,7 +420,7 @@ function render() {
     left.className = 'col-header-left';
     left.innerHTML = `<span>${col.label}</span>` + (col.date ? `<span class="date">${col.date}</span>` : '');
     hdr.appendChild(left);
-    if (!col.fixed) {
+    {
       const dc = document.createElement('button');
       dc.className = 'del-col'; dc.textContent = '×'; dc.title = 'remove column';
       dc.onclick = () => deleteCol(col.id);
@@ -502,7 +529,7 @@ function render() {
 
       // find and remove from source
       let task = null;
-      cols.forEach(c => {
+      allCols().forEach(c => {
         if (!state[c.id]) return;
         const i = state[c.id].findIndex(t => t.id === dragging);
         if (i > -1) task = state[c.id].splice(i, 1)[0];
@@ -613,15 +640,50 @@ function render() {
       Collapse.applyShort(colEl, zone, state[col.id] || [], typeConfig);
     }
 
-    board.appendChild(colEl);
-  });
+    return colEl;
+}
 
-  // ghost "add next day" placeholder — sits in the next grid cell after existing cols
-  const ghost = document.createElement('div');
-  ghost.className = 'col-ghost';
-  ghost.title = 'Double-click to add next day';
-  ghost.addEventListener('dblclick', e => { e.stopPropagation(); addNextDay(); });
-  board.appendChild(ghost);
+function render() {
+  renderLegend();
+
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  ensureWeekUnscheduled();
+
+  const WEEK = 7;
+  const weekCount = Math.max(1, Math.ceil(cols.length / WEEK));
+
+  for (let wi = 0; wi < weekCount; wi++) {
+    const weekDays = cols.slice(wi * WEEK, (wi + 1) * WEEK);
+    const unschedCol = weekUnscheduled[wi];
+
+    const weekRow = document.createElement('div');
+    weekRow.className = 'week-row';
+
+    // exactly one unscheduled bar per week row
+    const bar = document.createElement('div');
+    bar.className = 'unscheduled-bar';
+    bar.appendChild(buildColEl(unschedCol));
+    weekRow.appendChild(bar);
+
+    // day columns grid
+    const daysGrid = document.createElement('div');
+    daysGrid.className = 'week-days';
+    weekDays.forEach(col => daysGrid.appendChild(buildColEl(col)));
+
+    // ghost placeholder in the last week row only
+    if (wi === weekCount - 1) {
+      const ghost = document.createElement('div');
+      ghost.className = 'col-ghost';
+      ghost.title = 'Double-click to add next day';
+      ghost.addEventListener('dblclick', e => { e.stopPropagation(); addNextDay(); });
+      daysGrid.appendChild(ghost);
+    }
+
+    weekRow.appendChild(daysGrid);
+    board.appendChild(weekRow);
+  }
 }
 
 // ── task / col ops ────────────────────────────────────────────────────────────
@@ -633,13 +695,15 @@ function addTask(colId, text, type) {
   saveState(); render();
 }
 
+function allCols() { return [...cols, ...weekUnscheduled]; }
+
 function deleteTask(id) {
-  cols.forEach(c => { if (state[c.id]) state[c.id] = state[c.id].filter(t => t.id !== id); });
+  allCols().forEach(c => { if (state[c.id]) state[c.id] = state[c.id].filter(t => t.id !== id); });
   saveState(); render();
 }
 
 function toggleDone(id) {
-  cols.forEach(c => {
+  allCols().forEach(c => {
     if (!state[c.id]) return;
     const t = state[c.id].find(t => t.id === id);
     if (t) t.done = !t.done;
@@ -650,12 +714,13 @@ function toggleDone(id) {
 function addCol(label, date) {
   if (!label.trim()) return;
   cols.push({id:'col'+(colCounter++), label:label.trim(), date:date.trim()});
+  sortColsByDate();
   saveState(); render();
 }
 
 function addNextDay() {
   // find the last non-unscheduled col that has a parseable date
-  const dayCols = cols.filter(c => !c.unscheduled && c.id !== 'unscheduled' && c.date);
+  const dayCols = cols.filter(c => c.date);
   let label = '', date = '';
   if (dayCols.length > 0) {
     const last = dayCols[dayCols.length - 1];
@@ -675,17 +740,13 @@ function addNextDay() {
 }
 
 function addUnscheduledCol() {
-  cols.push({id:'col'+(colCounter++), label:'Unscheduled', date:'', unscheduled:true});
+  weekUnscheduled.push({id:'unsched_w'+(colCounter++), label:'Unscheduled'});
   saveState(); render();
 }
 
 function deleteCol(colId) {
   const tasks = state[colId] || [];
-  if (tasks.length > 0) {
-    if (!confirm('Move tasks to Unscheduled?')) return;
-    if (!state['unscheduled']) state['unscheduled'] = [];
-    tasks.forEach(t => { t.col='unscheduled'; state['unscheduled'].push(t); });
-  }
+  if (tasks.length > 0 && !confirm('Delete column and all its tasks?')) return;
   delete state[colId];
   cols = cols.filter(c => c.id !== colId);
   saveState(); render();

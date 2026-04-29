@@ -99,7 +99,7 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 .task.insert-after  { box-shadow: 0  2px 0 0 var(--accent); }
 
 .task-actions { display: flex; gap: 2px; flex-shrink: 0; align-items: center; }
-.task .del, .task .check { font-size: 13px; color: inherit; opacity: 0.22; cursor: pointer; line-height: 1; background: none; border: none; font-family: var(--mono); padding: 0; transition: opacity 0.1s; }
+.task .del, .task .check { font-size: 16px; color: inherit; opacity: 0.22; cursor: pointer; line-height: 1; background: none; border: none; font-family: var(--mono); padding: 2px 4px; transition: opacity 0.1s; }
 .task .del:hover  { opacity: 1; color: #c0392b; }
 .task .check:hover { opacity: 1; color: #27ae60; }
 .task.done .check { opacity: 1; color: #27ae60; }
@@ -108,17 +108,24 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 .add-btn { font-size: 11px; font-family: var(--mono); color: var(--text-dim); background: none; border: 1px dashed var(--border); border-radius: 6px; padding: 4px 8px; cursor: pointer; width: 100%; text-align: left; transition: border-color 0.15s, color 0.15s; margin-top: 1px; }
 .add-btn:hover { border-color: var(--border-hover); color: var(--text-muted); }
 
-.add-form { display: none; flex-direction: column; gap: 4px; margin-top: 2px; }
+.add-form { display: none; flex-direction: column; gap: 5px; margin-top: 3px; }
 .add-form.open { display: flex; }
-.add-form input { font-size: 12px; font-family: var(--sans); background: var(--surface2); border: 1px solid var(--border-hover); border-radius: 6px; padding: 5px 8px; color: var(--text); outline: none; }
-.add-form input:focus { border-color: rgba(0,0,0,0.3); }
-.add-form select { font-size: 11px; font-family: var(--mono); background: var(--surface2); border: 1px solid var(--border-hover); border-radius: 6px; padding: 4px 8px; color: var(--text-muted); outline: none; cursor: pointer; }
-.add-form-btns { display: flex; gap: 4px; }
-.add-form-btns button { font-size: 11px; font-family: var(--mono); padding: 4px 10px; border-radius: 5px; border: 1px solid var(--border-hover); cursor: pointer; flex: 1; }
-.btn-confirm { background: rgba(0,0,0,0.06); color: var(--text); }
-.btn-confirm:hover { background: rgba(0,0,0,0.1); }
-.btn-cancel { background: none; color: var(--text-dim); }
-.btn-cancel:hover { color: var(--text-muted); }
+
+/* step 1 — type picker pills */
+.add-type-picker { display: flex; flex-wrap: wrap; gap: 4px; }
+.add-type-pill {
+  font-size: 10px; font-family: var(--mono); padding: 3px 8px;
+  border-radius: 20px; border: 1px solid transparent;
+  cursor: pointer; line-height: 1.4;
+  transition: opacity 0.1s, transform 0.1s, box-shadow 0.1s;
+  opacity: 0.7;
+}
+.add-type-pill:hover { opacity: 1; transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+.add-type-pill.selected { opacity: 1; box-shadow: 0 0 0 2px rgba(0,0,0,0.18); }
+
+/* step 2 — name input (bg/border/color set inline to match selected type) */
+.add-name-row { display: flex; }
+.add-name-row input { flex: 1; font-size: 12px; font-family: var(--sans); border: 1px solid transparent; border-radius: 6px; padding: 5px 8px; outline: none; }
 
 /* ── right-click context menu ── */
 #ctxMenu {

@@ -472,25 +472,84 @@ function render() {
 
     colEl.appendChild(zone);
 
-    // add task form
+    // add task form — step 1: type picker, step 2: name input
     const addBtn = document.createElement('button');
     addBtn.className   = 'add-btn';
     addBtn.textContent = '+ add task';
 
     const form = document.createElement('div');
     form.className = 'add-form';
-    const dropKeys = legendOrder.filter(k => k !== 't-locked' && k !== 'done');
-    const opts = dropKeys
-      .map(k => `<option value="${k}"${k==='t-async'?' selected':''}>${typeConfig[k]?.label||k}</option>`)
-      .join('');
-    form.innerHTML = `<input type="text" placeholder="task name..." maxlength="60"/><select>${opts}</select><div class="add-form-btns"><button class="btn-confirm">add</button><button class="btn-cancel">cancel</button></div>`;
 
-    const reset = () => { addBtn.style.display=''; form.classList.remove('open'); form.querySelector('input').value=''; };
-    addBtn.onclick = () => { addBtn.style.display='none'; form.classList.add('open'); form.querySelector('input').focus(); };
-    form.querySelector('.btn-cancel').onclick  = reset;
-    const doAdd = () => addTask(col.id, form.querySelector('input').value, form.querySelector('select').value);
-    form.querySelector('.btn-confirm').onclick = doAdd;
-    form.querySelector('input').addEventListener('keydown', e => { if(e.key==='Enter') doAdd(); if(e.key==='Escape') reset(); });
+    const dropKeys = legendOrder.filter(k => k !== 't-locked' && k !== 'done');
+
+    // step 1: type pills
+    const typePicker = document.createElement('div');
+    typePicker.className = 'add-type-picker';
+    dropKeys.forEach(k => {
+      const cfg = typeConfig[k] || {};
+      const pill = document.createElement('button');
+      pill.className = 'add-type-pill';
+      pill.textContent = cfg.label || k;
+      pill.style.cssText = `background:${cfg.bg};border-color:${cfg.border};color:${cfg.text};`;
+      if (cfg.dashed) pill.style.borderStyle = 'dashed';
+      pill.dataset.type = k;
+      typePicker.appendChild(pill);
+    });
+
+    // step 2: name input row
+    const nameRow = document.createElement('div');
+    nameRow.className = 'add-name-row';
+    nameRow.innerHTML = `<input type="text" placeholder="task name…" maxlength="60"/>`;
+
+    form.appendChild(typePicker);
+    form.appendChild(nameRow);
+    nameRow.style.display = 'none';
+
+    let selectedType = null;
+
+    const reset = () => {
+      addBtn.style.display = '';
+      form.classList.remove('open');
+      typePicker.style.display = '';
+      nameRow.style.display = 'none';
+      const input = nameRow.querySelector('input');
+      input.value = '';
+      input.style.cssText = '';
+      selectedType = null;
+    };
+
+    addBtn.onclick = () => {
+      addBtn.style.display = 'none';
+      form.classList.add('open');
+    };
+
+    typePicker.addEventListener('click', e => {
+      const pill = e.target.closest('.add-type-pill');
+      if (!pill) return;
+      selectedType = pill.dataset.type;
+      const cfg = typeConfig[selectedType] || {};
+      typePicker.style.display = 'none';
+      const input = nameRow.querySelector('input');
+      input.style.cssText = `background:${cfg.bg};border-color:${cfg.border};color:${cfg.text};`;
+      nameRow.style.display = 'flex';
+      input.focus();
+    });
+
+    const doAdd = () => {
+      if (!selectedType) return;
+      addTask(col.id, nameRow.querySelector('input').value, selectedType);
+      reset();
+    };
+
+    nameRow.querySelector('input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doAdd();
+      if (e.key === 'Escape') reset();
+    });
+
+    // clicking outside the form resets it
+    document.addEventListener('click', e => {
+      if (form.classList.contains('open') && !form.contains(e.target) && e.target !== addBtn) reset();
+    }, { capture: true });
 
     colEl.appendChild(addBtn);
     colEl.appendChild(form);

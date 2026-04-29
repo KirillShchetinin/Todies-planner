@@ -1,3 +1,116 @@
+// ── i18n ──────────────────────────────────────────────────────────────────────
+
+const TRANSLATIONS = {
+  en: {
+    appTitle:           'weekly planner',
+    hint:               'drag to reorder · dbl-click = done · right-click label = edit',
+    addDay:             '+ add day',
+    addUnscheduled:     '+ unscheduled',
+    addDayLabelPh:      'Mon',
+    addDayDatePh:       '04/28',
+    addDayConfirm:      'add',
+    addDayCancel:       'cancel',
+    addTask:            '+ add task',
+    addTaskPh:          'task name…',
+    addLabel:           '+ label',
+    newLabelTitle:      'new label',
+    newLabelPh:         'label name...',
+    newLabelConfirm:    'add',
+    newLabelCancel:     'cancel',
+    ctxMarkImportant:   '! mark important',
+    ctxUnmarkImportant: '! unmark important',
+    ctxChangeType:      'change type',
+    ctxRename:          'rename',
+    ctxDelete:          'delete',
+    ctxRenamePrompt:    'New name:',
+    removeColTitle:     'remove column',
+    ghostTitle:         'Double-click to add next day',
+    deleteColConfirm:   'Delete column and all its tasks?',
+    dayFallback:        'Day',
+    dayLocale:          'en-US',
+    scaleLarger:        'Larger',
+    scaleSmaller:       'Smaller',
+  },
+  ru: {
+    appTitle:           'планировщик недели',
+    hint:               'перетащить для сортировки · двойной клик = готово · правый клик на метке = редактировать',
+    addDay:             '+ добавить день',
+    addUnscheduled:     '+ без даты',
+    addDayLabelPh:      'Пн',
+    addDayDatePh:       '28.04',
+    addDayConfirm:      'добавить',
+    addDayCancel:       'отмена',
+    addTask:            '+ задача',
+    addTaskPh:          'название задачи…',
+    addLabel:           '+ метка',
+    newLabelTitle:      'новая метка',
+    newLabelPh:         'название метки...',
+    newLabelConfirm:    'добавить',
+    newLabelCancel:     'отмена',
+    ctxMarkImportant:   '! отметить важным',
+    ctxUnmarkImportant: '! снять отметку важного',
+    ctxChangeType:      'изменить тип',
+    ctxRename:          'переименовать',
+    ctxDelete:          'удалить',
+    ctxRenamePrompt:    'Новое название:',
+    removeColTitle:     'удалить колонку',
+    ghostTitle:         'Двойной клик — добавить следующий день',
+    deleteColConfirm:   'Удалить колонку со всеми задачами?',
+    dayFallback:        'День',
+    dayLocale:          'ru-RU',
+    scaleLarger:        'Крупнее',
+    scaleSmaller:       'Мельче',
+  },
+};
+
+let lang = 'en';
+
+function t(key) { return (TRANSLATIONS[lang] || TRANSLATIONS.en)[key] || key; }
+
+// Map stored English day abbreviations → Russian display labels.
+// Labels are always stored in English so they can be re-translated on demand.
+const DAY_LABEL_RU = {
+  'Mon':'Пн', 'Tue':'Вт', 'Wed':'Ср', 'Thu':'Чт', 'Fri':'Пт', 'Sat':'Сб', 'Sun':'Вс',
+  'Monday':'Понедельник', 'Tuesday':'Вторник', 'Wednesday':'Среда',
+  'Thursday':'Четверг', 'Friday':'Пятница', 'Saturday':'Суббота', 'Sunday':'Воскресенье',
+};
+
+function translateLabel(label) {
+  if (lang === 'ru' && DAY_LABEL_RU[label]) return DAY_LABEL_RU[label];
+  return label;
+}
+
+function applyLangToStaticUI() {
+  const title = document.getElementById('appTitle');
+  if (title) title.textContent = t('appTitle');
+  const hint = document.getElementById('appHint');
+  if (hint) hint.textContent = t('hint');
+  const addDayBtn = document.getElementById('addDayBtn');
+  if (addDayBtn) addDayBtn.textContent = t('addDay');
+  const addUnschBtn = document.getElementById('addUnscheduledBtn');
+  if (addUnschBtn) addUnschBtn.textContent = t('addUnscheduled');
+  const newDayLabel = document.getElementById('newDayLabel');
+  if (newDayLabel) newDayLabel.placeholder = t('addDayLabelPh');
+  const newDayDate = document.getElementById('newDayDate');
+  if (newDayDate) newDayDate.placeholder = t('addDayDatePh');
+  const addDayConfirm = document.getElementById('addDayConfirm');
+  if (addDayConfirm) addDayConfirm.textContent = t('addDayConfirm');
+  const addDayCancel = document.getElementById('addDayCancel');
+  if (addDayCancel) addDayCancel.textContent = t('addDayCancel');
+  // add label panel
+  const panelTitle = addPanel?.querySelector('.add-panel-title');
+  if (panelTitle) panelTitle.textContent = t('newLabelTitle');
+  const newLabelName = addPanel?.querySelector('#newLabelName');
+  if (newLabelName) newLabelName.placeholder = t('newLabelPh');
+  const newLabelConfirm = addPanel?.querySelector('#newLabelConfirm');
+  if (newLabelConfirm) newLabelConfirm.textContent = t('newLabelConfirm');
+  const newLabelCancel = addPanel?.querySelector('#newLabelCancel');
+  if (newLabelCancel) newLabelCancel.textContent = t('newLabelCancel');
+  // lang button label
+  const langBtn = document.getElementById('langBtn');
+  if (langBtn) langBtn.textContent = lang.toUpperCase();
+}
+
 // ── constants ─────────────────────────────────────────────────────────────────
 
 const DEFAULT_COLS = [
@@ -139,6 +252,7 @@ async function loadState() {
         ? {...structuredClone(DEFAULT_TYPE_CONFIG), ...saved.typeConfig}
         : structuredClone(DEFAULT_TYPE_CONFIG);
       uiScale     = saved.uiScale     || 1;
+      lang        = saved.lang        || 'en';
       Collapse.loadAll(saved.collapseState);
       Object.values(typeConfig).forEach(cfg => delete cfg.fixed);
       ensureWeekUnscheduled();
@@ -163,7 +277,7 @@ function saveState() {
   fetch('/api/state', {
     method:  'PUT',
     headers: {'Content-Type':'application/json'},
-    body:    JSON.stringify({cols, weekUnscheduled, state, idCounter, colCounter, typeCounter, typeConfig, legendOrder, uiScale, collapseState: Collapse.getAll()}),
+    body:    JSON.stringify({cols, weekUnscheduled, state, idCounter, colCounter, typeCounter, typeConfig, legendOrder, uiScale, lang, collapseState: Collapse.getAll()}),
   }).catch(() => {});
 }
 
@@ -214,7 +328,7 @@ function openTaskCtxMenu(e, taskId) {
 
   const impBtn = document.createElement('button');
   impBtn.className = 'ctx-item ctx-important-item';
-  impBtn.textContent = task?.important ? '! unmark important' : '! mark important';
+  impBtn.textContent = task?.important ? t('ctxUnmarkImportant') : t('ctxMarkImportant');
   impBtn.onclick = () => {
     allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.important = !t.important; }); });
     saveState(); closeCtxMenu(); render();
@@ -227,7 +341,7 @@ function openTaskCtxMenu(e, taskId) {
 
   const heading = document.createElement('div');
   heading.className = 'ctx-heading';
-  heading.textContent = 'change type';
+  heading.textContent = t('ctxChangeType');
   ctxMenu.appendChild(heading);
 
   const sep2 = document.createElement('div');
@@ -260,16 +374,16 @@ function openCtxMenu(e, key) {
   const cfg = typeConfig[key] || {};
 
   ctxMenu.innerHTML = `
-    <button class="ctx-item" id="ctxRename">rename</button>
+    <button class="ctx-item" id="ctxRename">${t('ctxRename')}</button>
     <div class="ctx-sep"></div>
     <div class="ctx-colors" id="ctxColors"></div>
-    <div class="ctx-sep"></div><button class="ctx-item ctx-delete" id="ctxDelete">delete</button>
+    <div class="ctx-sep"></div><button class="ctx-item ctx-delete" id="ctxDelete">${t('ctxDelete')}</button>
   `;
 
   ctxMenu.querySelector('#ctxRename').onclick = () => {
     const key = ctxKey;
     closeCtxMenu();
-    const n = prompt('New name:', typeConfig[key]?.label || key);
+    const n = prompt(t('ctxRenamePrompt'), typeConfig[key]?.label || key);
     if (n) renameLabel(key, n);
   };
   const delBtn = ctxMenu.querySelector('#ctxDelete');
@@ -375,7 +489,7 @@ function renderLegend() {
 
   const addBtn = document.createElement('button');
   addBtn.className   = 'leg-add';
-  addBtn.textContent = '+ label';
+  addBtn.textContent = t('addLabel');
   addBtn.onclick     = ev => { ev.stopPropagation(); openAddPanel(); };
   el.appendChild(addBtn);
 }
@@ -417,11 +531,11 @@ function buildColEl(col) {
     hdr.className = 'col-header';
     const left = document.createElement('div');
     left.className = 'col-header-left';
-    left.innerHTML = `<span>${col.label}</span>` + (col.date ? `<span class="date">${col.date}</span>` : '');
+    left.innerHTML = `<span>${translateLabel(col.label)}</span>` + (col.date ? `<span class="date">${col.date}</span>` : '');
     hdr.appendChild(left);
     {
       const dc = document.createElement('button');
-      dc.className = 'del-col'; dc.textContent = '×'; dc.title = 'remove column';
+      dc.className = 'del-col'; dc.textContent = '×'; dc.title = t('removeColTitle');
       dc.onclick = () => deleteCol(col.id);
       hdr.appendChild(dc);
     }
@@ -557,7 +671,7 @@ function buildColEl(col) {
     // add task form — step 1: type picker, step 2: name input
     const addBtn = document.createElement('button');
     addBtn.className   = 'add-btn';
-    addBtn.textContent = '+ add task';
+    addBtn.textContent = isUnscheduled ? '+' : t('addTask');
 
     const form = document.createElement('div');
     form.className = 'add-form';
@@ -581,7 +695,7 @@ function buildColEl(col) {
     // step 2: name input row
     const nameRow = document.createElement('div');
     nameRow.className = 'add-name-row';
-    nameRow.innerHTML = `<input type="text" placeholder="task name…" maxlength="60"/>`;
+    nameRow.innerHTML = `<input type="text" placeholder="${t('addTaskPh')}" maxlength="60"/>`;
 
     form.appendChild(typePicker);
     form.appendChild(nameRow);
@@ -725,7 +839,7 @@ function render() {
         // put the ghost placeholder in the first empty slot of the last week
         const ghost = document.createElement('div');
         ghost.className = 'col-ghost';
-        ghost.title = 'Double-click to add next day';
+        ghost.title = t('ghostTitle');
         ghost.addEventListener('dblclick', e => { e.stopPropagation(); addNextDay(); });
         daysGrid.appendChild(ghost);
         ghostAdded = true;
@@ -814,7 +928,7 @@ function addNextDay() {
       label = d.toLocaleDateString('en-US', {weekday: 'short'});
     }
   }
-  addCol(label || 'Day', date);
+  addCol(label || t('dayFallback'), date);
 }
 
 function addUnscheduledCol() {
@@ -824,7 +938,7 @@ function addUnscheduledCol() {
 
 function deleteCol(colId) {
   const tasks = state[colId] || [];
-  if (tasks.length > 0 && !confirm('Delete column and all its tasks?')) return;
+  if (tasks.length > 0 && !confirm(t('deleteColConfirm'))) return;
   delete state[colId];
   cols = cols.filter(c => c.id !== colId);
   saveState(); render();
@@ -840,7 +954,7 @@ function renderScaleBtns() {
   const minus = document.createElement('button');
   minus.className = 'scale-btn';
   minus.textContent = '−';
-  minus.title = 'Smaller';
+  minus.title = t('scaleSmaller');
   minus.onclick = () => {
     const idx = UI_SCALES.indexOf(uiScale);
     if (idx > 0) { applyScale(UI_SCALES[idx - 1]); saveState(); }
@@ -849,7 +963,7 @@ function renderScaleBtns() {
   const plus = document.createElement('button');
   plus.className = 'scale-btn';
   plus.textContent = '+';
-  plus.title = 'Larger';
+  plus.title = t('scaleLarger');
   plus.onclick = () => {
     const idx = UI_SCALES.indexOf(uiScale);
     if (idx < UI_SCALES.length - 1) { applyScale(UI_SCALES[idx + 1]); saveState(); }
@@ -863,6 +977,15 @@ function renderScaleBtns() {
 
 loadState().then(() => {
   applyScale(uiScale);
+  applyLangToStaticUI();
+  render();
+  renderScaleBtns();
+});
+
+document.getElementById('langBtn').addEventListener('click', () => {
+  lang = lang === 'en' ? 'ru' : 'en';
+  saveState();
+  applyLangToStaticUI();
   render();
   renderScaleBtns();
 });

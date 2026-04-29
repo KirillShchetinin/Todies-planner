@@ -117,6 +117,7 @@ async function loadState() {
         ? {...structuredClone(DEFAULT_TYPE_CONFIG), ...saved.typeConfig}
         : structuredClone(DEFAULT_TYPE_CONFIG);
       uiScale     = saved.uiScale     || 1;
+      Collapse.loadAll(saved.collapseState);
       // strip legacy fixed flags — all labels are equal
       Object.values(typeConfig).forEach(cfg => delete cfg.fixed);
       return;
@@ -131,7 +132,7 @@ function saveState() {
   fetch('/api/state', {
     method:  'PUT',
     headers: {'Content-Type':'application/json'},
-    body:    JSON.stringify({cols, state, idCounter, colCounter, typeCounter, typeConfig, legendOrder, uiScale}),
+    body:    JSON.stringify({cols, state, idCounter, colCounter, typeCounter, typeConfig, legendOrder, uiScale, collapseState: Collapse.getAll()}),
   }).catch(() => {});
 }
 

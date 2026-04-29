@@ -14,7 +14,7 @@ const Collapse = (() => {
   const SHOW_DONE   = 2;
 
   // colId → 0 (full) | 1 (short)
-  const state = {};
+  let state = {};
 
   function isShort(colId) {
     return state[colId] === 1;
@@ -74,5 +74,8 @@ const Collapse = (() => {
     }
   }
 
-  return { isShort, canToggle, toggle, applyShort };
+  function getAll()      { return { ...state }; }
+  function loadAll(saved) { state = saved || {}; }
+
+  return { isShort, canToggle, toggle, applyShort, getAll, loadAll };
 })();

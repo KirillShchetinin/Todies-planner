@@ -199,12 +199,13 @@ function openCtxMenu(e, key) {
   `;
 
   ctxMenu.querySelector('#ctxRename').onclick = () => {
+    const key = ctxKey;
     closeCtxMenu();
-    const n = prompt('New name:', typeConfig[ctxKey]?.label || ctxKey);
-    if (n) renameLabel(ctxKey, n);
+    const n = prompt('New name:', typeConfig[key]?.label || key);
+    if (n) renameLabel(key, n);
   };
   const delBtn = ctxMenu.querySelector('#ctxDelete');
-  if (delBtn) delBtn.onclick = () => { closeCtxMenu(); deleteLabel(ctxKey); };
+  if (delBtn) delBtn.onclick = () => { const key = ctxKey; closeCtxMenu(); deleteLabel(key); };
 
   const grid = ctxMenu.querySelector('#ctxColors');
   COLOR_PRESETS.forEach(preset => {

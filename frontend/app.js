@@ -80,14 +80,13 @@ function inferDay(dateStr) {
 }
 
 function applyTaskStyle(el, type, done) {
-  const cfg = done
-    ? (typeConfig['done'] || DEFAULT_TYPE_CONFIG['done'])
-    : (typeConfig[type]   || typeConfig['t-async'] || {bg:'#f2f2f0', border:'#d8d8d4', text:'#444'});
+  const cfg = typeConfig[type] || typeConfig['t-async'] || {bg:'#f2f2f0', border:'#d8d8d4', text:'#444'};
   el.style.background  = cfg.bg;
   el.style.borderColor = cfg.border;
   el.style.color       = cfg.text;
   el.style.borderStyle = (!done && cfg.dashed) ? 'dashed' : 'solid';
   el.style.fontStyle   = (!done && cfg.italic)  ? 'italic' : '';
+  el.style.opacity     = done ? '0.45' : '';
 }
 
 // ── persistence ───────────────────────────────────────────────────────────────
@@ -497,6 +496,13 @@ function render() {
     colEl.appendChild(form);
     board.appendChild(colEl);
   });
+
+  // ghost "add next day" placeholder — sits in the next grid cell after existing cols
+  const ghost = document.createElement('div');
+  ghost.className = 'col-ghost';
+  ghost.title = 'Double-click to add next day';
+  ghost.addEventListener('dblclick', e => { e.stopPropagation(); addNextDay(); });
+  board.appendChild(ghost);
 }
 
 // ── task / col ops ────────────────────────────────────────────────────────────
@@ -526,6 +532,27 @@ function addCol(label, date) {
   if (!label.trim()) return;
   cols.push({id:'col'+(colCounter++), label:label.trim(), date:date.trim()});
   saveState(); render();
+}
+
+function addNextDay() {
+  // find the last non-unscheduled col that has a parseable date
+  const dayCols = cols.filter(c => !c.unscheduled && c.id !== 'unscheduled' && c.date);
+  let label = '', date = '';
+  if (dayCols.length > 0) {
+    const last = dayCols[dayCols.length - 1];
+    const baseDate = last.date.replace(/\+$/, ''); // strip trailing '+'
+    const m = baseDate.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+    if (m) {
+      const yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
+      const d  = new Date(yr, parseInt(m[1]) - 1, parseInt(m[2]));
+      d.setDate(d.getDate() + 1);
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      date  = `${mm}/${dd}`;
+      label = d.toLocaleDateString('en-US', {weekday: 'short'});
+    }
+  }
+  addCol(label || 'Day', date);
 }
 
 function addUnscheduledCol() {

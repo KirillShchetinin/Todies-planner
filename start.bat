@@ -1,6 +1,4 @@
 @echo off
-echo Installing dependencies...
+cd /d %~dp0
 pip install flask --quiet
-echo Starting todo server at http://localhost:5000
-python server.py
-pause
+start "" pythonw server.py

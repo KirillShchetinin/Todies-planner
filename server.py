@@ -1,9 +1,10 @@
 import os, sqlite3, threading, webbrowser
 from flask import Flask, jsonify, request, send_from_directory
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH  = os.path.join(BASE_DIR, 'planner.db')
-app      = Flask(__name__)
+BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
+DB_PATH      = os.path.join(BASE_DIR, 'planner.db')
+app          = Flask(__name__)
 
 
 def get_db():
@@ -22,16 +23,6 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
-
-
-@app.route('/')
-def index():
-    return send_from_directory(BASE_DIR, 'index.html')
-
-
-@app.route('/<path:filename>')
-def static_files(filename):
-    return send_from_directory(BASE_DIR, filename)
 
 
 @app.route('/api/state', methods=['GET'])
@@ -55,6 +46,16 @@ def set_state():
     conn.commit()
     conn.close()
     return '', 204
+
+
+@app.route('/')
+def index():
+    return send_from_directory(FRONTEND_DIR, 'index.html')
+
+
+@app.route('/<path:filename>')
+def static_files(filename):
+    return send_from_directory(FRONTEND_DIR, filename)
 
 
 if __name__ == '__main__':

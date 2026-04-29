@@ -72,6 +72,10 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 .col { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .col.unscheduled { border-style: dashed; border-color: var(--border-hover); background: var(--surface2); }
 
+.col-ghost { border: 1.5px dashed var(--border); border-radius: 10px; min-height: 52px; cursor: pointer; opacity: 0; transition: opacity 0.15s; }
+.board:hover .col-ghost { opacity: 1; }
+.col-ghost:hover { border-color: var(--border-hover); background: var(--surface); opacity: 1; }
+
 .col.col-drag-over { outline: 2px dashed var(--accent); outline-offset: 3px; }
 .col-header { cursor: grab; display: flex; align-items: flex-start; justify-content: space-between; font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em; padding-bottom: 6px; border-bottom: 1px solid var(--border); margin-bottom: 1px; }
 .col-header-left { display: flex; flex-direction: column; gap: 1px; }
@@ -98,7 +102,7 @@ header .hint { font-size: 11px; color: var(--text-dim); font-family: var(--mono)
 .task .del, .task .check { font-size: 13px; color: inherit; opacity: 0.22; cursor: pointer; line-height: 1; background: none; border: none; font-family: var(--mono); padding: 0; transition: opacity 0.1s; }
 .task .del:hover  { opacity: 1; color: #c0392b; }
 .task .check:hover { opacity: 1; color: #27ae60; }
-.task.done .check { opacity: 0.7; color: #27ae60; }
+.task.done .check { opacity: 1; color: #27ae60; }
 
 /* ── add task form ── */
 .add-btn { font-size: 11px; font-family: var(--mono); color: var(--text-dim); background: none; border: 1px dashed var(--border); border-radius: 6px; padding: 4px 8px; cursor: pointer; width: 100%; text-align: left; transition: border-color 0.15s, color 0.15s; margin-top: 1px; }

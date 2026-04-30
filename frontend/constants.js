@@ -1,5 +1,5 @@
 const DEFAULT_COLS = [
-  {id:'mon', label:'Mon', date:''},
+  {id:'mon', label:'Mon', date:'04/27'},
   {id:'tue', label:'Tue', date:''},
   {id:'wed', label:'Wed', date:''},
   {id:'thu', label:'Thu', date:''},

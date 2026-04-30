@@ -12,6 +12,19 @@ function openTaskCtxMenu(e, taskId) {
 
   ctxMenu.innerHTML = '';
 
+  const editBtn = document.createElement('button');
+  editBtn.className = 'ctx-item';
+  editBtn.textContent = t('ctxEditTask');
+  editBtn.onclick = () => {
+    closeCtxMenu();
+    startTaskInlineEdit(taskId);
+  };
+  ctxMenu.appendChild(editBtn);
+
+  const editSep = document.createElement('div');
+  editSep.className = 'ctx-sep';
+  ctxMenu.appendChild(editSep);
+
   const impBtn = document.createElement('button');
   impBtn.className = 'ctx-item ctx-important-item';
   impBtn.textContent = task?.important ? t('ctxUnmarkImportant') : t('ctxMarkImportant');

@@ -271,6 +271,7 @@ header .hint { font-size: calc(11px * var(--ui-scale)); color: var(--text-dim); 
 .task { font-size: calc(12px * var(--ui-scale)); font-family: var(--sans); padding: calc(5px * var(--ui-scale)) calc(8px * var(--ui-scale)); border-radius: 6px; border: 1px solid; cursor: grab; user-select: none; line-height: 1.4; display: flex; align-items: flex-start; justify-content: space-between; gap: calc(5px * var(--ui-scale)); transition: opacity 0.15s, transform 0.1s; }
 .task:active { cursor: grabbing; opacity: 0.5; transform: scale(0.97); }
 .task-text { flex: 1; word-break: break-word; }
+.task-inline-edit { flex: 1; font-size: inherit; font-family: inherit; color: inherit; background: transparent; border: none; border-bottom: 1px solid currentColor; outline: none; padding: 0; margin: 0; width: 100%; min-width: 0; }
 
 /* drag-to-insert position indicators */
 .task.insert-before { box-shadow: 0 -2px 0 0 var(--accent); }

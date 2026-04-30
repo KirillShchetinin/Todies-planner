@@ -360,3 +360,40 @@ function render() {
     board.appendChild(weekRow);
   }
 }
+
+function startTaskInlineEdit(taskId) {
+  const el = document.querySelector(`.task[data-id="${taskId}"]`);
+  if (!el) return;
+
+  const txtSpan = el.querySelector('.task-text');
+  if (!txtSpan) return;
+
+  const original = txtSpan.textContent;
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'task-inline-edit';
+  input.value = original;
+
+  txtSpan.replaceWith(input);
+  el.draggable = false;
+  input.focus();
+  input.select();
+
+  const commit = () => {
+    const val = input.value.trim();
+    if (val && val !== original) {
+      allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.text = val; }); });
+      saveState();
+    }
+    render();
+  };
+
+  const cancel = () => render();
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+  });
+  input.addEventListener('blur', commit);
+}

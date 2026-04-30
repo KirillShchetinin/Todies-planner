@@ -3,9 +3,12 @@ let typeConfig  = structuredClone(DEFAULT_TYPE_CONFIG);
 let legendOrder = [...DEFAULT_LEGEND_ORDER];
 let uiScale = 1;
 
+const _token = new URLSearchParams(window.location.search).get('token');
+const _apiUrl = _token ? `/api/state?token=${encodeURIComponent(_token)}` : '/api/state';
+
 async function loadState() {
   try {
-    const res   = await fetch('/api/state');
+    const res   = await fetch(_apiUrl);
     const saved = await res.json();
     if (saved) {
       const rawCols = saved.cols || [];
@@ -42,7 +45,7 @@ function ensureWeekUnscheduled() {
 }
 
 function saveState() {
-  fetch('/api/state', {
+  fetch(_apiUrl, {
     method:  'PUT',
     headers: {'Content-Type':'application/json'},
     body:    JSON.stringify({cols, weekUnscheduled, state, idCounter, colCounter, typeCounter, typeConfig, legendOrder, uiScale, lang, collapseState: Collapse.getAll()}),

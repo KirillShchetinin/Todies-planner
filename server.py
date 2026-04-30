@@ -23,8 +23,7 @@ def init_db():
     ''')
     conn.execute('''
         CREATE TABLE IF NOT EXISTS planner_state (
-            id      INTEGER PRIMARY KEY CHECK (id = 1),
-            user_id INTEGER REFERENCES users(id),
+            user_id INTEGER UNIQUE REFERENCES users(id),
             data    TEXT    NOT NULL
         )
     ''')
@@ -32,11 +31,30 @@ def init_db():
     conn.close()
 
 
+def resolve_user_id(conn, token):
+    """Return user_id for token, or None if token is absent/invalid."""
+    if not token:
+        return None
+    row = conn.execute('SELECT id FROM users WHERE token=?', (token,)).fetchone()
+    return row['id'] if row else None
+
+
 @app.route('/api/state', methods=['GET'])
 def get_state():
-    conn = get_db()
-    row  = conn.execute('SELECT data FROM planner_state WHERE id=1').fetchone()
+    token   = request.args.get('token')
+    conn    = get_db()
+    user_id = resolve_user_id(conn, token)
+    print(f'[DEBUG] token={token!r} user_id={user_id!r}')
+    if user_id is not None:
+        row = conn.execute(
+            'SELECT data FROM planner_state WHERE user_id=?', (user_id,)
+        ).fetchone()
+    else:
+        row = conn.execute(
+            'SELECT data FROM planner_state WHERE user_id IS NULL'
+        ).fetchone()
     conn.close()
+    print(f'[DEBUG] row found={row is not None}')
     if row:
         return row['data'], 200, {'Content-Type': 'application/json'}
     return 'null', 200, {'Content-Type': 'application/json'}
@@ -44,11 +62,13 @@ def get_state():
 
 @app.route('/api/state', methods=['PUT'])
 def set_state():
-    data = request.get_data(as_text=True)
-    conn = get_db()
+    token   = request.args.get('token')
+    data    = request.get_data(as_text=True)
+    conn    = get_db()
+    user_id = resolve_user_id(conn, token)
     conn.execute(
-        'INSERT OR REPLACE INTO planner_state (id, data) VALUES (1, ?)',
-        (data,),
+        'INSERT OR REPLACE INTO planner_state (user_id, data) VALUES (?, ?)',
+        (user_id, data),
     )
     conn.commit()
     conn.close()

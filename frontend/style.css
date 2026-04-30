@@ -4,8 +4,8 @@
 
 :root {
   --bg:           #c8aa82;
-  --surface:      #ffffff;
-  --surface2:     #f0efe9;
+  --surface:      #f0eeea;
+  --surface2:     #e6e3de;
   --border:       rgba(0,0,0,0.08);
   --border-hover: rgba(0,0,0,0.18);
   --text:         #1a1a1a;
@@ -229,8 +229,22 @@ header .hint { font-size: calc(11px * var(--ui-scale)); color: var(--text-dim); 
 }
 
 /* ── columns ── */
-.col { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: calc(9px * var(--ui-scale)); display: flex; flex-direction: column; gap: calc(5px * var(--ui-scale)); min-width: 0; }
-.col.unscheduled { border-style: dashed; border-color: var(--border-hover); background: var(--surface2); }
+.col {
+  position: relative;
+  background-color: #f0eeea;
+  border: 1px solid rgba(0,0,0,0.10);
+  border-radius: 3px;
+  box-shadow:
+    1px 1px 0 rgba(0,0,0,0.06),
+    2px 2px 0 rgba(0,0,0,0.04),
+    3px 4px 6px rgba(30,20,10,0.18),
+    -1px 3px 8px rgba(30,20,10,0.10),
+    4px 1px 8px rgba(30,20,10,0.08);
+  padding: calc(9px * var(--ui-scale));
+  display: flex; flex-direction: column; gap: calc(5px * var(--ui-scale)); min-width: 0;
+}
+
+.col.unscheduled { border-style: dashed; border-color: var(--border-hover); background: var(--surface2); box-shadow: none; }
 
 .col-ghost { border: 1.5px dashed var(--border); border-radius: 10px; min-height: calc(52px * var(--ui-scale)); cursor: pointer; opacity: 0; transition: opacity 0.15s; }
 .week-days:hover .col-ghost { opacity: 1; }

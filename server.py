@@ -16,9 +16,16 @@ def get_db():
 def init_db():
     conn = get_db()
     conn.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id    INTEGER PRIMARY KEY AUTOINCREMENT,
+            token TEXT    NOT NULL UNIQUE
+        )
+    ''')
+    conn.execute('''
         CREATE TABLE IF NOT EXISTS planner_state (
-            id   INTEGER PRIMARY KEY CHECK (id = 1),
-            data TEXT    NOT NULL
+            id      INTEGER PRIMARY KEY CHECK (id = 1),
+            user_id INTEGER REFERENCES users(id),
+            data    TEXT    NOT NULL
         )
     ''')
     conn.commit()

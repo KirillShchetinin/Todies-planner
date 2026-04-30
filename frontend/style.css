@@ -3,7 +3,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:           #bdb09e;
+  --bg:           #dcc8a0;
   --surface:      #f0eeea;
   --surface2:     #e6e3de;
   --border:       rgba(0,0,0,0.08);
@@ -18,38 +18,38 @@
 }
 
 body {
-  background-color: #bdb09e;
+  background-color: #dcc8a0;
   background-image:
     /* scratched edges vignette */
-    radial-gradient(ellipse 120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.28) 100%),
+    radial-gradient(ellipse 120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.30) 100%),
     /* corner darkening */
-    radial-gradient(ellipse 40% 40% at 0% 0%,   rgba(0,0,0,0.14) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 40% at 100% 0%,  rgba(0,0,0,0.12) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 40% at 0% 100%,  rgba(0,0,0,0.16) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 40% at 100% 100%,rgba(0,0,0,0.14) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 0% 0%,   rgba(0,0,0,0.16) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 100% 0%,  rgba(0,0,0,0.14) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 0% 100%,  rgba(0,0,0,0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 100% 100%,rgba(0,0,0,0.16) 0%, transparent 70%),
     /* scratch lines */
     repeating-linear-gradient(
       174deg,
       transparent 0px, transparent 18px,
-      rgba(0,0,0,0.03) 18px, rgba(0,0,0,0.03) 19px,
+      rgba(0,0,0,0.04) 18px, rgba(0,0,0,0.04) 19px,
       transparent 19px, transparent 34px,
-      rgba(255,255,255,0.04) 34px, rgba(255,255,255,0.04) 35px
+      rgba(255,255,255,0.05) 34px, rgba(255,255,255,0.05) 35px
     ),
     repeating-linear-gradient(
       178deg,
       transparent 0px, transparent 7px,
-      rgba(0,0,0,0.02) 7px, rgba(0,0,0,0.02) 8px
+      rgba(0,0,0,0.025) 7px, rgba(0,0,0,0.025) 8px
     ),
     /* wide plank variation */
     repeating-linear-gradient(
       180deg,
       transparent 0px, transparent 60px,
-      rgba(0,0,0,0.025) 60px, rgba(0,0,0,0.025) 62px,
+      rgba(0,0,0,0.035) 60px, rgba(0,0,0,0.035) 62px,
       transparent 62px, transparent 130px,
-      rgba(255,255,255,0.03) 130px, rgba(255,255,255,0.03) 132px
+      rgba(255,255,255,0.04) 130px, rgba(255,255,255,0.04) 132px
     ),
-    /* base tone — desaturated ash */
-    linear-gradient(168deg, #c8c0b0 0%, #bab0a0 30%, #b2a898 55%, #bcb2a2 80%, #c4baaa 100%);
+    /* base — light beige wood */
+    linear-gradient(168deg, #e2cfa8 0%, #d8c298 30%, #d0ba90 55%, #dac49c 80%, #e0cca6 100%);
   color: var(--text);
   font-family: var(--sans);
   min-height: 100vh;

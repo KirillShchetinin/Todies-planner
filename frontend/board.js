@@ -42,11 +42,21 @@ function buildColEl(col) {
       draggingCol = null; render();
     });
 
+    const _now = new Date();
+    const isToday = (() => {
+      if (isUnscheduled || !col.date) return false;
+      const m = col.date.match(/^(\d{1,2})\/(\d{1,2})/);
+      if (!m) return false;
+      return parseInt(m[1]) === _now.getMonth() + 1 && parseInt(m[2]) === _now.getDate();
+    })();
+    if (isToday) colEl.classList.add('today');
+
     const hdr  = document.createElement('div');
     hdr.className = 'col-header';
     const left = document.createElement('div');
     left.className = 'col-header-left';
-    left.innerHTML = `<span>${translateLabel(col.label)}</span>` + (col.date ? `<span class="date">${col.date}</span>` : '');
+    const flames = isToday ? '<span class="today-flames"><span>🔥</span><span>🔥</span><span>🔥</span></span>' : '';
+    left.innerHTML = `<span class="col-header-text"><span>${translateLabel(col.label)}</span>` + (col.date ? `<span class="date">${col.date}</span>` : '') + `</span>` + flames;
     hdr.appendChild(left);
     {
       const dc = document.createElement('button');

@@ -1,12 +1,11 @@
 const DEFAULT_COLS = [
-  {id:'mon',    label:'Mon',       date:'04/20'},
-  {id:'tue',    label:'Tue',       date:'04/21'},
-  {id:'wed',    label:'Wed',       date:'04/22'},
-  {id:'thu',    label:'Thu',       date:'04/23'},
-  {id:'fri',    label:'Fri',       date:'04/24'},
-  {id:'sat',    label:'Sat',       date:'04/25'},
-  {id:'sun',    label:'Sun',       date:'04/26'},
-  {id:'nxtwed', label:'Next Wed+', date:'04/29+'},
+  {id:'mon', label:'Mon', date:''},
+  {id:'tue', label:'Tue', date:''},
+  {id:'wed', label:'Wed', date:''},
+  {id:'thu', label:'Thu', date:''},
+  {id:'fri', label:'Fri', date:''},
+  {id:'sat', label:'Sat', date:''},
+  {id:'sun', label:'Sun', date:''},
 ];
 
 const DEFAULT_WEEK_UNSCHEDULED = [
@@ -25,7 +24,7 @@ const INIT_TASKS = [
   {id:'t8',  text:'Send weekly report',        type:'t-async',     col:'fri'},
   {id:'t9',  text:'Read industry articles',    type:'t-practice',  col:'tue'},
   {id:'t10', text:'Work on side project',      type:'t-practice',  col:'thu'},
-  {id:'t11', text:'Learn new tool / framework',type:'t-practice',  col:'sat'},
+  {id:'t11', text:'Learn new tool / framework', type:'t-practice', col:'sat'},
   {id:'t12', text:'File expense report',       type:'t-tax',       col:'thu'},
   {id:'t13', text:'Grocery shopping',          type:'t-async',     col:'unscheduled'},
   {id:'t14', text:'Gym',                       type:'t-rest',      col:'tue'},

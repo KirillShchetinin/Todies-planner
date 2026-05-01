@@ -1,3 +1,6 @@
+const _t0 = performance.now();
+console.log('[perf] scripts ready', '+0ms');
+
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -7,9 +10,17 @@ document.addEventListener('keydown', e => {
 });
 
 loadState().then(() => {
+  const tAfterFetch = performance.now();
+  console.log(`[perf] loadState done +${(tAfterFetch - _t0).toFixed(1)}ms`);
   applyScale(uiScale);
   applyLangToStaticUI();
+  const tBeforeRender = performance.now();
   render();
+  const tAfterRender = performance.now();
+  console.log(`[perf] render done  +${(tAfterRender - _t0).toFixed(1)}ms  (render itself: ${(tAfterRender - tBeforeRender).toFixed(1)}ms)`);
+  requestAnimationFrame(() => {
+    console.log(`[perf] first paint  +${(performance.now() - _t0).toFixed(1)}ms`);
+  });
   renderScaleBtns();
 });
 

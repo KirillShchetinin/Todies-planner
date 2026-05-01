@@ -8,8 +8,12 @@ const _apiUrl = _token ? `/api/state?token=${encodeURIComponent(_token)}` : '/ap
 
 async function loadState() {
   try {
+    const tFetchStart = performance.now();
     const res   = await fetch(_apiUrl);
+    const tFetchEnd = performance.now();
+    console.log(`[perf] fetch done   +${(tFetchEnd - _t0).toFixed(1)}ms  (network: ${(tFetchEnd - tFetchStart).toFixed(1)}ms)`);
     const saved = await res.json();
+    console.log(`[perf] json parsed  +${(performance.now() - _t0).toFixed(1)}ms`);
     if (saved) {
       const rawCols = saved.cols || [];
       cols           = rawCols.filter(c => c.id !== 'unscheduled' && !c.unscheduled);

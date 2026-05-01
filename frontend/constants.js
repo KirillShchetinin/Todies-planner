@@ -14,24 +14,13 @@ const DEFAULT_WEEK_UNSCHEDULED = [
 ];
 
 const INIT_TASKS = [
-  {id:'t1',  text:'Team standup 10am',         type:'t-locked',    col:'mon',         locked:true},
-  {id:'t2',  text:'1:1 with manager 3pm',      type:'t-locked',    col:'wed',         locked:true},
-  {id:'t3',  text:'Sprint planning 2pm',       type:'t-locked',    col:'mon',         locked:true},
-  {id:'t4',  text:'Weekly review 5pm',         type:'t-locked',    col:'fri',         locked:true},
-  {id:'t5',  text:'Reply to emails',           type:'t-async',     col:'mon'},
-  {id:'t6',  text:'Update project docs',       type:'t-async',     col:'tue'},
-  {id:'t7',  text:'Review pull requests',      type:'t-async',     col:'wed'},
-  {id:'t8',  text:'Send weekly report',        type:'t-async',     col:'fri'},
-  {id:'t9',  text:'Read industry articles',    type:'t-practice',  col:'tue'},
-  {id:'t10', text:'Work on side project',      type:'t-practice',  col:'thu'},
-  {id:'t11', text:'Learn new tool / framework', type:'t-practice', col:'sat'},
-  {id:'t12', text:'File expense report',       type:'t-tax',       col:'thu'},
-  {id:'t13', text:'Grocery shopping',          type:'t-async',     col:'unscheduled'},
-  {id:'t14', text:'Gym',                       type:'t-rest',      col:'tue'},
-  {id:'t15', text:'Gym',                       type:'t-rest',      col:'thu'},
-  {id:'t16', text:'Catch up with a friend',    type:'t-rest',      col:'sat'},
-  {id:'t17', text:'Plan next week',            type:'t-practice',  col:'sun'},
-  {id:'t18', text:'Deep work block',           type:'t-unplanned', col:'unscheduled'},
+  {id:'t1',  text:'Task A',  type:'t-locked',    col:'mon', locked:true},
+  {id:'t2',  text:'Task B',  type:'t-locked',    col:'wed', locked:true},
+  {id:'t3',  text:'Task C',  type:'t-async',     col:'mon'},
+  {id:'t4',  text:'Task D',  type:'t-async',     col:'tue'},
+  {id:'t5',  text:'Task E',  type:'t-practice',  col:'wed'},
+  {id:'t6',  text:'Task F',  type:'t-rest',      col:'thu'},
+  {id:'t7',  text:'Task G',  type:'t-unplanned', col:'unscheduled'},
 ];
 
 const DEFAULT_TYPE_CONFIG = {

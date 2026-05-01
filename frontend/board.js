@@ -38,7 +38,7 @@ function buildColEl(col) {
       document.querySelectorAll('.col').forEach(c => c.classList.remove('col-drag-over'));
       const from = cols.findIndex(c => c.id === draggingCol);
       const to   = cols.findIndex(c => c.id === col.id);
-      if (from > -1 && to > -1) { const [m] = cols.splice(from, 1); cols.splice(to, 0, m); saveState(); }
+      if (from > -1 && to > -1) { UndoHistory.push(); const [m] = cols.splice(from, 1); cols.splice(to, 0, m); saveState(); }
       draggingCol = null; render();
     });
 
@@ -160,6 +160,7 @@ function buildColEl(col) {
       zone.classList.remove('drag-over');
       document.querySelectorAll('.task').forEach(t => t.classList.remove('insert-before','insert-after'));
       if (!dragging) return;
+      UndoHistory.push();
 
       const tc = zone.dataset.col;
       const targetEl = e.target.closest('.task[data-id]');
@@ -401,6 +402,7 @@ function startTaskInlineEdit(taskId) {
     committed = true;
     const val = input.value.trim();
     if (val && val !== original) {
+      UndoHistory.push();
       allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.text = val; }); });
       saveState();
     }

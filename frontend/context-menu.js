@@ -29,6 +29,7 @@ function openTaskCtxMenu(e, taskId) {
   impBtn.className = 'ctx-item ctx-important-item';
   impBtn.textContent = task?.important ? t('ctxUnmarkImportant') : t('ctxMarkImportant');
   impBtn.onclick = () => {
+    UndoHistory.push();
     allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.important = !t.important; }); });
     saveState(); closeCtxMenu(); render();
   };
@@ -55,6 +56,7 @@ function openTaskCtxMenu(e, taskId) {
     btn.style.cssText = `border-left: 3px solid ${cfg.border}`;
     btn.textContent = cfg.label;
     btn.onclick = () => {
+      UndoHistory.push();
       allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.type = key; }); });
       saveState(); closeCtxMenu(); render();
     };

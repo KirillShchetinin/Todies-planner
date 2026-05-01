@@ -1,3 +1,11 @@
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    e.preventDefault();
+    if (UndoHistory.pop()) { saveState(); render(); }
+  }
+});
+
 loadState().then(() => {
   applyScale(uiScale);
   applyLangToStaticUI();

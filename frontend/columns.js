@@ -36,6 +36,7 @@ function colWeekInfo(col) {
 
 function addCol(label, date) {
   if (!label.trim()) return;
+  UndoHistory.push();
   cols.push({id:'col'+(colCounter++), label:label.trim(), date:date.trim()});
   sortColsByDate();
   saveState(); render();
@@ -62,6 +63,7 @@ function addNextDay() {
 }
 
 function addUnscheduledCol() {
+  UndoHistory.push();
   weekUnscheduled.push({id:'unsched_w'+(colCounter++), label:'Unscheduled'});
   saveState(); render();
 }
@@ -69,6 +71,7 @@ function addUnscheduledCol() {
 function deleteCol(colId) {
   const tasks = state[colId] || [];
   if (tasks.length > 0 && !confirm(t('deleteColConfirm'))) return;
+  UndoHistory.push();
   delete state[colId];
   cols = cols.filter(c => c.id !== colId);
   saveState(); render();

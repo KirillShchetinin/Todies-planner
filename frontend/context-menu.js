@@ -35,6 +35,12 @@ function openTaskCtxMenu(e, taskId) {
   };
   ctxMenu.appendChild(impBtn);
 
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'ctx-item ctx-cancel-item';
+  cancelBtn.textContent = task?.cancelled ? t('ctxUncancel') : t('ctxCancel');
+  cancelBtn.onclick = () => { closeCtxMenu(); toggleCancelled(taskId); };
+  ctxMenu.appendChild(cancelBtn);
+
   const sep = document.createElement('div');
   sep.className = 'ctx-sep';
   ctxMenu.appendChild(sep);

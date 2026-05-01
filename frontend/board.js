@@ -1,14 +1,14 @@
 // board.js — rendering logic for the weekly planner board
 // Depends on globals from: state.js, tasks.js, columns.js, context-menu.js, legend.js, collapse.js, i18n.js
 
-function applyTaskStyle(el, type, done) {
+function applyTaskStyle(el, type, done, cancelled) {
   const cfg = typeConfig[type] || typeConfig['t-async'] || {bg:'#f2f2f0', border:'#d8d8d4', text:'#444'};
   el.style.background  = cfg.bg;
   el.style.borderColor = cfg.border;
   el.style.color       = cfg.text;
-  el.style.borderStyle = (!done && cfg.dashed) ? 'dashed' : 'solid';
-  el.style.fontStyle   = (!done && cfg.italic)  ? 'italic' : '';
-  el.style.opacity     = done ? '0.45' : '';
+  el.style.borderStyle = (!done && !cancelled && cfg.dashed) ? 'dashed' : 'solid';
+  el.style.fontStyle   = (!done && !cancelled && cfg.italic)  ? 'italic' : '';
+  el.style.opacity     = (done || cancelled) ? '0.45' : '';
 }
 
 function buildColEl(col) {
@@ -83,10 +83,10 @@ function buildColEl(col) {
 
     (state[col.id]||[]).forEach(task => {
       const el = document.createElement('div');
-      el.className = 'task' + (task.done ? ' done' : '');
+      el.className = 'task' + (task.done ? ' done' : '') + (task.cancelled ? ' cancelled' : '');
       el.dataset.id = task.id;
       el.title = task.text;
-      applyTaskStyle(el, task.type, task.done);
+      applyTaskStyle(el, task.type, task.done, task.cancelled);
 
       if (task.important) {
         const imp = document.createElement('span');

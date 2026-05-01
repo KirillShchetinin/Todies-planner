@@ -23,3 +23,13 @@ function toggleDone(id) {
   });
   saveState(); render();
 }
+
+function toggleCancelled(id) {
+  UndoHistory.push();
+  allCols().forEach(c => {
+    if (!state[c.id]) return;
+    const t = state[c.id].find(t => t.id === id);
+    if (t) t.cancelled = !t.cancelled;
+  });
+  saveState(); render();
+}

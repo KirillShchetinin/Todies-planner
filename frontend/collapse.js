@@ -22,8 +22,8 @@ const Collapse = (() => {
 
   function canToggle(colId, taskState) {
     const tasks = taskState[colId] || [];
-    const activeTasks = tasks.filter(t => !t.done);
-    const hasDone     = tasks.some(t => t.done);
+    const activeTasks = tasks.filter(t => !t.done && !t.cancelled);
+    const hasDone     = tasks.some(t => t.done || t.cancelled);
     return hasDone || activeTasks.length > SHOW_ACTIVE;
   }
 
@@ -39,24 +39,24 @@ const Collapse = (() => {
   // tasks: task array for this col (data, not DOM)
   // typeConfig: label→style map for dot colors
   function applyShort(colEl, zone, tasks, typeConfig) {
-    const activeTasks = tasks.filter(t => !t.done);
-    const doneTasks   = tasks.filter(t => t.done);
-    const onlyDone    = activeTasks.length === 0;
+    const activeTasks = tasks.filter(t => !t.done && !t.cancelled);
+    const fadedTasks  = tasks.filter(t => t.done || t.cancelled);
+    const onlyFaded   = activeTasks.length === 0;
 
     let dotItems = []; // { task, faded }
 
-    if (onlyDone) {
+    if (onlyFaded) {
       zone.querySelectorAll('.task').forEach((el, i) => {
         if (i >= SHOW_DONE) el.style.display = 'none';
       });
-      dotItems = doneTasks.slice(SHOW_DONE).map(t => ({ task: t, faded: true }));
+      dotItems = fadedTasks.slice(SHOW_DONE).map(t => ({ task: t, faded: true }));
     } else {
-      zone.querySelectorAll('.task.done').forEach(el => el.style.display = 'none');
-      [...zone.querySelectorAll('.task:not(.done)')].slice(SHOW_ACTIVE)
+      zone.querySelectorAll('.task.done, .task.cancelled').forEach(el => el.style.display = 'none');
+      [...zone.querySelectorAll('.task:not(.done):not(.cancelled)')].slice(SHOW_ACTIVE)
         .forEach(el => el.style.display = 'none');
       dotItems = [
         ...activeTasks.slice(SHOW_ACTIVE).map(t => ({ task: t, faded: false })),
-        ...doneTasks.map(t => ({ task: t, faded: true })),
+        ...fadedTasks.map(t => ({ task: t, faded: true })),
       ];
     }
 

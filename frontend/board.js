@@ -61,6 +61,7 @@ function buildColEl(col) {
     {
       const dc = document.createElement('button');
       dc.className = 'del-col'; dc.textContent = '×'; dc.title = t('removeColTitle');
+      dc.setAttribute('aria-label', t('removeColTitle'));
       dc.onclick = () => deleteCol(col.id);
       hdr.appendChild(dc);
     }
@@ -106,11 +107,13 @@ function buildColEl(col) {
         const chk = document.createElement('button');
         chk.className   = 'check';
         chk.textContent = task.done ? '✓' : '○';
+        chk.setAttribute('aria-label', task.done ? 'Mark incomplete' : 'Mark complete');
         chk.onclick = e => { e.stopPropagation(); toggleDone(task.id); };
         actions.appendChild(chk);
 
         const del = document.createElement('button');
         del.className = 'del'; del.textContent = '×';
+        del.setAttribute('aria-label', 'Delete task');
         del.onclick = e => { e.stopPropagation(); deleteTask(task.id); };
         actions.appendChild(del);
 
@@ -259,6 +262,7 @@ function buildColEl(col) {
     });
 
     document.addEventListener('click', e => {
+      if (!document.body.contains(addBtn)) return; // column was removed from DOM, ignore
       if (form.classList.contains('open') && !form.contains(e.target) && e.target !== addBtn) reset();
     }, { capture: true });
 
@@ -390,7 +394,11 @@ function startTaskInlineEdit(taskId) {
   input.focus();
   input.select();
 
+  let committed = false;
+
   const commit = () => {
+    if (committed) return;
+    committed = true;
     const val = input.value.trim();
     if (val && val !== original) {
       allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.text = val; }); });
@@ -399,7 +407,7 @@ function startTaskInlineEdit(taskId) {
     render();
   };
 
-  const cancel = () => render();
+  const cancel = () => { committed = true; render(); };
 
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter')  { e.preventDefault(); commit(); }

@@ -17,6 +17,7 @@ function renderLegend() {
     const x = document.createElement('button');
     x.className = 'leg-del';
     x.textContent = '×';
+    x.setAttribute('aria-label', 'Remove label ' + cfg.label);
     x.onclick = ev => { ev.stopPropagation(); deleteLabel(key); };
     pill.appendChild(x);
 

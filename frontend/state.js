@@ -31,7 +31,7 @@ async function loadState() {
       sortColsByDate();
       return;
     }
-  } catch(e) {}
+  } catch(e) { console.warn('loadState failed:', e); }
   cols  = DEFAULT_COLS.map(c => ({...c}));
   weekUnscheduled = DEFAULT_WEEK_UNSCHEDULED.map(c => ({...c}));
   state = {};

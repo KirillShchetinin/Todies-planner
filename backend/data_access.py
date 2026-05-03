@@ -1,4 +1,4 @@
-import os, sqlite3
+import json, os, sqlite3
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH  = os.path.join(BASE_DIR, 'planner.db')
@@ -46,14 +46,14 @@ def get_state(user_id):
             'SELECT data FROM planner_state WHERE user_id IS NULL'
         ).fetchone()
     conn.close()
-    return row['data'] if row else None
+    return json.loads(row['data']) if row else None
 
 
-def set_state(user_id, data):
+def set_state(user_id, state):
     conn = get_db()
     conn.execute(
         'INSERT OR REPLACE INTO planner_state (user_id, data) VALUES (?, ?)',
-        (user_id, data),
+        (user_id, json.dumps(state)),
     )
     conn.commit()
     conn.close()

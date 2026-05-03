@@ -28,17 +28,15 @@ def init_db():
     conn.close()
 
 
-def resolve_user_id(conn, token):
-    """Return user_id for token, or None if token is absent/invalid."""
-    if not token:
-        return None
-    row = conn.execute('SELECT id FROM users WHERE token=?', (token,)).fetchone()
+def get_user_id(token):
+    conn = get_db()
+    row  = conn.execute('SELECT id FROM users WHERE token=?', (token,)).fetchone()
+    conn.close()
     return row['id'] if row else None
 
 
-def get_state(token):
-    conn    = get_db()
-    user_id = resolve_user_id(conn, token)
+def get_state(user_id):
+    conn = get_db()
     if user_id is not None:
         row = conn.execute(
             'SELECT data FROM planner_state WHERE user_id=?', (user_id,)
@@ -51,9 +49,8 @@ def get_state(token):
     return row['data'] if row else None
 
 
-def set_state(token, data):
-    conn    = get_db()
-    user_id = resolve_user_id(conn, token)
+def set_state(user_id, data):
+    conn = get_db()
     conn.execute(
         'INSERT OR REPLACE INTO planner_state (user_id, data) VALUES (?, ?)',
         (user_id, data),

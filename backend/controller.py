@@ -7,6 +7,7 @@ BASE_DIR     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
 
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path='')
+data_access.register(app)
 
 
 @app.route('/api/state', methods=['GET'])

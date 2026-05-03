@@ -7,6 +7,7 @@ row = src.execute(
     'SELECT u.id, u.token, ps.data FROM users u '
     'LEFT JOIN planner_state ps ON u.id = ps.user_id'
 ).fetchone()
+user_id = row['id']
 token   = row['token']
 parsed  = json.loads(row['data'])
 src.close()
@@ -48,10 +49,9 @@ meta = {k: parsed[k] for k in ('idCounter','colCounter','typeCounter',
                                 'typeConfig','legendOrder','uiScale',
                                 'lang','collapseState')}
 dst.execute(
-    'INSERT INTO users (token, metadata) VALUES (?, ?)',
-    (token, json.dumps(meta))
+    'INSERT INTO users (id, token, metadata) VALUES (?, ?, ?)',
+    (user_id, token, json.dumps(meta))
 )
-user_id = dst.execute('SELECT last_insert_rowid()').fetchone()[0]
 print(f'Inserted user id={user_id}')
 
 # ── Step 4: insert forms (day cols) ───────────────────────────────────────

@@ -1,95 +1,11 @@
-import os, sqlite3, threading, webbrowser
-from flask import Flask, jsonify, request, send_from_directory
-
-BASE_DIR     = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
-DB_PATH      = os.path.join(BASE_DIR, 'planner.db')
-app          = Flask(__name__)
-
-
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def init_db():
-    conn = get_db()
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id    INTEGER PRIMARY KEY AUTOINCREMENT,
-            token TEXT    NOT NULL UNIQUE
-        )
-    ''')
-    conn.execute('''
-        CREATE TABLE IF NOT EXISTS planner_state (
-            user_id INTEGER UNIQUE REFERENCES users(id),
-            data    TEXT    NOT NULL
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-
-def resolve_user_id(conn, token):
-    """Return user_id for token, or None if token is absent/invalid."""
-    if not token:
-        return None
-    row = conn.execute('SELECT id FROM users WHERE token=?', (token,)).fetchone()
-    return row['id'] if row else None
-
-
-@app.route('/api/state', methods=['GET'])
-def get_state():
-    token   = request.args.get('token')
-    conn    = get_db()
-    user_id = resolve_user_id(conn, token)
-    print(f'[DEBUG] token={token!r} user_id={user_id!r}')
-    if user_id is not None:
-        row = conn.execute(
-            'SELECT data FROM planner_state WHERE user_id=?', (user_id,)
-        ).fetchone()
-    else:
-        row = conn.execute(
-            'SELECT data FROM planner_state WHERE user_id IS NULL'
-        ).fetchone()
-    conn.close()
-    print(f'[DEBUG] row found={row is not None}')
-    if row:
-        return row['data'], 200, {'Content-Type': 'application/json'}
-    return 'null', 200, {'Content-Type': 'application/json'}
-
-
-@app.route('/api/state', methods=['PUT'])
-def set_state():
-    token   = request.args.get('token')
-    data    = request.get_data(as_text=True)
-    conn    = get_db()
-    user_id = resolve_user_id(conn, token)
-    conn.execute(
-        'INSERT OR REPLACE INTO planner_state (user_id, data) VALUES (?, ?)',
-        (user_id, data),
-    )
-    conn.commit()
-    conn.close()
-    return '', 204
-
-
-@app.route('/')
-def index():
-    return send_from_directory(FRONTEND_DIR, 'index.html')
-
-
-@app.route('/<path:filename>')
-def static_files(filename):
-    return send_from_directory(FRONTEND_DIR, filename)
-
+import os, threading, webbrowser
+from backend.data_access import init_db, DB_PATH
+from backend.controller import app
 
 if __name__ == '__main__':
-    # backup DB on every startup
     if os.path.exists(DB_PATH):
         import shutil, datetime
-        backup_dir = os.path.join(BASE_DIR, 'backups')
+        backup_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
         os.makedirs(backup_dir, exist_ok=True)
         ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         shutil.copy2(DB_PATH, os.path.join(backup_dir, f'planner_backup_{ts}.db'))

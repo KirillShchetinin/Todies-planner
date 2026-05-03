@@ -28,11 +28,15 @@ Tests live in `tests/` and currently cover DB schema parity (`test_db_parity.py`
 
 **Todies** is a weekly task planner. The backend is a minimal Flask app; the frontend is vanilla JavaScript with no framework or bundler.
 
-### Backend (`server.py`)
-- Serves static files from `frontend/`
-- `GET /api/state` and `PUT /api/state` — reads/writes the full planner state for the authenticated user (token passed as query param)
-- Token-based auth: `users` table stores tokens; state is keyed per user
-- On startup, backs up the DB to `backups/`
+### Backend
+
+`server.py` is the entrypoint — backs up the DB, calls `init_db()`, and starts Flask on port 5000.
+
+Backend logic lives in `backend/`:
+- **`controller.py`** — Flask app instance and all routes (`GET /api/state`, `PUT /api/state`, static file serving). Handles request/response, extracts the auth token, and delegates DB work to `data_access`.
+- **`data_access.py`** — all SQL queries and DB helpers: `get_db`, `init_db`, `resolve_user_id`, `get_state`, `set_state`. Nothing in here knows about HTTP.
+
+Token-based auth: `users` table stores tokens; state is keyed per user.
 
 ### Database (`internal/`)
 There are two DB schemas in transition:

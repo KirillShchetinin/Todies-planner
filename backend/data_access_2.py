@@ -79,3 +79,97 @@ def get_state(user_id):
         'lang':            meta.get('lang', 'en'),
         'collapseState':   meta.get('collapseState', {}),
     }
+
+
+def save_user_metadata(user_id, state):
+    meta = {k: state.get(k, default) for k, default in [
+        ('idCounter', 0), ('colCounter', 0), ('typeCounter', 0),
+        ('typeConfig', {}), ('legendOrder', []),
+        ('uiScale', 1), ('lang', 'en'), ('collapseState', {}),
+    ]}
+    get_db_2().execute('UPDATE users SET metadata=? WHERE id=?', (json.dumps(meta), user_id))
+
+
+def save_forms(user_id, cols, week_unscheduled):
+    db = get_db_2()
+    desired = (
+        [{'client_id': c['id'], 'label': c.get('label', ''), 'date': c.get('date', ''), 'is_unscheduled': 0, 'sort_order': i}
+         for i, c in enumerate(cols)] +
+        [{'client_id': c['id'], 'label': c.get('label', ''), 'date': '', 'is_unscheduled': 1, 'sort_order': i}
+         for i, c in enumerate(week_unscheduled)]
+    )
+    desired_ids = {f['client_id'] for f in desired}
+
+    existing = db.execute('SELECT id, client_id FROM forms WHERE user_id=?', (user_id,)).fetchall()
+    existing_map = {row['client_id']: row['id'] for row in existing}
+
+    removed_db_ids = [existing_map[cid] for cid in existing_map if cid not in desired_ids]
+    if removed_db_ids:
+        db.execute(
+            f'DELETE FROM forms WHERE id IN ({",".join("?" * len(removed_db_ids))})',
+            removed_db_ids
+        )
+
+    for f in desired:
+        if f['client_id'] in existing_map:
+            db.execute(
+                'UPDATE forms SET label=?, date=?, is_unscheduled=?, sort_order=? WHERE user_id=? AND client_id=?',
+                (f['label'], f['date'], f['is_unscheduled'], f['sort_order'], user_id, f['client_id'])
+            )
+        else:
+            db.execute(
+                'INSERT INTO forms (user_id, client_id, label, date, is_unscheduled, sort_order) VALUES (?,?,?,?,?,?)',
+                (user_id, f['client_id'], f['label'], f['date'], f['is_unscheduled'], f['sort_order'])
+            )
+
+    return {row['client_id']: row['id'] for row in
+            db.execute('SELECT id, client_id FROM forms WHERE user_id=?', (user_id,)).fetchall()}
+
+
+def save_tasks(user_id, task_groups, form_db_id_map):
+    db = get_db_2()
+    desired = []
+    for form_client_id, tasks in task_groups.items():
+        form_db_id = form_db_id_map.get(form_client_id)
+        if form_db_id is None:
+            continue
+        for i, task in enumerate(tasks):
+            task_meta = {k: v for k, v in task.items() if k not in ('id', 'text', 'done')}
+            desired.append({
+                'client_id':  task['id'],
+                'form_id':    form_db_id,
+                'name':       task.get('text', ''),
+                'done':       1 if task.get('done') else 0,
+                'sort_order': i,
+                'metadata':   json.dumps(task_meta),
+            })
+    desired_ids = {t['client_id'] for t in desired}
+
+    existing = db.execute('SELECT client_id FROM tasks WHERE user_id=?', (user_id,)).fetchall()
+    existing_ids = {row['client_id'] for row in existing}
+
+    removed_ids = existing_ids - desired_ids
+    if removed_ids:
+        db.execute(
+            f'DELETE FROM tasks WHERE user_id=? AND client_id IN ({",".join("?" * len(removed_ids))})',
+            [user_id, *removed_ids]
+        )
+
+    for t in desired:
+        if t['client_id'] in existing_ids:
+            db.execute(
+                'UPDATE tasks SET form_id=?, name=?, done=?, sort_order=?, metadata=? WHERE user_id=? AND client_id=?',
+                (t['form_id'], t['name'], t['done'], t['sort_order'], t['metadata'], user_id, t['client_id'])
+            )
+        else:
+            db.execute(
+                'INSERT INTO tasks (user_id, form_id, client_id, name, done, sort_order, metadata) VALUES (?,?,?,?,?,?,?)',
+                (user_id, t['form_id'], t['client_id'], t['name'], t['done'], t['sort_order'], t['metadata'])
+            )
+
+
+def set_state(user_id, state):
+    save_user_metadata(user_id, state)
+    form_db_id_map = save_forms(user_id, state.get('cols', []), state.get('weekUnscheduled', []))
+    save_tasks(user_id, state.get('state', {}), form_db_id_map)
+    get_db_2().commit()

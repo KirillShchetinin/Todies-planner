@@ -27,7 +27,8 @@ def set_state():
     state   = request.get_json(silent=True)
     if state is None:
         return jsonify(error='invalid JSON body'), 400
-    data_access.set_state(user_id, state)
+    #data_access.set_state(user_id, state)
+    DA_2.set_state(user_id, state)
     app.logger.debug('PUT /api/state user_id=%r', user_id)
     return '', 204
 

@@ -4,7 +4,7 @@ function addLabel(name, colors) {
   typeConfig[key] = { label: name.trim(), ...colors };
   const doneIdx = legendOrder.indexOf('done');
   legendOrder.splice(doneIdx < 0 ? legendOrder.length : doneIdx, 0, key);
-  saveState(); render();
+  saveMetadata(); render();
 }
 
 function deleteLabel(key) {
@@ -19,12 +19,12 @@ function renameLabel(key, newName) {
   if (!typeConfig[key] || !newName.trim()) return;
   UndoHistory.push();
   typeConfig[key].label = newName.trim();
-  saveState(); render();
+  saveMetadata(); render();
 }
 
 function recolorLabel(key, colors) {
   if (!typeConfig[key]) return;
   UndoHistory.push();
   Object.assign(typeConfig[key], colors);
-  saveState(); render();
+  saveMetadata(); render();
 }

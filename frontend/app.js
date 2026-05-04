@@ -26,7 +26,7 @@ loadState().then(() => {
 
 document.getElementById('langBtn').addEventListener('click', () => {
   lang = lang === 'en' ? 'ru' : 'en';
-  saveState();
+  saveMetadata();
   applyLangToStaticUI();
   render();
   renderScaleBtns();

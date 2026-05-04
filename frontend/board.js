@@ -72,7 +72,7 @@ function buildColEl(col) {
       if (e.target.closest('.del-col')) return;
       const dx = Math.abs(e.clientX - hdrMouseX), dy = Math.abs(e.clientY - hdrMouseY);
       if (dx >= 5 || dy >= 5) return;
-      if (Collapse.toggle(col.id, state)) { render(); saveState(); }
+      if (Collapse.toggle(col.id, state)) { render(); saveMetadata(); }
     });
 
     colEl.appendChild(hdr);

@@ -4,7 +4,8 @@ let legendOrder = [...DEFAULT_LEGEND_ORDER];
 let uiScale = 1;
 
 const _token = new URLSearchParams(window.location.search).get('token');
-const _apiUrl = _token ? `/api/state?token=${encodeURIComponent(_token)}` : '/api/state';
+const _apiUrl        = _token ? `/api/state?token=${encodeURIComponent(_token)}`        : '/api/state';
+const _metadataUrl   = _token ? `/api/v2/metadata?token=${encodeURIComponent(_token)}`  : '/api/v2/metadata';
 
 async function loadState() {
   try {
@@ -53,5 +54,13 @@ function saveState() {
     method:  'PUT',
     headers: {'Content-Type':'application/json'},
     body:    JSON.stringify({cols, weekUnscheduled, state, idCounter, colCounter, typeCounter, typeConfig, legendOrder, uiScale, lang, collapseState: Collapse.getAll()}),
+  }).catch(() => {});
+}
+
+function saveMetadata() {
+  fetch(_metadataUrl, {
+    method:  'PUT',
+    headers: {'Content-Type':'application/json'},
+    body:    JSON.stringify({lang, uiScale, legendOrder, typeConfig, idCounter, colCounter, typeCounter, collapseState: Collapse.getAll()}),
   }).catch(() => {});
 }

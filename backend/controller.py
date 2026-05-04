@@ -1,6 +1,8 @@
+import logging
 import os
 from flask import Flask, jsonify, request
 from backend import data_access
+from backend import data_access_2 as DA_2
 from backend.auth import resolve_user_id
 
 BASE_DIR     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -13,8 +15,9 @@ data_access.register(app)
 @app.route('/api/state', methods=['GET'])
 def get_state():
     user_id = resolve_user_id()
-    state   = data_access.get_state(user_id)
-    app.logger.debug('GET /api/state user_id=%r found=%s', user_id, state is not None)
+    state   = DA_2.get_state(user_id)
+    #state = data_access.get_state(user_id)
+    app.logger.info('GET /api/state user_id=%r found=%s', user_id, state is not None)
     return jsonify(state)
 
 

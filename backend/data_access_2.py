@@ -47,11 +47,10 @@ def get_state(user_id):
 
     task_groups = {}
     for f in forms:
-        if not f['is_unscheduled']:
-            task_groups[f['client_id']] = []
+        task_groups[f['client_id']] = []
     for t in tasks:
         form = form_by_id.get(t['form_id'])
-        if form is None or form['client_id'] not in task_groups:
+        if form is None:
             continue
         task_obj = {'id': t['client_id'], 'text': t['name'], 'done': bool(t['done'])}
         task_obj.update(t['metadata'])

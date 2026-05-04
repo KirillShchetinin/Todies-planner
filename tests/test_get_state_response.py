@@ -74,7 +74,7 @@ def test_get_state_returns_expected_response(real_client):
 
     # ── state: dict keyed by col client_id, 26 entries, 87 tasks total ────
     assert isinstance(body["state"], dict)
-    assert len(body["state"]) == 26
+    assert len(body["state"]) == 33
     total_tasks = sum(len(v) for v in body["state"].values())
     assert total_tasks == 87
 

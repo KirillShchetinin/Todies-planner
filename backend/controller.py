@@ -4,12 +4,14 @@ from flask import Flask, jsonify, request
 from backend import data_access
 from backend import data_access_2 as DA_2
 from backend.auth import resolve_user_id
+from backend.controller_v2 import v2
 
 BASE_DIR     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
 
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path='')
 data_access.register(app)
+app.register_blueprint(v2)
 
 
 @app.route('/api/state', methods=['GET'])

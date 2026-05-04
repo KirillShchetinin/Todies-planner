@@ -1,4 +1,5 @@
 import json
+import sqlite3
 
 from backend.data_access import get_db_2
 
@@ -173,3 +174,47 @@ def set_state(user_id, state):
     form_db_id_map = save_forms(user_id, state.get('cols', []), state.get('weekUnscheduled', []))
     save_tasks(user_id, state.get('state', {}), form_db_id_map)
     get_db_2().commit()
+
+
+# ---------------------------------------------------------------------------
+# v2 granular API
+# ---------------------------------------------------------------------------
+
+def create_form(user_id, data):
+    try:
+        get_db_2().execute(
+            'INSERT INTO forms (user_id, client_id, label, date, is_unscheduled, sort_order)'
+            ' VALUES (?,?,?,?,?,?)',
+            (user_id, data['client_id'], data.get('label', ''), data.get('date', ''),
+             1 if data.get('is_unscheduled') else 0, data.get('sort_order', 0)),
+        )
+        get_db_2().commit()
+        return True, None
+    except sqlite3.IntegrityError:
+        return False, 'conflict'
+
+
+def update_form(user_id, client_id, data):
+    cur = get_db_2().execute(
+        'UPDATE forms SET label=?, date=?, sort_order=? WHERE user_id=? AND client_id=?',
+        (data.get('label', ''), data.get('date', ''), data.get('sort_order', 0),
+         user_id, client_id),
+    )
+    get_db_2().commit()
+    return cur.rowcount > 0
+
+
+def delete_form(user_id, client_id):
+    cur = get_db_2().execute(
+        'DELETE FROM forms WHERE user_id=? AND client_id=?', (user_id, client_id)
+    )
+    get_db_2().commit()
+    return cur.rowcount > 0
+
+
+def update_metadata(user_id, metadata):
+    cur = get_db_2().execute(
+        'UPDATE users SET metadata=? WHERE id=?', (json.dumps(metadata), user_id)
+    )
+    get_db_2().commit()
+    return cur.rowcount > 0

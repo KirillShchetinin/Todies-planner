@@ -38,7 +38,7 @@ function buildColEl(col) {
       document.querySelectorAll('.col').forEach(c => c.classList.remove('col-drag-over'));
       const from = cols.findIndex(c => c.id === draggingCol);
       const to   = cols.findIndex(c => c.id === col.id);
-      if (from > -1 && to > -1) { UndoHistory.push(); const [m] = cols.splice(from, 1); cols.splice(to, 0, m); saveState(); }
+      if (from > -1 && to > -1) { UndoHistory.push(); const [m] = cols.splice(from, 1); cols.splice(to, 0, m); cols.forEach((c, i) => formApiUpdate(c.id, {label: c.label, date: c.date || '', sort_order: i})); saveState(); }
       draggingCol = null; render();
     });
 

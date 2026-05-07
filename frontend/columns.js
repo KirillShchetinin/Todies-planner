@@ -37,8 +37,10 @@ function colWeekInfo(col) {
 function addCol(label, date) {
   if (!label.trim()) return;
   UndoHistory.push();
-  cols.push({id:'col'+(colCounter++), label:label.trim(), date:date.trim()});
+  const newId = 'col' + (colCounter++);
+  cols.push({id: newId, label: label.trim(), date: date.trim()});
   sortColsByDate();
+  formApiCreate({id: newId, label: label.trim(), date: date.trim()}, false, cols.findIndex(c => c.id === newId));
   saveState(); render();
 }
 
@@ -64,7 +66,9 @@ function addNextDay() {
 
 function addUnscheduledCol() {
   UndoHistory.push();
-  weekUnscheduled.push({id:'unsched_w'+(colCounter++), label:'Unscheduled'});
+  const newId = 'unsched_w' + (colCounter++);
+  weekUnscheduled.push({id: newId, label: 'Unscheduled'});
+  formApiCreate({id: newId, label: 'Unscheduled', date: ''}, true, weekUnscheduled.length - 1);
   saveState(); render();
 }
 
@@ -74,5 +78,6 @@ function deleteCol(colId) {
   UndoHistory.push();
   delete state[colId];
   cols = cols.filter(c => c.id !== colId);
+  formApiDelete(colId);
   saveState(); render();
 }

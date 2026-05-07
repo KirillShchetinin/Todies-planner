@@ -6,6 +6,7 @@ let uiScale = 1;
 const _token = new URLSearchParams(window.location.search).get('token');
 const _apiUrl        = _token ? `/api/state?token=${encodeURIComponent(_token)}`        : '/api/state';
 const _metadataUrl   = _token ? `/api/v2/metadata?token=${encodeURIComponent(_token)}`  : '/api/v2/metadata';
+const _formsUrl      = _token ? `/api/v2/forms?token=${encodeURIComponent(_token)}`     : '/api/v2/forms';
 
 async function loadState() {
   try {
@@ -55,6 +56,36 @@ function saveState() {
     headers: {'Content-Type':'application/json'},
     body:    JSON.stringify({cols, weekUnscheduled, state, idCounter, colCounter, typeCounter, typeConfig, legendOrder, uiScale, lang, collapseState: Collapse.getAll()}),
   }).catch(() => {});
+}
+
+function formApiCreate(col, isUnscheduled, sortOrder) {
+  fetch(_formsUrl, {
+    method:  'POST',
+    headers: {'Content-Type': 'application/json'},
+    body:    JSON.stringify({
+      client_id:      col.id,
+      label:          col.label || '',
+      date:           col.date  || '',
+      is_unscheduled: isUnscheduled ? 1 : 0,
+      sort_order:     sortOrder || 0,
+    }),
+  }).catch(() => {});
+}
+
+function formApiUpdate(clientId, data) {
+  const base = _token ? `/api/v2/forms/${encodeURIComponent(clientId)}?token=${encodeURIComponent(_token)}`
+                      : `/api/v2/forms/${encodeURIComponent(clientId)}`;
+  fetch(base, {
+    method:  'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body:    JSON.stringify(data),
+  }).catch(() => {});
+}
+
+function formApiDelete(clientId) {
+  const base = _token ? `/api/v2/forms/${encodeURIComponent(clientId)}?token=${encodeURIComponent(_token)}`
+                      : `/api/v2/forms/${encodeURIComponent(clientId)}`;
+  fetch(base, { method: 'DELETE' }).catch(() => {});
 }
 
 function saveMetadata() {

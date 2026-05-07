@@ -54,7 +54,7 @@ function saveState() {
   fetch(_apiUrl, {
     method:  'PUT',
     headers: {'Content-Type':'application/json'},
-    body:    JSON.stringify({cols, weekUnscheduled, state, idCounter, colCounter, typeCounter, typeConfig, legendOrder, uiScale, lang, collapseState: Collapse.getAll()}),
+    body:    JSON.stringify({cols, weekUnscheduled, state, idCounter, typeCounter, typeConfig, legendOrder, uiScale, lang, collapseState: Collapse.getAll()}),
   }).catch(() => {});
 }
 
@@ -92,6 +92,6 @@ function saveMetadata() {
   fetch(_metadataUrl, {
     method:  'PUT',
     headers: {'Content-Type':'application/json'},
-    body:    JSON.stringify({lang, uiScale, legendOrder, typeConfig, idCounter, colCounter, typeCounter, collapseState: Collapse.getAll()}),
+    body:    JSON.stringify({lang, uiScale, legendOrder, typeConfig, idCounter, typeCounter, collapseState: Collapse.getAll()}),
   }).catch(() => {});
 }

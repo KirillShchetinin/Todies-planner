@@ -20,9 +20,7 @@ def create_form():
     body = request.get_json(silent=True) or {}
     if not body.get('client_id'):
         return jsonify(error='client_id required'), 400
-    ok, _ = DA_2.create_form(user_id, body)
-    if not ok:
-        return jsonify(error='form already exists'), 409
+    DA_2.create_form(user_id, body)
     return '', 201
 
 

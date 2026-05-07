@@ -1,5 +1,5 @@
 import json
-import sqlite3
+import re
 
 from backend.data_access import get_db_2
 
@@ -66,13 +66,20 @@ def get_state(user_id):
         for f in forms if f['is_unscheduled']
     ]
 
+    nums = []
+    for f in forms:
+        m = re.match(r'(?:col|unsched_w)(\d+)$', f['client_id'])
+        if m:
+            nums.append(int(m.group(1)))
+    col_counter = max(nums) + 1 if nums else 200
+
     meta = user['metadata']
     return {
         'cols':            cols,
         'weekUnscheduled': week_unscheduled,
         'state':           task_groups,
         'idCounter':       meta.get('idCounter', 0),
-        'colCounter':      meta.get('colCounter', 0),
+        'colCounter':      col_counter,
         'typeCounter':     meta.get('typeCounter', 0),
         'typeConfig':      meta.get('typeConfig', {}),
         'legendOrder':     meta.get('legendOrder', []),
@@ -84,7 +91,7 @@ def get_state(user_id):
 
 def save_user_metadata(user_id, state):
     meta = {k: state.get(k, default) for k, default in [
-        ('idCounter', 0), ('colCounter', 0), ('typeCounter', 0),
+        ('idCounter', 0), ('typeCounter', 0),
         ('typeConfig', {}), ('legendOrder', []),
         ('uiScale', 1), ('lang', 'en'), ('collapseState', {}),
     ]}
@@ -181,17 +188,13 @@ def set_state(user_id, state):
 # ---------------------------------------------------------------------------
 
 def create_form(user_id, data):
-    try:
-        get_db_2().execute(
-            'INSERT INTO forms (user_id, client_id, label, date, is_unscheduled, sort_order)'
-            ' VALUES (?,?,?,?,?,?)',
-            (user_id, data['client_id'], data.get('label', ''), data.get('date', ''),
-             1 if data.get('is_unscheduled') else 0, data.get('sort_order', 0)),
-        )
-        get_db_2().commit()
-        return True, None
-    except sqlite3.IntegrityError:
-        return False, 'conflict'
+    get_db_2().execute(
+        'INSERT INTO forms (user_id, client_id, label, date, is_unscheduled, sort_order)'
+        ' VALUES (?,?,?,?,?,?)',
+        (user_id, data['client_id'], data.get('label', ''), data.get('date', ''),
+         1 if data.get('is_unscheduled') else 0, data.get('sort_order', 0)),
+    )
+    get_db_2().commit()
 
 
 def update_form(user_id, client_id, data):

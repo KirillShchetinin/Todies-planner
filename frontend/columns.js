@@ -41,7 +41,7 @@ function addCol(label, date) {
   cols.push({id: newId, label: label.trim(), date: date.trim()});
   sortColsByDate();
   formApiCreate({id: newId, label: label.trim(), date: date.trim()}, false, cols.findIndex(c => c.id === newId));
-  saveState(); render();
+  saveMetadata(); render();
 }
 
 function addNextDay() {
@@ -69,15 +69,15 @@ function addUnscheduledCol() {
   const newId = 'unsched_w' + (colCounter++);
   weekUnscheduled.push({id: newId, label: 'Unscheduled'});
   formApiCreate({id: newId, label: 'Unscheduled', date: ''}, true, weekUnscheduled.length - 1);
-  saveState(); render();
+  saveMetadata(); render();
 }
 
 function deleteCol(colId) {
   const tasks = state[colId] || [];
-  if (tasks.length > 0 && !confirm(t('deleteColConfirm'))) return;
+  if (tasks.length > 0) { alert(t('deleteColHasTasks')); return; }
   UndoHistory.push();
   delete state[colId];
   cols = cols.filter(c => c.id !== colId);
   formApiDelete(colId);
-  saveState(); render();
+  render();
 }

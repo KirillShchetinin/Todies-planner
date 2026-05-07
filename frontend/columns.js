@@ -41,7 +41,7 @@ function addCol(label, date) {
   cols.push({id: newId, label: label.trim(), date: date.trim()});
   sortColsByDate();
   formApiCreate({id: newId, label: label.trim(), date: date.trim()}, false, cols.findIndex(c => c.id === newId));
-  saveMetadata(); render();
+  render();
 }
 
 function addNextDay() {
@@ -69,7 +69,7 @@ function addUnscheduledCol() {
   const newId = 'unsched_w' + (colCounter++);
   weekUnscheduled.push({id: newId, label: 'Unscheduled'});
   formApiCreate({id: newId, label: 'Unscheduled', date: ''}, true, weekUnscheduled.length - 1);
-  saveMetadata(); render();
+  render();
 }
 
 function deleteCol(colId) {

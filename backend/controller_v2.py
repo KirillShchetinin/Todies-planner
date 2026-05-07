@@ -12,6 +12,24 @@ def _require_user():
     return user_id, None
 
 
+@v2.route('/api/v2/forms', methods=['GET'])
+def get_forms():
+    user_id, err = _require_user()
+    if err:
+        return err
+    forms = DA_2.get_forms(user_id)
+    return jsonify({
+        'cols': [
+            {'id': f['client_id'], 'label': f['label'], 'date': f['date']}
+            for f in forms if not f['is_unscheduled']
+        ],
+        'weekUnscheduled': [
+            {'id': f['client_id'], 'label': f['label']}
+            for f in forms if f['is_unscheduled']
+        ],
+    })
+
+
 @v2.route('/api/v2/forms', methods=['POST'])
 def create_form():
     user_id, err = _require_user()

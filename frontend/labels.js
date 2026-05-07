@@ -11,7 +11,7 @@ function deleteLabel(key) {
   UndoHistory.push();
   delete typeConfig[key];
   legendOrder = legendOrder.filter(k => k !== key);
-  allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.type===key) t.type='t-async'; }); });
+  allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.type===key) t.type='Random'; }); });
   saveState(); render();
 }
 

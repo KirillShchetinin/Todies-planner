@@ -9,15 +9,22 @@ document.addEventListener('keydown', e => {
   }
 });
 
+const _metadataP = apiFetch(_metadataUrl, undefined, 'load metadata').then(r => r.json()).catch(() => null);
 const _formsP = apiFetch(_formsUrl, undefined, 'load forms').then(r => r.json()).catch(() => null);
 const _stateP = apiFetch(_apiUrl, undefined, 'load state').then(r => r.json()).catch(() => null);
 let _stateSettled = false;
 
-_formsP.then(formsData => {
+Promise.all([_metadataP, _formsP]).then(([meta, formsData]) => {
   if (_stateSettled || !formsData) return;
+  if (meta) {
+    lang    = meta.lang    || lang;
+    uiScale = meta.uiScale || uiScale;
+    applyScale(uiScale);
+  }
   applyFormsData(formsData);
   applyLangToStaticUI();
   render();
+  renderScaleBtns();
   console.log(`[perf] forms render +${(performance.now() - _t0).toFixed(1)}ms`);
 });
 

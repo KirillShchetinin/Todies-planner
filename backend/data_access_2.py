@@ -215,6 +215,15 @@ def delete_form(user_id, client_id):
     return cur.rowcount > 0
 
 
+def get_metadata(user_id):
+    row = get_db_2().execute(
+        'SELECT metadata FROM users WHERE id=?', (user_id,)
+    ).fetchone()
+    if not row:
+        return None
+    return json.loads(row['metadata'])
+
+
 def update_metadata(user_id, metadata):
     cur = get_db_2().execute(
         'UPDATE users SET metadata=? WHERE id=?', (json.dumps(metadata), user_id)

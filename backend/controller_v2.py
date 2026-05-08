@@ -65,6 +65,17 @@ def delete_form(client_id):
     return '', 204
 
 
+@v2.route('/api/v2/metadata', methods=['GET'])
+def get_metadata():
+    user_id, err = _require_user()
+    if err:
+        return err
+    meta = DA_2.get_metadata(user_id)
+    if meta is None:
+        return jsonify(error='user not found'), 404
+    return jsonify(meta)
+
+
 @v2.route('/api/v2/metadata', methods=['PUT'])
 def update_metadata():
     user_id, err = _require_user()

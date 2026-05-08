@@ -2,9 +2,9 @@ import logging
 import os
 from flask import Flask, jsonify, request
 from backend import data_access
-from backend import data_access_2 as DA_2
+from backend.data_access_v2 import data_access_2 as DA_2
 from backend.auth import resolve_user_id
-from backend.controller_v2 import v2
+from backend.controllers.controller_v2 import v2
 
 BASE_DIR     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')

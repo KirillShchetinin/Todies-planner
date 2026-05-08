@@ -13,9 +13,9 @@ def get_forms(user_id):
 def save_forms(user_id, cols, week_unscheduled):
     db = get_db_2()
     desired = (
-        [{'client_id': c['id'], 'label': c.get('label', ''), 'date': c.get('date', ''), 'is_unscheduled': 0, 'sort_order': i}
+        [{'client_id': str(c['id']), 'label': c.get('label', ''), 'date': c.get('date', ''), 'is_unscheduled': 0, 'sort_order': i}
          for i, c in enumerate(cols)] +
-        [{'client_id': c['id'], 'label': c.get('label', ''), 'date': '', 'is_unscheduled': 1, 'sort_order': i}
+        [{'client_id': str(c['id']), 'label': c.get('label', ''), 'date': '', 'is_unscheduled': 1, 'sort_order': i}
          for i, c in enumerate(week_unscheduled)]
     )
     desired_ids = {f['client_id'] for f in desired}
@@ -47,28 +47,32 @@ def save_forms(user_id, cols, week_unscheduled):
 
 
 def create_form(user_id, data):
-    get_db_2().execute(
+    db = get_db_2()
+    cur = db.execute(
         'INSERT INTO forms (user_id, client_id, label, date, is_unscheduled, sort_order)'
         ' VALUES (?,?,?,?,?,?)',
-        (user_id, data['client_id'], data.get('label', ''), data.get('date', ''),
+        (user_id, '', data.get('label', ''), data.get('date', ''),
          1 if data.get('is_unscheduled') else 0, data.get('sort_order', 0)),
     )
-    get_db_2().commit()
+    db_id = cur.lastrowid
+    db.execute('UPDATE forms SET client_id=? WHERE id=?', (str(db_id), db_id))
+    db.commit()
+    return db_id
 
 
-def update_form(user_id, client_id, data):
+def update_form(user_id, form_id, data):
     cur = get_db_2().execute(
-        'UPDATE forms SET label=?, date=?, sort_order=? WHERE user_id=? AND client_id=?',
+        'UPDATE forms SET label=?, date=?, sort_order=? WHERE user_id=? AND id=?',
         (data.get('label', ''), data.get('date', ''), data.get('sort_order', 0),
-         user_id, client_id),
+         user_id, form_id),
     )
     get_db_2().commit()
     return cur.rowcount > 0
 
 
-def delete_form(user_id, client_id):
+def delete_form(user_id, form_id):
     cur = get_db_2().execute(
-        'DELETE FROM forms WHERE user_id=? AND client_id=?', (user_id, client_id)
+        'DELETE FROM forms WHERE user_id=? AND id=?', (user_id, form_id)
     )
     get_db_2().commit()
     return cur.rowcount > 0

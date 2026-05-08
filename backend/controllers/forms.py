@@ -11,11 +11,11 @@ def register(bp, require_user):
         forms = DA_2.get_forms(user_id)
         return jsonify({
             'cols': [
-                {'id': f['client_id'], 'dbId': f['id'], 'label': f['label'], 'date': f['date']}
+                {'id': f['id'], 'label': f['label'], 'date': f['date']}
                 for f in forms if not f['is_unscheduled']
             ],
             'weekUnscheduled': [
-                {'id': f['client_id'], 'dbId': f['id'], 'label': f['label']}
+                {'id': f['id'], 'label': f['label']}
                 for f in forms if f['is_unscheduled']
             ],
         })
@@ -26,28 +26,26 @@ def register(bp, require_user):
         if err:
             return err
         body = request.get_json(silent=True) or {}
-        if not body.get('client_id'):
-            return jsonify(error='client_id required'), 400
-        DA_2.create_form(user_id, body)
-        return '', 201
+        db_id = DA_2.create_form(user_id, body)
+        return jsonify({'id': db_id}), 201
 
-    @bp.route('/api/v2/forms/<client_id>', methods=['PUT'])
-    def update_form(client_id):
+    @bp.route('/api/v2/forms/<int:form_id>', methods=['PUT'])
+    def update_form(form_id):
         user_id, err = require_user()
         if err:
             return err
         body = request.get_json(silent=True) or {}
-        found = DA_2.update_form(user_id, client_id, body)
+        found = DA_2.update_form(user_id, form_id, body)
         if not found:
             return jsonify(error='form not found'), 404
         return '', 204
 
-    @bp.route('/api/v2/forms/<client_id>', methods=['DELETE'])
-    def delete_form(client_id):
+    @bp.route('/api/v2/forms/<int:form_id>', methods=['DELETE'])
+    def delete_form(form_id):
         user_id, err = require_user()
         if err:
             return err
-        found = DA_2.delete_form(user_id, client_id)
+        found = DA_2.delete_form(user_id, form_id)
         if not found:
             return jsonify(error='form not found'), 404
         return '', 204

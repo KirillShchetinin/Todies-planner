@@ -34,14 +34,16 @@ function colWeekInfo(col) {
   return { key: `${thu.getFullYear()}-W${String(week).padStart(2,'0')}`, day };
 }
 
-function addCol(label, date) {
+async function addCol(label, date) {
   if (!label.trim()) return;
-  UndoHistory.push();
-  const newId = 'col' + (colCounter++);
-  cols.push({id: newId, label: label.trim(), date: date.trim()});
-  sortColsByDate();
-  formApiCreate({id: newId, label: label.trim(), date: date.trim()}, false, cols.findIndex(c => c.id === newId));
-  render();
+  try {
+    const { id } = await formApiCreate({ label: label.trim(), date: date.trim() }, false, cols.length);
+    UndoHistory.push();
+    cols.push({ id, label: label.trim(), date: date.trim() });
+    state[id] = [];
+    sortColsByDate();
+    render();
+  } catch(e) {}
 }
 
 function addNextDay() {
@@ -64,12 +66,13 @@ function addNextDay() {
   addCol(label || t('dayFallback'), date);
 }
 
-function addUnscheduledCol() {
-  UndoHistory.push();
-  const newId = 'unsched_w' + (colCounter++);
-  weekUnscheduled.push({id: newId, label: 'Unscheduled'});
-  formApiCreate({id: newId, label: 'Unscheduled', date: ''}, true, weekUnscheduled.length - 1);
-  render();
+async function addUnscheduledCol() {
+  try {
+    const { id } = await formApiCreate({ label: 'Unscheduled', date: '' }, true, weekUnscheduled.length);
+    UndoHistory.push();
+    weekUnscheduled.push({ id, label: 'Unscheduled' });
+    render();
+  } catch(e) {}
 }
 
 function deleteCol(colId) {

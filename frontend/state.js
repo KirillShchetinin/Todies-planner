@@ -10,16 +10,12 @@ const _formsUrl      = _token ? `/api/v2/forms?token=${encodeURIComponent(_token
 const _tasksUrl      = _token ? `/api/v2/tasks?token=${encodeURIComponent(_token)}`     : '/api/v2/tasks';
 
 function applyTasksData(tasksData) {
-  const allForms = [...cols, ...weekUnscheduled];
-  const dbIdMap = {};
-  for (const f of allForms) dbIdMap[f.dbId] = f.id;
   state = {};
   for (const t of (tasksData.tasks || [])) {
-    const formClientId = dbIdMap[t.form_id];
-    if (!formClientId) continue;
-    if (!state[formClientId]) state[formClientId] = [];
-    const { metadata = {}, ...rest } = t;
-    state[formClientId].push({ id: t.client_id, text: t.name, done: !!t.done, ...metadata });
+    const formId = t.form_id;
+    if (!state[formId]) state[formId] = [];
+    const { metadata = {} } = t;
+    state[formId].push({ id: t.client_id, text: t.name, done: !!t.done, ...metadata });
   }
 }
 
@@ -81,23 +77,24 @@ function saveState() {
   }, 'save state').catch(() => {});
 }
 
-function formApiCreate(col, isUnscheduled, sortOrder) {
-  apiFetch(_formsUrl, {
+async function formApiCreate(data, isUnscheduled, sortOrder) {
+  const res = await apiFetch(_formsUrl, {
     method:  'POST',
     headers: {'Content-Type': 'application/json'},
     body:    JSON.stringify({
-      client_id:      col.id,
-      label:          col.label || '',
-      date:           col.date  || '',
+      label:          data.label || '',
+      date:           data.date  || '',
       is_unscheduled: isUnscheduled ? 1 : 0,
       sort_order:     sortOrder || 0,
     }),
-  }, 'create form').catch(() => {});
+  }, 'create form');
+  if (!res.ok) throw new Error('create form failed');
+  return res.json();
 }
 
-function formApiUpdate(clientId, data) {
-  const base = _token ? `/api/v2/forms/${encodeURIComponent(clientId)}?token=${encodeURIComponent(_token)}`
-                      : `/api/v2/forms/${encodeURIComponent(clientId)}`;
+function formApiUpdate(formId, data) {
+  const base = _token ? `/api/v2/forms/${formId}?token=${encodeURIComponent(_token)}`
+                      : `/api/v2/forms/${formId}`;
   apiFetch(base, {
     method:  'PUT',
     headers: {'Content-Type': 'application/json'},
@@ -105,9 +102,9 @@ function formApiUpdate(clientId, data) {
   }, 'update form').catch(() => {});
 }
 
-function formApiDelete(clientId) {
-  const base = _token ? `/api/v2/forms/${encodeURIComponent(clientId)}?token=${encodeURIComponent(_token)}`
-                      : `/api/v2/forms/${encodeURIComponent(clientId)}`;
+function formApiDelete(formId) {
+  const base = _token ? `/api/v2/forms/${formId}?token=${encodeURIComponent(_token)}`
+                      : `/api/v2/forms/${formId}`;
   apiFetch(base, { method: 'DELETE' }, 'delete form').catch(() => {});
 }
 

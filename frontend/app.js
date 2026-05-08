@@ -9,7 +9,22 @@ document.addEventListener('keydown', e => {
   }
 });
 
-loadState().then(() => {
+const _formsP = apiFetch(_formsUrl, undefined, 'load forms').then(r => r.json()).catch(() => null);
+const _stateP = apiFetch(_apiUrl, undefined, 'load state').then(r => r.json()).catch(() => null);
+let _stateSettled = false;
+
+_formsP.then(formsData => {
+  if (_stateSettled || !formsData) return;
+  applyFormsData(formsData);
+  applyLangToStaticUI();
+  render();
+  console.log(`[perf] forms render +${(performance.now() - _t0).toFixed(1)}ms`);
+});
+
+_stateP.then(saved => {
+  _stateSettled = true;
+  return loadState(saved);
+}).then(() => {
   const tAfterFetch = performance.now();
   console.log(`[perf] loadState done +${(tAfterFetch - _t0).toFixed(1)}ms`);
   applyScale(uiScale);

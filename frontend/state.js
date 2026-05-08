@@ -7,6 +7,21 @@ const _token = new URLSearchParams(window.location.search).get('token');
 const _apiUrl        = _token ? `/api/state?token=${encodeURIComponent(_token)}`        : '/api/state';
 const _metadataUrl   = _token ? `/api/v2/metadata?token=${encodeURIComponent(_token)}`  : '/api/v2/metadata';
 const _formsUrl      = _token ? `/api/v2/forms?token=${encodeURIComponent(_token)}`     : '/api/v2/forms';
+const _tasksUrl      = _token ? `/api/v2/tasks?token=${encodeURIComponent(_token)}`     : '/api/v2/tasks';
+
+function applyTasksData(tasksData) {
+  const allForms = [...cols, ...weekUnscheduled];
+  const dbIdMap = {};
+  for (const f of allForms) dbIdMap[f.dbId] = f.id;
+  state = {};
+  for (const t of (tasksData.tasks || [])) {
+    const formClientId = dbIdMap[t.form_id];
+    if (!formClientId) continue;
+    if (!state[formClientId]) state[formClientId] = [];
+    const { metadata = {}, ...rest } = t;
+    state[formClientId].push({ id: t.client_id, text: t.name, done: !!t.done, ...metadata });
+  }
+}
 
 function applyFormsData(data) {
   cols = data.cols || [];

@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 from backend.auth import resolve_user_id
-from backend.controllers import forms, metadata
+from backend.controllers import forms, metadata, tasks
 
 v2 = Blueprint('v2', __name__)
 
@@ -14,3 +14,4 @@ def _require_user():
 
 forms.register(v2, _require_user)
 metadata.register(v2, _require_user)
+tasks.register(v2, _require_user)

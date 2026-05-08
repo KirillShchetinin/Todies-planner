@@ -11,11 +11,11 @@ def register(bp, require_user):
         forms = DA_2.get_forms(user_id)
         return jsonify({
             'cols': [
-                {'id': f['client_id'], 'label': f['label'], 'date': f['date']}
+                {'id': f['client_id'], 'dbId': f['id'], 'label': f['label'], 'date': f['date']}
                 for f in forms if not f['is_unscheduled']
             ],
             'weekUnscheduled': [
-                {'id': f['client_id'], 'label': f['label']}
+                {'id': f['client_id'], 'dbId': f['id'], 'label': f['label']}
                 for f in forms if f['is_unscheduled']
             ],
         })

@@ -11,6 +11,7 @@ document.addEventListener('keydown', e => {
 
 const _metadataP = apiFetch(_metadataUrl, undefined, 'load metadata').then(r => r.json()).catch(() => null);
 const _formsP    = apiFetch(_formsUrl,    undefined, 'load forms')   .then(r => r.json()).catch(() => null);
+const _tasksP    = apiFetch(_tasksUrl,    undefined, 'load tasks')   .then(r => r.json()).catch(() => null);
 const _stateP    = apiFetch(_apiUrl, undefined, 'load state').then(r => r.json()).catch(() => null);
 
 _metadataP.then(meta => {
@@ -36,6 +37,13 @@ _formsP.then(formsData => {
   applyFormsData(formsData);
   render();
   console.log(`[perf] forms applied +${(performance.now() - _t0).toFixed(1)}ms`);
+});
+
+Promise.all([_formsP, _tasksP]).then(([formsData, tasksData]) => {
+  if (!formsData || !tasksData) return;
+  applyTasksData(tasksData);
+  render();
+  console.log(`[perf] tasks applied +${(performance.now() - _t0).toFixed(1)}ms`);
 });
 
 _stateP.then(saved => loadState(saved)).then(() => {

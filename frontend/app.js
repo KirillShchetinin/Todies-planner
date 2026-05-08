@@ -10,40 +10,40 @@ document.addEventListener('keydown', e => {
 });
 
 const _metadataP = apiFetch(_metadataUrl, undefined, 'load metadata').then(r => r.json()).catch(() => null);
-const _formsP = apiFetch(_formsUrl, undefined, 'load forms').then(r => r.json()).catch(() => null);
-const _stateP = apiFetch(_apiUrl, undefined, 'load state').then(r => r.json()).catch(() => null);
-let _stateSettled = false;
+const _formsP    = apiFetch(_formsUrl,    undefined, 'load forms')   .then(r => r.json()).catch(() => null);
+const _stateP    = apiFetch(_apiUrl, undefined, 'load state').then(r => r.json()).catch(() => null);
 
-Promise.all([_metadataP, _formsP]).then(([meta, formsData]) => {
-  if (_stateSettled || !formsData) return;
-  if (meta) {
-    lang    = meta.lang    || lang;
-    uiScale = meta.uiScale || uiScale;
-    applyScale(uiScale);
-  }
-  applyFormsData(formsData);
-  applyLangToStaticUI();
-  render();
-  renderScaleBtns();
-  console.log(`[perf] forms render +${(performance.now() - _t0).toFixed(1)}ms`);
-});
-
-_stateP.then(saved => {
-  _stateSettled = true;
-  return loadState(saved);
-}).then(() => {
-  const tAfterFetch = performance.now();
-  console.log(`[perf] loadState done +${(tAfterFetch - _t0).toFixed(1)}ms`);
+_metadataP.then(meta => {
+  if (!meta) return;
+  lang        = meta.lang        || lang;
+  uiScale     = meta.uiScale     || uiScale;
+  idCounter   = meta.idCounter   || idCounter;
+  typeCounter = meta.typeCounter || typeCounter;
+  const customCfg = Object.fromEntries(Object.entries(meta.typeConfig || {}).filter(([k]) => k.startsWith('t-custom-')));
+  typeConfig  = {...structuredClone(DEFAULT_TYPE_CONFIG), ...customCfg};
+  legendOrder = (meta.legendOrder || []).filter(k => k in typeConfig);
+  if (!legendOrder.length) legendOrder = [...DEFAULT_LEGEND_ORDER];
+  Collapse.loadAll(meta.collapseState || {});
   applyScale(uiScale);
   applyLangToStaticUI();
-  const tBeforeRender = performance.now();
-  render();
-  const tAfterRender = performance.now();
-  console.log(`[perf] render done  +${(tAfterRender - _t0).toFixed(1)}ms  (render itself: ${(tAfterRender - tBeforeRender).toFixed(1)}ms)`);
-  requestAnimationFrame(() => {
-    console.log(`[perf] first paint  +${(performance.now() - _t0).toFixed(1)}ms`);
-  });
   renderScaleBtns();
+  render();
+  console.log(`[perf] metadata applied +${(performance.now() - _t0).toFixed(1)}ms`);
+});
+
+_formsP.then(formsData => {
+  if (!formsData) return;
+  applyFormsData(formsData);
+  render();
+  console.log(`[perf] forms applied +${(performance.now() - _t0).toFixed(1)}ms`);
+});
+
+_stateP.then(saved => loadState(saved)).then(() => {
+  applyScale(uiScale);
+  applyLangToStaticUI();
+  render();
+  renderScaleBtns();
+  console.log(`[perf] state applied +${(performance.now() - _t0).toFixed(1)}ms`);
 });
 
 document.getElementById('langBtn').addEventListener('click', () => {

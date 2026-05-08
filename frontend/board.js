@@ -2,7 +2,7 @@
 // Depends on globals from: state.js, tasks.js, columns.js, context-menu.js, legend.js, collapse.js, i18n.js
 
 function applyTaskStyle(el, type, done, cancelled) {
-  const cfg = typeConfig[type] || typeConfig['t-async'] || {bg:'#f2f2f0', border:'#d8d8d4', text:'#444'};
+  const cfg = typeConfig[type] || typeConfig['Random'] || {bg:'#f2f2f0', border:'#d8d8d4', text:'#444'};
   el.style.background  = cfg.bg;
   el.style.borderColor = cfg.border;
   el.style.color       = cfg.text;

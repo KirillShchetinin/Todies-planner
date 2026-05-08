@@ -33,10 +33,10 @@ async function loadState(prefetchedSaved) {
       idCounter   = saved.idCounter   || 100;
       colCounter  = saved.colCounter  || 200;
       typeCounter = saved.typeCounter || 0;
-      legendOrder = saved.legendOrder || [...DEFAULT_LEGEND_ORDER];
-      typeConfig  = saved.typeConfig
-        ? {...structuredClone(DEFAULT_TYPE_CONFIG), ...saved.typeConfig}
-        : structuredClone(DEFAULT_TYPE_CONFIG);
+      legendOrder = (saved.legendOrder || []).filter(k => k in typeConfig);
+      if (!legendOrder.length) legendOrder = [...DEFAULT_LEGEND_ORDER];
+      const customCfg = Object.fromEntries(Object.entries(saved.typeConfig || {}).filter(([k]) => k.startsWith('t-custom-')));
+      typeConfig  = {...structuredClone(DEFAULT_TYPE_CONFIG), ...customCfg};
       uiScale     = saved.uiScale     || 1;
       lang        = saved.lang        || 'en';
       Collapse.loadAll(saved.collapseState);

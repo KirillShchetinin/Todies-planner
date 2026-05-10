@@ -7,7 +7,7 @@ const UndoHistory = (() => {
       cols:           structuredClone(cols),
       weekUnscheduled:structuredClone(weekUnscheduled),
       state:          structuredClone(state),
-      idCounter, colCounter, typeCounter,
+      typeCounter,
       typeConfig:     structuredClone(typeConfig),
       legendOrder:    [...legendOrder],
     };
@@ -24,8 +24,6 @@ const UndoHistory = (() => {
     cols            = s.cols;
     weekUnscheduled = s.weekUnscheduled;
     state           = s.state;
-    idCounter       = s.idCounter;
-    colCounter      = s.colCounter;
     typeCounter     = s.typeCounter;
     typeConfig      = s.typeConfig;
     legendOrder     = s.legendOrder;

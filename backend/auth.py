@@ -1,5 +1,5 @@
 from flask import request
-from backend import data_access
+from backend.data_access_v2 import data_access_2 as data_access
 
 
 def resolve_user_id():

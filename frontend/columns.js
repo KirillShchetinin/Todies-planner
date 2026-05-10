@@ -42,6 +42,7 @@ async function addCol(label, date) {
     cols.push({ id, label: label.trim(), date: date.trim() });
     state[id] = [];
     sortColsByDate();
+    await ensureUnscheduledForWeeks();
     render();
   } catch(e) {}
 }
@@ -83,4 +84,25 @@ function deleteCol(colId) {
   cols = cols.filter(c => c.id !== colId);
   formApiDelete(colId);
   render();
+}
+
+function uniqueWeekKeys() {
+  const keys = new Set();
+  let hasNoDate = false;
+  cols.forEach(c => {
+    const info = colWeekInfo(c);
+    if (info) keys.add(info.key);
+    else hasNoDate = true;
+  });
+  return keys.size + (hasNoDate ? 1 : 0);
+}
+
+async function ensureUnscheduledForWeeks() {
+  const need = Math.max(1, uniqueWeekKeys());
+  while (weekUnscheduled.length < need) {
+    try {
+      const { id } = await formApiCreate({ label: 'Unscheduled', date: '' }, true, weekUnscheduled.length);
+      weekUnscheduled.push({ id, label: 'Unscheduled' });
+    } catch (e) { break; }
+  }
 }

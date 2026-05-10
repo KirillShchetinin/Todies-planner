@@ -30,8 +30,10 @@ function openTaskCtxMenu(e, taskId) {
   impBtn.textContent = task?.important ? t('ctxUnmarkImportant') : t('ctxMarkImportant');
   impBtn.onclick = () => {
     UndoHistory.push();
-    allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.important = !t.important; }); });
-    saveState(); closeCtxMenu(); render();
+    let updated;
+    allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) { t.important = !t.important; updated = t; } }); });
+    if (updated) taskApiUpdate(taskId, { metadata: { important: !!updated.important } });
+    closeCtxMenu(); render();
   };
   ctxMenu.appendChild(impBtn);
 
@@ -64,7 +66,8 @@ function openTaskCtxMenu(e, taskId) {
     btn.onclick = () => {
       UndoHistory.push();
       allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.type = key; }); });
-      saveState(); closeCtxMenu(); render();
+      taskApiUpdate(taskId, { metadata: { type: key } });
+      closeCtxMenu(); render();
     };
     ctxMenu.appendChild(btn);
   });

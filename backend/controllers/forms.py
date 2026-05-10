@@ -29,23 +29,14 @@ def register(bp, require_user):
         db_id = DA_2.create_form(user_id, body)
         return jsonify({'id': db_id}), 201
 
-    @bp.route('/api/v2/forms/<int:form_id>', methods=['PUT'])
-    def update_form(form_id):
-        user_id, err = require_user()
-        if err:
-            return err
-        body = request.get_json(silent=True) or {}
-        found = DA_2.update_form(user_id, form_id, body)
-        if not found:
-            return jsonify(error='form not found'), 404
-        return '', 204
-
     @bp.route('/api/v2/forms/<int:form_id>', methods=['DELETE'])
     def delete_form(form_id):
         user_id, err = require_user()
         if err:
             return err
-        found = DA_2.delete_form(user_id, form_id)
-        if not found:
+        tasks = DA_2.get_tasks_by_form(user_id, form_id)
+        if tasks:
+            return jsonify(error='form has tasks'), 409
+        if not DA_2.delete_form(user_id, form_id):
             return jsonify(error='form not found'), 404
         return '', 204

@@ -38,8 +38,8 @@ function buildColEl(col) {
       document.querySelectorAll('.col').forEach(c => c.classList.remove('col-drag-over'));
       const from = cols.findIndex(c => c.id === draggingCol);
       const to   = cols.findIndex(c => c.id === col.id);
-      if (from > -1 && to > -1) { UndoHistory.push(); const [m] = cols.splice(from, 1); cols.splice(to, 0, m); cols.forEach((c, i) => formApiUpdate(c.id, {label: c.label, date: c.date || '', sort_order: i})); }
-      draggingCol = null; render();
+      if (from > -1 && to > -1) { const [m] = cols.splice(from, 1); cols.splice(to, 0, m); }
+      draggingCol = null; sortColsByDate(); render();
     });
 
     const _now = new Date();
@@ -162,31 +162,38 @@ function buildColEl(col) {
       if (!dragging) return;
       UndoHistory.push();
 
-      const tc = zone.dataset.col;
+      const tc = Number(zone.dataset.col);
       const targetEl = e.target.closest('.task[data-id]');
+      const draggedId = dragging;
 
       let task = null;
+      let sourceColId = null;
       allCols().forEach(c => {
         if (!state[c.id]) return;
-        const i = state[c.id].findIndex(t => t.id === dragging);
-        if (i > -1) task = state[c.id].splice(i, 1)[0];
+        const i = state[c.id].findIndex(t => t.id === draggedId);
+        if (i > -1) { task = state[c.id].splice(i, 1)[0]; sourceColId = c.id; }
       });
       if (!task) return;
 
-      task.col = tc;
       if (!state[tc]) state[tc] = [];
 
-      if (targetEl && targetEl.dataset.id !== task.id) {
+      if (targetEl && Number(targetEl.dataset.id) !== task.id) {
         const rect     = targetEl.getBoundingClientRect();
         const before   = e.clientY < rect.top + rect.height / 2;
-        const targetId = targetEl.dataset.id;
+        const targetId = Number(targetEl.dataset.id);
         const idx      = state[tc].findIndex(t => t.id === targetId);
         state[tc].splice(before ? idx : idx + 1, 0, task);
       } else {
         state[tc].push(task);
       }
 
-      saveState(); render();
+      const movedToOtherCol = sourceColId !== tc;
+      state[tc].forEach((t, i) => {
+        const patch = { sort_order: i };
+        if (t.id === task.id && movedToOtherCol) patch.form_id = tc;
+        taskApiUpdate(t.id, patch);
+      });
+      render();
     });
 
     colEl.appendChild(zone);
@@ -283,7 +290,6 @@ function render() {
   const board = document.getElementById('board');
   board.innerHTML = '';
 
-  ensureWeekUnscheduled();
 
   const weekMap = new Map();
   let noDateBucket = null;
@@ -305,12 +311,10 @@ function render() {
   const weeks = [...weekMap.values()].sort((a, b) => a.order - b.order);
 
   const weekCount = Math.max(1, weeks.length);
-  while (weekUnscheduled.length < weekCount) {
-    weekUnscheduled.push({ id: 'unsched_w' + (colCounter++), label: 'Unscheduled' });
-  }
 
   weeks.forEach((week, wi) => {
-    const unschedCol = weekUnscheduled[wi];
+    const unschedCol = weekUnscheduled[wi] || weekUnscheduled[weekUnscheduled.length - 1];
+    if (!unschedCol) return;
 
     const weekRow = document.createElement('div');
     weekRow.className = 'week-row';
@@ -404,7 +408,7 @@ function startTaskInlineEdit(taskId) {
     if (val && val !== original) {
       UndoHistory.push();
       allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.text = val; }); });
-      saveState();
+      taskApiUpdate(taskId, { name: val });
     }
     render();
   };

@@ -64,7 +64,7 @@ const Collapse = (() => {
       const row = document.createElement('div');
       row.className = 'col-dots';
       dotItems.forEach(({ task, faded }) => {
-        const cfg = typeConfig[task.type] || typeConfig['t-async'];
+        const cfg = typeConfig[task.type] || typeConfig['Random'] || {bg:'#f2f2f0', border:'#d8d8d4', text:'#444'};
         const dot = document.createElement('span');
         dot.className = 'col-dot' + (faded ? ' col-dot--done' : '');
         dot.style.background = faded ? cfg.border : cfg.text;

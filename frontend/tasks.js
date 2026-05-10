@@ -1,35 +1,52 @@
 function allCols() { return [...cols, ...weekUnscheduled]; }
 
-function addTask(colId, text, type) {
+function findTask(id) {
+  for (const c of allCols()) {
+    const list = state[c.id];
+    if (!list) continue;
+    const t = list.find(t => t.id === id);
+    if (t) return t;
+  }
+  return null;
+}
+
+async function addTask(colId, text, type) {
   if (!text.trim()) return;
+  let created;
+  try {
+    created = await taskApiCreate(colId, text.trim(), { type, locked: false });
+  } catch (e) {
+    return;
+  }
   UndoHistory.push();
   if (!state[colId]) state[colId] = [];
-  state[colId].push({id:'u'+(idCounter++), text:text.trim(), type, col:colId, locked:false, done:false});
-  saveState(); render();
+  state[colId].push({ id: created.id, text: text.trim(), type, locked: false, done: false });
+  render();
 }
 
 function deleteTask(id) {
+  const task = findTask(id);
+  if (!task) return;
   UndoHistory.push();
   allCols().forEach(c => { if (state[c.id]) state[c.id] = state[c.id].filter(t => t.id !== id); });
-  saveState(); render();
+  taskApiDelete(id);
+  render();
 }
 
 function toggleDone(id) {
+  const task = findTask(id);
+  if (!task) return;
   UndoHistory.push();
-  allCols().forEach(c => {
-    if (!state[c.id]) return;
-    const t = state[c.id].find(t => t.id === id);
-    if (t) t.done = !t.done;
-  });
-  saveState(); render();
+  task.done = !task.done;
+  taskApiUpdate(id, { done: task.done });
+  render();
 }
 
 function toggleCancelled(id) {
+  const task = findTask(id);
+  if (!task) return;
   UndoHistory.push();
-  allCols().forEach(c => {
-    if (!state[c.id]) return;
-    const t = state[c.id].find(t => t.id === id);
-    if (t) t.cancelled = !t.cancelled;
-  });
-  saveState(); render();
+  task.cancelled = !task.cancelled;
+  taskApiUpdate(id, { metadata: { cancelled: task.cancelled } });
+  render();
 }

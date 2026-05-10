@@ -1,5 +1,9 @@
 import json
-from backend.data_access import get_db_2
+from backend.data_access_v2.connections import get_db_2
+
+
+_PERSISTED_KEYS = ('typeCounter', 'typeConfig', 'legendOrder',
+                   'uiScale', 'lang', 'collapseState')
 
 
 def get_user(user_id):
@@ -8,16 +12,8 @@ def get_user(user_id):
     ).fetchone()
     if not row:
         return None
-    return {'id': row['id'], 'token': row['token'], 'metadata': json.loads(row['metadata'])}
-
-
-def save_user_metadata(user_id, state):
-    meta = {k: state.get(k, default) for k, default in [
-        ('idCounter', 0), ('typeCounter', 0),
-        ('typeConfig', {}), ('legendOrder', []),
-        ('uiScale', 1), ('lang', 'en'), ('collapseState', {}),
-    ]}
-    get_db_2().execute('UPDATE users SET metadata=? WHERE id=?', (json.dumps(meta), user_id))
+    return {'id': row['id'], 'token': row['token'],
+            'metadata': json.loads(row['metadata'] or '{}')}
 
 
 def get_metadata(user_id):
@@ -26,12 +22,24 @@ def get_metadata(user_id):
     ).fetchone()
     if not row:
         return None
-    return json.loads(row['metadata'])
+    meta = json.loads(row['metadata'] or '{}')
+    for stale in ('idCounter', 'colCounter'):
+        meta.pop(stale, None)
+    return meta
 
 
-def update_metadata(user_id, metadata):
-    cur = get_db_2().execute(
-        'UPDATE users SET metadata=? WHERE id=?', (json.dumps(metadata), user_id)
-    )
-    get_db_2().commit()
-    return cur.rowcount > 0
+def update_metadata(user_id, body):
+    db = get_db_2()
+    row = db.execute(
+        'SELECT metadata FROM users WHERE id=?', (user_id,)
+    ).fetchone()
+    if not row:
+        return False
+    existing = json.loads(row['metadata'] or '{}')
+    for k in _PERSISTED_KEYS:
+        if k in body:
+            existing[k] = body[k]
+    db.execute('UPDATE users SET metadata=? WHERE id=?',
+               (json.dumps(existing), user_id))
+    db.commit()
+    return True

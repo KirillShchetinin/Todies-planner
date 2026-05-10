@@ -1,6 +1,6 @@
 import os, threading, webbrowser
-from backend.data_access import init_db, backup
-from backend.controller import app
+from backend.data_access_v2.data_access_2 import init_db, backup
+from backend.controllers.controller_v2 import app
 
 if __name__ == '__main__':
     backup_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')

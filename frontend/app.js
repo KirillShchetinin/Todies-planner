@@ -1,63 +1,56 @@
 const _t0 = performance.now();
 console.log('[perf] scripts ready', '+0ms');
 
-const USE_V2_API_FOR_LOAD = true;
-
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     e.preventDefault();
-    if (UndoHistory.pop()) { saveState(); render(); }
+    if (UndoHistory.pop()) render();
   }
 });
 
-if (USE_V2_API_FOR_LOAD) {
-  const _metadataP = apiFetch(_metadataUrl, undefined, 'load metadata').then(r => r.json()).catch(() => null);
-  const _formsP    = apiFetch(_formsUrl,    undefined, 'load forms')   .then(r => r.json()).catch(() => null);
-  const _tasksP    = apiFetch(_tasksUrl,    undefined, 'load tasks')   .then(r => r.json()).catch(() => null);
+const _metadataP = apiFetch(_metadataUrl, undefined, 'load metadata').then(r => r.json()).catch(() => null);
+const _formsP    = apiFetch(_formsUrl,    undefined, 'load forms')   .then(r => r.json()).catch(() => null);
+const _tasksP    = apiFetch(_tasksUrl,    undefined, 'load tasks')   .then(r => r.json()).catch(() => null);
 
-  _metadataP.then(meta => {
-    if (!meta) return;
-    lang        = meta.lang        || lang;
-    uiScale     = meta.uiScale     || uiScale;
-    idCounter   = meta.idCounter   || idCounter;
-    typeCounter = meta.typeCounter || typeCounter;
-    const customCfg = Object.fromEntries(Object.entries(meta.typeConfig || {}).filter(([k]) => k.startsWith('t-custom-')));
-    typeConfig  = {...structuredClone(DEFAULT_TYPE_CONFIG), ...customCfg};
-    legendOrder = (meta.legendOrder || []).filter(k => k in typeConfig);
-    if (!legendOrder.length) legendOrder = [...DEFAULT_LEGEND_ORDER];
-    Collapse.loadAll(meta.collapseState || {});
-    applyScale(uiScale);
-    applyLangToStaticUI();
-    renderScaleBtns();
-    render();
-    console.log(`[perf] metadata applied +${(performance.now() - _t0).toFixed(1)}ms`);
-  });
+_metadataP.then(meta => {
+  if (!meta) return;
+  lang        = meta.lang        || lang;
+  uiScale     = meta.uiScale     || uiScale;
+  typeCounter = meta.typeCounter || typeCounter;
+  const _builtinLabels = new Set(Object.values(DEFAULT_TYPE_CONFIG).map(t => t.label.toLowerCase()));
+  const customCfg = Object.fromEntries(Object.entries(meta.typeConfig || {}).filter(([k, v]) =>
+    k.startsWith('t-custom-') && !_builtinLabels.has(v.label?.toLowerCase())
+  ));
+  typeConfig  = {...structuredClone(DEFAULT_TYPE_CONFIG), ...customCfg};
+  legendOrder = (meta.legendOrder || []).filter(k => k in typeConfig);
+  for (const k of Object.keys(customCfg)) {
+    if (!legendOrder.includes(k)) legendOrder.push(k);
+  }
+  if (!legendOrder.includes('Random')) legendOrder.unshift('Random');
+  if (!legendOrder.length) legendOrder = [...DEFAULT_LEGEND_ORDER];
+  Collapse.loadAll(meta.collapseState || {});
+  applyScale(uiScale);
+  applyLangToStaticUI();
+  renderScaleBtns();
+  render();
+  console.log(`[perf] metadata applied +${(performance.now() - _t0).toFixed(1)}ms`);
+});
 
-  _formsP.then(formsData => {
-    if (!formsData) return;
-    applyFormsData(formsData);
-    render();
-    console.log(`[perf] forms applied +${(performance.now() - _t0).toFixed(1)}ms`);
-  });
+_formsP.then(formsData => {
+  if (!formsData) return;
+  applyFormsData(formsData);
+  render();
+  console.log(`[perf] forms applied +${(performance.now() - _t0).toFixed(1)}ms`);
+});
 
-  Promise.all([_formsP, _tasksP]).then(([formsData, tasksData]) => {
-    if (!formsData || !tasksData) return;
-    applyTasksData(tasksData);
-    render();
-    console.log(`[perf] tasks applied +${(performance.now() - _t0).toFixed(1)}ms`);
-  });
-} else {
-  apiFetch(_apiUrl, undefined, 'load state').then(r => r.json()).catch(() => null)
-    .then(saved => loadState(saved))
-    .then(() => {
-      applyScale(uiScale);
-      applyLangToStaticUI();
-      render();
-      renderScaleBtns();
-      console.log(`[perf] state applied +${(performance.now() - _t0).toFixed(1)}ms`);
-    });
-}
+Promise.all([_formsP, _tasksP]).then(async ([formsData, tasksData]) => {
+  if (!formsData || !tasksData) return;
+  applyTasksData(tasksData);
+  await ensureUnscheduledForWeeks();
+  render();
+  console.log(`[perf] tasks applied +${(performance.now() - _t0).toFixed(1)}ms`);
+});
 
 document.getElementById('langBtn').addEventListener('click', () => {
   lang = lang === 'en' ? 'ru' : 'en';

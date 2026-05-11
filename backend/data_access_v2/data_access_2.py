@@ -1,6 +1,6 @@
 from backend.data_access_v2.connections import (
     BASE_DIR, DB_PATH, NEW_DB_PATH,
-    get_db, get_db_2, close_db, register, init_db, backup,
+    get_db, get_db_2, close_db, register, backup,
 )
 from backend.data_access_v2.metadata import (
     get_user, get_metadata, update_metadata,
@@ -14,7 +14,7 @@ from backend.data_access_v2.tasks import (
 
 __all__ = [
     'BASE_DIR', 'DB_PATH', 'NEW_DB_PATH',
-    'get_db', 'get_db_2', 'close_db', 'register', 'init_db', 'backup',
+    'get_db', 'get_db_2', 'close_db', 'register', 'backup',
     'get_user', 'get_metadata', 'update_metadata',
     'get_forms', 'create_form', 'delete_form',
     'get_tasks', 'get_tasks_by_form', 'create_task', 'update_task', 'delete_task',

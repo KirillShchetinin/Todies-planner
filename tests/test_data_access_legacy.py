@@ -1,6 +1,5 @@
 """
 Tests for the legacy-DB side of `backend.data_access`:
-  - init_db
   - backup
   - get_state / set_state
   - connection lifecycle (get_db, close_db, register)
@@ -13,53 +12,6 @@ import pytest
 from flask import g
 
 from backend import data_access
-
-
-# ── init_db ──────────────────────────────────────────────────────────────
-
-def test_init_db_creates_tables(tmp_path, monkeypatch):
-    db_file = tmp_path / "fresh.db"
-    monkeypatch.setattr(data_access, "DB_PATH", str(db_file))
-
-    data_access.init_db()
-
-    assert db_file.exists()
-    conn = sqlite3.connect(str(db_file))
-    try:
-        names = {
-            r[0] for r in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            )
-        }
-    finally:
-        conn.close()
-    assert "users" in names
-    assert "planner_state" in names
-
-
-def test_init_db_is_idempotent(tmp_path, monkeypatch):
-    db_file = tmp_path / "fresh.db"
-    monkeypatch.setattr(data_access, "DB_PATH", str(db_file))
-
-    data_access.init_db()
-    # second call must not raise even though tables exist
-    data_access.init_db()
-
-
-def test_init_db_users_token_unique(tmp_path, monkeypatch):
-    db_file = tmp_path / "fresh.db"
-    monkeypatch.setattr(data_access, "DB_PATH", str(db_file))
-    data_access.init_db()
-
-    conn = sqlite3.connect(str(db_file))
-    try:
-        conn.execute("INSERT INTO users (token) VALUES ('abc')")
-        conn.commit()
-        with pytest.raises(sqlite3.IntegrityError):
-            conn.execute("INSERT INTO users (token) VALUES ('abc')")
-            conn.commit()
-    finally:
-        conn.close()
 
 
 # ── backup ───────────────────────────────────────────────────────────────

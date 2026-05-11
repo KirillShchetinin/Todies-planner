@@ -46,33 +46,13 @@ def register(app):
     app.teardown_appcontext(close_db)
 
 
-def init_db():
-    conn = _connect()
-    try:
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id    INTEGER PRIMARY KEY AUTOINCREMENT,
-                token TEXT    NOT NULL UNIQUE
-            )
-        ''')
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS planner_state (
-                user_id INTEGER UNIQUE REFERENCES users(id),
-                data    TEXT    NOT NULL
-            )
-        ''')
-        conn.commit()
-    finally:
-        conn.close()
-
-
 def backup(backup_dir):
     if not os.path.exists(DB_PATH) and not os.path.exists(NEW_DB_PATH):
         return None
     os.makedirs(backup_dir, exist_ok=True)
     ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     copied = []
-    for src, name in ((DB_PATH, 'planner'), (NEW_DB_PATH, 'planner_db')):
+    for src, name in ((NEW_DB_PATH, 'planner_db'),):
         if os.path.exists(src):
             dest = os.path.join(backup_dir, f'{name}_backup_{ts}.db')
             shutil.copy2(src, dest)

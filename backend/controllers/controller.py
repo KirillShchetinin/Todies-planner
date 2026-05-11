@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, Flask, jsonify
-from backend.data_access_v2 import data_access_2 as data_access
+from backend.data_access import data_access
 from backend.auth import resolve_user_id
 from backend.controllers import forms, metadata, tasks
 
@@ -10,7 +10,7 @@ FRONTEND_DIR = os.path.join(BASE_DIR, 'frontend')
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path='')
 data_access.register(app)
 
-v2 = Blueprint('v2', __name__)
+bp = Blueprint('api', __name__)
 
 
 def _require_user():
@@ -20,11 +20,11 @@ def _require_user():
     return user_id, None
 
 
-forms.register(v2, _require_user)
-metadata.register(v2, _require_user)
-tasks.register(v2, _require_user)
+forms.register(bp, _require_user)
+metadata.register(bp, _require_user)
+tasks.register(bp, _require_user)
 
-app.register_blueprint(v2)
+app.register_blueprint(bp)
 
 
 @app.route('/')

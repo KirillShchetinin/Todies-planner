@@ -1,8 +1,8 @@
-from backend.data_access_v2.connections import get_db_2
+from backend.data_access.connections import get_db
 
 
 def get_forms(user_id):
-    rows = get_db_2().execute(
+    rows = get_db().execute(
         'SELECT id, label, date, is_unscheduled, sort_order'
         ' FROM forms WHERE user_id=? ORDER BY sort_order',
         (user_id,)
@@ -11,7 +11,7 @@ def get_forms(user_id):
 
 
 def create_form(user_id, data):
-    db = get_db_2()
+    db = get_db()
     cur = db.execute(
         'INSERT INTO forms (user_id, client_id, label, date, is_unscheduled, sort_order)'
         ' VALUES (?,?,?,?,?,?)',
@@ -25,7 +25,7 @@ def create_form(user_id, data):
 
 
 def delete_form(user_id, form_id):
-    db = get_db_2()
+    db = get_db()
     cur = db.execute(
         'DELETE FROM forms WHERE user_id=? AND id=?', (user_id, form_id)
     )

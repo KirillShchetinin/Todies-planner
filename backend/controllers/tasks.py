@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from backend.data_access_v2 import tasks as DA_tasks
+from backend.data_access import tasks as DA_tasks
 
 
 def register(bp, require_user):

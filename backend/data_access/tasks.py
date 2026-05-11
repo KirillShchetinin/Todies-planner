@@ -1,5 +1,5 @@
 import json
-from backend.data_access_v2.connections import get_db_2
+from backend.data_access.connections import get_db
 
 
 _INTERNAL_META_KEYS = {'col', 'id'}
@@ -10,7 +10,7 @@ def _clean_meta(meta):
 
 
 def get_tasks_by_form(user_id, form_id):
-    rows = get_db_2().execute(
+    rows = get_db().execute(
         'SELECT id FROM tasks WHERE user_id=? AND form_id=?',
         (user_id, form_id)
     ).fetchall()
@@ -18,7 +18,7 @@ def get_tasks_by_form(user_id, form_id):
 
 
 def get_tasks(user_id):
-    rows = get_db_2().execute(
+    rows = get_db().execute(
         'SELECT id, form_id, name, done, sort_order, metadata'
         ' FROM tasks WHERE user_id=? ORDER BY form_id, sort_order',
         (user_id,)
@@ -38,7 +38,7 @@ def get_tasks(user_id):
 
 
 def create_task(user_id, data):
-    db = get_db_2()
+    db = get_db()
     form_id = data.get('form_id')
     if form_id is None:
         return None, 'form_id required'
@@ -72,7 +72,7 @@ def create_task(user_id, data):
 
 
 def update_task(user_id, task_id, data):
-    db = get_db_2()
+    db = get_db()
     row = db.execute(
         'SELECT form_id, metadata FROM tasks WHERE user_id=? AND id=?',
         (user_id, task_id)
@@ -111,7 +111,7 @@ def update_task(user_id, task_id, data):
 
 
 def delete_task(user_id, task_id):
-    db = get_db_2()
+    db = get_db()
     cur = db.execute(
         'DELETE FROM tasks WHERE user_id=? AND id=?', (user_id, task_id)
     )

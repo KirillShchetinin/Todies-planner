@@ -2,13 +2,13 @@
 Shared pytest fixtures for backend tests.
 
 Strategy:
-  - The backend uses two SQLite files whose paths are module-level constants
-    in `backend.data_access`. We monkeypatch those constants to point at
-    temporary files for each test, giving full isolation without touching the
-    real planner.db / planner_db.db.
-  - The Flask `app` is constructed once at import time in `backend.controller`
-    and is reused; we put it into TESTING mode and rely on per-test DB swap
-    plus `g`-scoped connections to keep tests isolated.
+  - The backend uses a single SQLite file whose path is a module-level constant
+    in `backend.data_access.connections`. We monkeypatch that constant to point
+    at a temporary file for each test, giving full isolation without touching
+    the real planner_db.db.
+  - The Flask `app` is constructed once at import time in
+    `backend.controllers.controller` and is reused; we put it into TESTING mode
+    and rely on per-test DB swap plus `g`-scoped connections to keep tests isolated.
 """
 import json
 import os
@@ -17,13 +17,12 @@ import sys
 
 import pytest
 
-# Make project root importable so `import backend.*` works when pytest is run
-# from anywhere.
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from backend import controller, data_access  # noqa: E402
+from backend.controllers import controller  # noqa: E402
+from backend.data_access import connections  # noqa: E402
 
 
 # ── DB schemas ────────────────────────────────────────────────────────────
@@ -67,15 +66,6 @@ CREATE TABLE IF NOT EXISTS tasks (
 """
 
 
-def _create_legacy_db(path):
-    conn = sqlite3.connect(path)
-    try:
-        conn.executescript(LEGACY_SCHEMA)
-        conn.commit()
-    finally:
-        conn.close()
-
-
 def _create_normalized_db(path):
     conn = sqlite3.connect(path)
     try:
@@ -90,29 +80,26 @@ def _create_normalized_db(path):
 @pytest.fixture
 def db_paths(tmp_path, monkeypatch):
     """
-    Redirect data_access to use fresh temp DB files for this test.
+    Redirect data_access to use a fresh temp DB file for this test.
 
-    Yields a dict with the two paths. Both DBs start with the schema applied
+    Yields a dict with the path. The DB starts with the schema applied
     but no rows.
     """
-    legacy_path = tmp_path / "planner.db"
-    new_path    = tmp_path / "planner_db.db"
-    _create_legacy_db(str(legacy_path))
+    new_path = tmp_path / "planner_db.db"
     _create_normalized_db(str(new_path))
 
-    monkeypatch.setattr(data_access, "DB_PATH",     str(legacy_path))
-    monkeypatch.setattr(data_access, "NEW_DB_PATH", str(new_path))
+    monkeypatch.setattr(connections, "DB_PATH", str(new_path))
 
-    yield {"legacy": str(legacy_path), "new": str(new_path)}
+    yield {"new": str(new_path)}
 
 
 @pytest.fixture
 def app(db_paths):
     """
-    Flask app in TESTING mode, with DB paths pointed at temp files.
+    Flask app in TESTING mode, with DB path pointed at a temp file.
 
     The app object itself is the module-level singleton from
-    `backend.controller`; we just toggle config and lean on the
+    `backend.controllers.controller`; we just toggle config and lean on the
     `db_paths` fixture for isolation.
     """
     flask_app = controller.app
@@ -136,19 +123,7 @@ def app_ctx(app):
         yield
 
 
-# ── seeding helpers (also exposed as fixtures for convenience) ───────────
-
-def _seed_legacy_state(legacy_path, user_id, state):
-    conn = sqlite3.connect(legacy_path)
-    try:
-        conn.execute(
-            "INSERT OR REPLACE INTO planner_state (user_id, data) VALUES (?, ?)",
-            (user_id, json.dumps(state)),
-        )
-        conn.commit()
-    finally:
-        conn.close()
-
+# ── seeding helpers ───────────────────────────────────────────────────────
 
 def _seed_user(new_path, token, metadata=None):
     conn = sqlite3.connect(new_path)
@@ -197,7 +172,7 @@ def _seed_task(new_path, user_id, form_id, client_id, name,
 @pytest.fixture
 def seed(db_paths):
     """
-    Bundled seeding helpers bound to the current test's temp DB paths.
+    Bundled seeding helpers bound to the current test's temp DB path.
 
     Usage:
         def test_x(seed, app_ctx):
@@ -205,14 +180,9 @@ def seed(db_paths):
             fid = seed.form(uid, "col1", "Mon", date="01/15", sort_order=0)
             seed.task(uid, fid, "task1", "Buy milk")
     """
-    legacy_path = db_paths["legacy"]
-    new_path    = db_paths["new"]
+    new_path = db_paths["new"]
 
     class _Seed:
-        @staticmethod
-        def legacy_state(user_id, state):
-            _seed_legacy_state(legacy_path, user_id, state)
-
         @staticmethod
         def user(token, metadata=None):
             return _seed_user(new_path, token, metadata)

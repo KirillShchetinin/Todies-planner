@@ -1,5 +1,5 @@
 import json
-from backend.data_access_v2.connections import get_db_2
+from backend.data_access.connections import get_db
 
 
 _PERSISTED_KEYS = ('typeCounter', 'typeConfig', 'legendOrder',
@@ -7,7 +7,7 @@ _PERSISTED_KEYS = ('typeCounter', 'typeConfig', 'legendOrder',
 
 
 def get_user(user_id):
-    row = get_db_2().execute(
+    row = get_db().execute(
         'SELECT id, token, metadata FROM users WHERE id=?', (user_id,)
     ).fetchone()
     if not row:
@@ -17,7 +17,7 @@ def get_user(user_id):
 
 
 def get_metadata(user_id):
-    row = get_db_2().execute(
+    row = get_db().execute(
         'SELECT metadata FROM users WHERE id=?', (user_id,)
     ).fetchone()
     if not row:
@@ -29,7 +29,7 @@ def get_metadata(user_id):
 
 
 def update_metadata(user_id, body):
-    db = get_db_2()
+    db = get_db()
     row = db.execute(
         'SELECT metadata FROM users WHERE id=?', (user_id,)
     ).fetchone()

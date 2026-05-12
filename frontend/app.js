@@ -10,8 +10,8 @@ document.addEventListener('keydown', e => {
 });
 
 const _metadataP = apiFetch(_metadataUrl, undefined, 'load metadata').then(r => r.ok ? r.json() : Promise.reject()).catch(() => { loadShowcase(); return null; });
-const _formsP    = apiFetch(_formsUrl,    undefined, 'load forms')   .then(r => r.json()).catch(() => null);
-const _tasksP    = apiFetch(_tasksUrl,    undefined, 'load tasks')   .then(r => r.json()).catch(() => null);
+const _formsP    = apiFetch(_formsUrl,    undefined, 'load forms')   .then(r => r.ok ? r.json() : null).catch(() => null);
+const _tasksP    = apiFetch(_tasksUrl,    undefined, 'load tasks')   .then(r => r.ok ? r.json() : null).catch(() => null);
 
 _metadataP.then(userSettings => {
   if (!userSettings) return;

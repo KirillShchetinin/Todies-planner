@@ -15,7 +15,11 @@ function loadShowcase() {
     return { id: ids[i], label, date: fmt(d) };
   });
 
-  weekUnscheduled = [{ id: 900, label: 'Unscheduled' }];
+  const nextMon = new Date(mon);
+  nextMon.setDate(mon.getDate() + 7);
+  cols.push({ id: 910, label: 'Mon', date: fmt(nextMon) });
+
+  weekUnscheduled = [{ id: 900, label: 'Unscheduled' }, { id: 909, label: 'Unscheduled' }];
 
   typeConfig = {
     ...DEFAULT_TYPE_CONFIG,
@@ -30,41 +34,60 @@ function loadShowcase() {
 
   state = {
     [monId]: [
-      { id: 9001, text: 'Team standup',        type: 't-work' },
-      { id: 9002, text: 'Buy groceries',        type: 't-errand' },
-      { id: 9003, text: 'Review pull requests', type: 't-work', done: true },
+      { id: 9001, text: 'Team standup',   type: 't-work' },
+      { id: 9002, text: 'Walk the dog',   type: 't-personal' },
+      { id: 9003, text: 'Buy groceries',  type: 't-errand' },
+      { id: 9004, text: 'Morning run',    type: 't-personal', done: true },
     ],
     [tueId]: [
-      { id: 9004, text: 'Write weekly report', type: 't-work' },
-      { id: 9005, text: 'Gym',                 type: 't-personal' },
+      { id: 9005, text: 'Team standup',        type: 't-work' },
+      { id: 9006, text: 'Write weekly report',  type: 't-work' },
+      { id: 9007, text: 'Walk the dog',         type: 't-personal' },
+      { id: 9008, text: 'Take out trash',       type: 't-errand', done: true },
     ],
     [wedId]: [
-      { id: 9006, text: 'Team standup',   type: 't-work' },
-      { id: 9007, text: 'Call dentist',   type: 't-errand' },
-      { id: 9008, text: 'Lunch with Alex',type: 't-personal' },
+      { id: 9009, text: 'Team standup',    type: 't-work' },
+      { id: 9010, text: 'Call dentist',    type: 't-errand' },
+      { id: 9011, text: 'Walk the dog',    type: 't-personal' },
+      { id: 9012, text: 'Water the plants',type: 't-personal' },
     ],
     [thuId]: [
-      { id: 9009, text: 'Code review session', type: 't-work' },
-      { id: 9010, text: 'Pay utility bills',   type: 't-errand' },
+      { id: 9013, text: 'Team standup',     type: 't-work' },
+      { id: 9014, text: 'Pay utility bills', type: 't-errand' },
+      { id: 9015, text: 'Walk the dog',     type: 't-personal' },
+      { id: 9016, text: 'Gym',              type: 't-personal' },
     ],
     [friId]: [
-      { id: 9011, text: 'Team standup',  type: 't-work' },
-      { id: 9012, text: 'Plan next week',type: 't-work' },
-      { id: 9013, text: 'Gym',           type: 't-personal' },
+      { id: 9017, text: 'Team standup',  type: 't-work' },
+      { id: 9018, text: 'Plan next week',type: 't-work' },
+      { id: 9019, text: 'Walk the dog',  type: 't-personal' },
+      { id: 9020, text: 'Pick up dry cleaning', type: 't-errand' },
     ],
     [satId]: [
-      { id: 9014, text: 'Farmers market', type: 't-errand' },
-      { id: 9015, text: 'Read a book',    type: 't-personal' },
+      { id: 9021, text: 'Farmers market',  type: 't-errand' },
+      { id: 9022, text: 'Walk the dog',    type: 't-personal' },
+      { id: 9023, text: 'Clean the flat',  type: 't-personal' },
+      { id: 9024, text: 'Read a book',     type: 't-personal' },
     ],
     [sunId]: [
-      { id: 9016, text: 'Meal prep', type: 't-personal' },
-      { id: 9017, text: 'Laundry',   type: 't-errand', done: true },
+      { id: 9025, text: 'Meal prep',    type: 't-personal' },
+      { id: 9026, text: 'Walk the dog', type: 't-personal' },
+      { id: 9027, text: 'Laundry',      type: 't-errand', done: true },
+      { id: 9028, text: 'Call parents', type: 't-personal' },
     ],
     900: [
-      { id: 9018, text: 'Fix bike',      type: 't-errand' },
-      { id: 9019, text: 'Renew passport',type: 't-personal' },
+      { id: 9029, text: 'Fix bike',             type: 't-errand' },
+      { id: 9030, text: 'Renew passport',        type: 't-errand' },
+      { id: 9031, text: 'Book vet appointment',  type: 't-errand' },
+    ],
+    910: [
+      { id: 9032, text: 'Team standup', type: 't-work' },
+      { id: 9033, text: 'Walk the dog', type: 't-personal' },
     ],
   };
 
+  applyScale(uiScale);
+  applyLangToStaticUI();
+  renderScaleBtns();
   render();
 }

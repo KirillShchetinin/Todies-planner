@@ -9,27 +9,27 @@ document.addEventListener('keydown', e => {
   }
 });
 
-const _metadataP = apiFetch(_metadataUrl, undefined, 'load metadata').then(r => r.json()).catch(() => null);
+const _metadataP = apiFetch(_metadataUrl, undefined, 'load metadata').then(r => r.ok ? r.json() : Promise.reject()).catch(() => { loadShowcase(); return null; });
 const _formsP    = apiFetch(_formsUrl,    undefined, 'load forms')   .then(r => r.json()).catch(() => null);
 const _tasksP    = apiFetch(_tasksUrl,    undefined, 'load tasks')   .then(r => r.json()).catch(() => null);
 
-_metadataP.then(meta => {
-  if (!meta) return;
-  lang        = meta.lang        || lang;
-  uiScale     = meta.uiScale     || uiScale;
-  typeCounter = meta.typeCounter || typeCounter;
+_metadataP.then(userSettings => {
+  if (!userSettings) return;
+  lang        = userSettings.lang        || lang;
+  uiScale     = userSettings.uiScale     || uiScale;
+  typeCounter = userSettings.typeCounter || typeCounter;
   const _builtinLabels = new Set(Object.values(DEFAULT_TYPE_CONFIG).map(t => t.label.toLowerCase()));
-  const customCfg = Object.fromEntries(Object.entries(meta.typeConfig || {}).filter(([k, v]) =>
+  const customCfg = Object.fromEntries(Object.entries(userSettings.typeConfig || {}).filter(([k, v]) =>
     k.startsWith('t-custom-') && !_builtinLabels.has(v.label?.toLowerCase())
   ));
   typeConfig  = {...structuredClone(DEFAULT_TYPE_CONFIG), ...customCfg};
-  legendOrder = (meta.legendOrder || []).filter(k => k in typeConfig);
+  legendOrder = (userSettings.legendOrder || []).filter(k => k in typeConfig);
   for (const k of Object.keys(customCfg)) {
     if (!legendOrder.includes(k)) legendOrder.push(k);
   }
   if (!legendOrder.includes('Random')) legendOrder.unshift('Random');
   if (!legendOrder.length) legendOrder = [...DEFAULT_LEGEND_ORDER];
-  Collapse.loadAll(meta.collapseState || {});
+  Collapse.loadAll(userSettings.collapseState || {});
   applyScale(uiScale);
   applyLangToStaticUI();
   renderScaleBtns();

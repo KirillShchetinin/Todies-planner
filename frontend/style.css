@@ -60,7 +60,7 @@ body {
 header { display: flex; align-items: center; justify-content: space-between; gap: calc(16px * var(--ui-scale)); margin-bottom: calc(18px * var(--ui-scale)); border-bottom: 1px solid var(--border); padding-bottom: calc(14px * var(--ui-scale)); }
 .header-left { display: flex; align-items: baseline; gap: calc(14px * var(--ui-scale)); }
 header h1 { font-family: var(--mono); font-size: calc(17px * var(--ui-scale)); font-weight: 500; color: var(--accent); letter-spacing: -0.02em; }
-header .hint { font-size: calc(11px * var(--ui-scale)); color: var(--text-dim); font-family: var(--mono); }
+.panel-hint { font-size: calc(11px * var(--ui-scale)); color: var(--text); font-family: var(--mono); line-height: 1.6; }
 
 .add-day-btn { font-size: calc(11px * var(--ui-scale)); font-family: var(--mono); color: var(--text-muted); background: var(--surface); border: 1px solid var(--border-hover); border-radius: 6px; padding: calc(5px * var(--ui-scale)) calc(12px * var(--ui-scale)); cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap; }
 .add-day-btn:hover { background: var(--surface2); color: var(--text); }

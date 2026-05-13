@@ -33,6 +33,10 @@ const TRANSLATIONS = {
     dayLocale:          'en-US',
     scaleLarger:        'Larger',
     scaleSmaller:       'Smaller',
+    actAccount:         'Account',
+    actLabels:          'Labels',
+    actSettings:        'Settings',
+    actInstructions:    'Help',
   },
   ru: {
     appTitle:           'планировщик недели',
@@ -68,6 +72,10 @@ const TRANSLATIONS = {
     dayLocale:          'ru-RU',
     scaleLarger:        'Крупнее',
     scaleSmaller:       'Мельче',
+    actAccount:         'Аккаунт',
+    actLabels:          'Метки',
+    actSettings:        'Настройки',
+    actInstructions:    'Помощь',
   },
 };
 
@@ -112,6 +120,11 @@ function applyLangToStaticUI() {
   if (newLabelConfirm) newLabelConfirm.textContent = t('newLabelConfirm');
   const newLabelCancel = addPanel?.querySelector('#newLabelCancel');
   if (newLabelCancel) newLabelCancel.textContent = t('newLabelCancel');
+  // actbar labels
+  ['actAccount', 'actLabels', 'actSettings', 'actInstructions'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.querySelector('.act-label').textContent = t(id);
+  });
   // lang button label
   const langBtn = document.getElementById('langBtn');
   if (langBtn) langBtn.textContent = lang.toUpperCase();

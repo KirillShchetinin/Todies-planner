@@ -16,6 +16,7 @@
   <button class="act-btn" id="actAccount">◉<span class="act-label">Account</span></button>
   <button class="act-btn" id="actLabels">◆<span class="act-label">Labels</span></button>
   <button class="act-btn" id="actSettings">≡<span class="act-label">Settings</span></button>
+  <button class="act-btn" id="actInstructions">?<span class="act-label">Help</span></button>
 </div>
 
 <div id="panelAccount" class="act-panel">
@@ -25,6 +26,10 @@
 
 <div id="panelLabels" class="act-panel">
   <div class="legend" id="legend"></div>
+</div>
+
+<div id="panelInstructions" class="act-panel">
+  <span class="panel-hint" id="appHint"></span>
 </div>
 
 <div id="panelSettings" class="act-panel">
@@ -42,7 +47,6 @@
   <header>
     <div class="header-left">
       <h1 id="appTitle">weekly planner</h1>
-      <span class="hint" id="appHint">drag to reorder · dbl-click = done · right-click label = edit</span>
     </div>
     <div role="toolbar" style="display:flex;align-items:center;gap:8px">
       <button class="add-day-btn" id="addUnscheduledBtn" style="display:none">+ unscheduled</button>

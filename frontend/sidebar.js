@@ -1,8 +1,9 @@
 (function () {
   const panels = {
-    actAccount:  'panelAccount',
-    actLabels:   'panelLabels',
-    actSettings: 'panelSettings',
+    actAccount:      'panelAccount',
+    actLabels:       'panelLabels',
+    actSettings:     'panelSettings',
+    actInstructions: 'panelInstructions',
   };
 
   let activeBtn = null;

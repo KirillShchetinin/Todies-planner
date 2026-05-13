@@ -13,8 +13,14 @@
 <body>
 
 <div id="actbar">
+  <button class="act-btn" id="actAccount">◉<span class="act-label">Account</span></button>
   <button class="act-btn" id="actLabels">◆<span class="act-label">Labels</span></button>
   <button class="act-btn" id="actSettings">≡<span class="act-label">Settings</span></button>
+</div>
+
+<div id="panelAccount" class="act-panel">
+  <button class="act-action-btn" id="accountAddBtn">Add account</button>
+  <button class="act-action-btn" id="accountDeleteBtn">Delete</button>
 </div>
 
 <div id="panelLabels" class="act-panel">
@@ -22,8 +28,14 @@
 </div>
 
 <div id="panelSettings" class="act-panel">
-  <button class="lang-btn" id="langBtn" title="Switch language" aria-label="Switch language">EN</button>
-  <div class="scale-btns" id="scaleBtns"></div>
+  <div class="act-setting">
+    <span class="act-setting-label">lang</span>
+    <button class="lang-btn" id="langBtn" title="Switch language" aria-label="Switch language">EN</button>
+  </div>
+  <div class="act-setting">
+    <span class="act-setting-label">scale</span>
+    <div class="scale-btns" id="scaleBtns"></div>
+  </div>
 </div>
 
 <div id="main">

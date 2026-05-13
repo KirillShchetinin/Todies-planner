@@ -1,5 +1,6 @@
 (function () {
   const panels = {
+    actAccount:  'panelAccount',
     actLabels:   'panelLabels',
     actSettings: 'panelSettings',
   };
@@ -25,6 +26,9 @@
       }
     });
   });
+
+  document.getElementById('accountDeleteBtn').addEventListener('click', () => showAlert('not implemented'));
+  document.getElementById('accountAddBtn').addEventListener('click',    () => showAlert('not implemented'));
 
   document.addEventListener('click', e => {
     if (!activeBtn) return;

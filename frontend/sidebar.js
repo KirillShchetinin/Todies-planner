@@ -28,7 +28,9 @@
   });
 
   document.getElementById('accountDeleteBtn').addEventListener('click', () => showAlert('not implemented'));
-  document.getElementById('accountAddBtn').addEventListener('click',    () => showAlert('not implemented'));
+  document.getElementById('accountAddBtn').addEventListener('click', () => {
+    addAccount().then(token => showTokenModal(token));
+  });
 
   document.addEventListener('click', e => {
     if (!activeBtn) return;

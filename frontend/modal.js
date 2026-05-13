@@ -60,6 +60,56 @@ function showConfirm(message, onConfirm) {
   });
 }
 
+function showTokenModal(token) {
+  _modalOverlay.innerHTML = '';
+  _modalOverlay.style.display = 'flex';
+
+  const card = document.createElement('div');
+  card.className = 'modal-card';
+
+  const msg = document.createElement('p');
+  msg.className = 'modal-message';
+  msg.textContent = 'Your token — save it, it cannot be recovered:';
+  card.appendChild(msg);
+
+  const tokenRow = document.createElement('div');
+  tokenRow.className = 'modal-token-row';
+
+  const input = document.createElement('input');
+  input.className = 'modal-token-input';
+  input.readOnly = true;
+  input.value = token;
+  tokenRow.appendChild(input);
+
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'modal-btn';
+  copyBtn.textContent = 'copy';
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(token).then(() => {
+      copyBtn.textContent = 'copied';
+      setTimeout(() => { copyBtn.textContent = 'copy'; }, 1500);
+    });
+  });
+  tokenRow.appendChild(copyBtn);
+  card.appendChild(tokenRow);
+
+  const row = document.createElement('div');
+  row.className = 'modal-btns';
+  const doneBtn = document.createElement('button');
+  doneBtn.className = 'modal-btn modal-btn-primary';
+  doneBtn.textContent = 'done';
+  doneBtn.addEventListener('click', _closeModal);
+  row.appendChild(doneBtn);
+  card.appendChild(row);
+
+  _modalOverlay.appendChild(card);
+  input.select();
+
+  const onKey = e => { if (e.key === 'Enter' || e.key === 'Escape') _closeModal(); };
+  document.addEventListener('keydown', onKey);
+  _modalOverlay._cleanup = () => document.removeEventListener('keydown', onKey);
+}
+
 function showAlert(message) {
   _openModal({
     message,

@@ -1,6 +1,5 @@
 import json
 import secrets
-import uuid
 from backend.data_access.connections import get_db
 
 
@@ -20,14 +19,20 @@ _DEFAULT_METADATA = {
 
 def create_user():
     db = get_db()
-    user_id = str(uuid.uuid4())
     token = secrets.token_hex(32)
     db.execute(
-        'INSERT INTO users (id, token, metadata) VALUES (?, ?, ?)',
-        (user_id, token, json.dumps(_DEFAULT_METADATA))
+        'INSERT INTO users (token, metadata) VALUES (?, ?)',
+        (token, json.dumps(_DEFAULT_METADATA))
     )
     db.commit()
     return token
+
+
+def delete_user(token):
+    db = get_db()
+    cur = db.execute('DELETE FROM users WHERE token=?', (token,))
+    db.commit()
+    return cur.rowcount > 0
 
 
 def get_user(user_id):

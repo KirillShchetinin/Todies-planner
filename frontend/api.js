@@ -1,3 +1,9 @@
+function addAccount() {
+  return apiFetch('/api/account', { method: 'POST' }, 'addAccount')
+    .then(res => res.json())
+    .then(data => data.token);
+}
+
 function apiFetch(url, options, label) {
   const t0 = performance.now();
   const method = (options && options.method) || 'GET';

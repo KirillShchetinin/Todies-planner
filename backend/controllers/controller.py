@@ -24,13 +24,25 @@ forms.register(bp, _require_user)
 metadata.register(bp, _require_user)
 tasks.register(bp, _require_user)
 
+
 app.register_blueprint(bp)
 
 
-@bp.route('/api/account', methods=['POST'])
+@app.route('/api/account', methods=['POST'])
 def create_account():
     token = data_access.create_user()
     return jsonify(token=token), 201
+
+
+@app.route('/api/account', methods=['DELETE'])
+def delete_account():
+    from flask import request
+    token = request.args.get('token')
+    if not token:
+        return jsonify(error='token required'), 400
+    if not data_access.delete_user(token):
+        return jsonify(error='not found'), 404
+    return '', 204
 
 
 @app.route('/')

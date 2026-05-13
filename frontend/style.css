@@ -445,6 +445,13 @@ header .hint { font-size: calc(11px * var(--ui-scale)); color: var(--text-dim); 
 .modal-btn-danger:hover { background: #f9d8d5; color: #6a1010; }
 .modal-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .modal-btn-primary:hover { opacity: 0.85; }
+.modal-token-row { display: flex; gap: 6px; align-items: center; }
+.modal-token-input {
+  flex: 1; min-width: 0;
+  font-family: var(--mono); font-size: 11px; color: var(--text);
+  background: var(--surface2); border: 1px solid var(--border-hover);
+  border-radius: 6px; padding: 5px 8px;
+}
 
 /* ── scrollbar ── */
 ::-webkit-scrollbar { height: 4px; width: 4px; }

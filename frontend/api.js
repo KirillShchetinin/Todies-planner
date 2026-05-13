@@ -2,8 +2,10 @@ function deleteAccount(token) {
   return apiFetch(`/api/account?token=${encodeURIComponent(token)}`, { method: 'DELETE' }, 'deleteAccount');
 }
 
+const CREATE_SECRET = 'todies-create-secret';
+
 function addAccount() {
-  return apiFetch('/api/account', { method: 'POST' }, 'addAccount')
+  return apiFetch('/api/account', { method: 'POST', headers: { 'X-Create-Secret': CREATE_SECRET } }, 'addAccount')
     .then(res => res.json())
     .then(data => data.token);
 }

@@ -35,8 +35,10 @@
       });
     });
   });
-  document.getElementById('accountAddBtn').addEventListener('click', () => {
-    addAccount().then(token => showTokenModal(token)).catch(() => showAlert('Failed to create account.'));
+  document.getElementById('accountAddBtn').addEventListener('click', function () {
+    this.disabled = true;
+    addAccount().then(token => showTokenModal(token)).catch(() => showAlert('Failed to create account.'))
+      .finally(() => { this.disabled = false; });
   });
 
   document.addEventListener('click', e => {

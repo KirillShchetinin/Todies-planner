@@ -108,6 +108,7 @@ function showTokenModal(token) {
   const redirect = () => { _closeModal(); window.location.href = `/?token=${encodeURIComponent(token)}`; };
   const onKey = e => { if (e.key === 'Enter' || e.key === 'Escape') redirect(); };
   document.addEventListener('keydown', onKey);
+  _modalOverlay.onclick = e => { if (e.target === _modalOverlay) redirect(); };
   _modalOverlay._cleanup = () => document.removeEventListener('keydown', onKey);
 }
 

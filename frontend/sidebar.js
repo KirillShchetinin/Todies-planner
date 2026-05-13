@@ -36,7 +36,7 @@
     });
   });
   document.getElementById('accountAddBtn').addEventListener('click', () => {
-    addAccount().then(token => showTokenModal(token));
+    addAccount().then(token => showTokenModal(token)).catch(() => showAlert('Failed to create account.'));
   });
 
   document.addEventListener('click', e => {

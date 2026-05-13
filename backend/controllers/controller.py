@@ -27,6 +27,12 @@ tasks.register(bp, _require_user)
 app.register_blueprint(bp)
 
 
+@bp.route('/api/account', methods=['POST'])
+def create_account():
+    token = data_access.create_user()
+    return jsonify(token=token), 201
+
+
 @app.route('/')
 def index():
     return app.send_static_file('index.html')

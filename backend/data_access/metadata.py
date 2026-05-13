@@ -1,9 +1,33 @@
 import json
+import secrets
+import uuid
 from backend.data_access.connections import get_db
 
 
 _PERSISTED_KEYS = ('typeCounter', 'typeConfig', 'legendOrder',
                    'uiScale', 'lang', 'collapseState')
+
+
+_DEFAULT_METADATA = {
+    'typeCounter': 0,
+    'typeConfig': {},
+    'legendOrder': [],
+    'uiScale': 1,
+    'lang': 'en',
+    'collapseState': {},
+}
+
+
+def create_user():
+    db = get_db()
+    user_id = str(uuid.uuid4())
+    token = secrets.token_hex(32)
+    db.execute(
+        'INSERT INTO users (id, token, metadata) VALUES (?, ?, ?)',
+        (user_id, token, json.dumps(_DEFAULT_METADATA))
+    )
+    db.commit()
+    return token
 
 
 def get_user(user_id):

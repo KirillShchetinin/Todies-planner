@@ -13,7 +13,7 @@ document.body.appendChild(addPanel);
 
 let selectedPreset = COLOR_PRESETS[4];
 
-function openAddPanel() {
+function openAddPanel(triggerEl) {
   const grid = addPanel.querySelector('#addPanelColors');
   grid.innerHTML = '';
   COLOR_PRESETS.forEach(preset => {
@@ -27,6 +27,11 @@ function openAddPanel() {
     };
     grid.appendChild(sw);
   });
+  if (triggerEl) {
+    const rect = triggerEl.getBoundingClientRect();
+    addPanel.style.top  = rect.top + 'px';
+    addPanel.style.left = (rect.right + 8) + 'px';
+  }
   addPanel.style.display = 'block';
   addPanel.querySelector('#newLabelName').value = '';
   addPanel.querySelector('#newLabelName').focus();

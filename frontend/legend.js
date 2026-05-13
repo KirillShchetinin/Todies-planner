@@ -28,6 +28,6 @@ function renderLegend() {
   const addBtn = document.createElement('button');
   addBtn.className   = 'leg-add';
   addBtn.textContent = t('addLabel');
-  addBtn.onclick     = ev => { ev.stopPropagation(); openAddPanel(); };
+  addBtn.onclick     = ev => { ev.stopPropagation(); openAddPanel(ev.currentTarget); };
   el.appendChild(addBtn);
 }

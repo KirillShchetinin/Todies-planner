@@ -11,19 +11,20 @@ function addLabel(name, colors) {
 
 function deleteLabel(key) {
   const label = typeConfig[key]?.label || key;
-  if (!confirm(`Delete label "${label}"? Any tasks using it will be reassigned to Random.`)) return;
-  UndoHistory.push();
-  delete typeConfig[key];
-  legendOrder = legendOrder.filter(k => k !== key);
-  const affected = [];
-  allCols().forEach(c => {
-    (state[c.id]||[]).forEach(t => {
-      if (t.type === key) { t.type = 'Random'; affected.push(t.id); }
+  showConfirm(`Delete label "${label}"? Any tasks using it will be reassigned to Random.`, () => {
+    UndoHistory.push();
+    delete typeConfig[key];
+    legendOrder = legendOrder.filter(k => k !== key);
+    const affected = [];
+    allCols().forEach(c => {
+      (state[c.id]||[]).forEach(t => {
+        if (t.type === key) { t.type = 'Random'; affected.push(t.id); }
+      });
     });
+    affected.forEach(id => taskApiUpdate(id, { metadata: { type: 'Random' } }));
+    saveMetadata();
+    render();
   });
-  affected.forEach(id => taskApiUpdate(id, { metadata: { type: 'Random' } }));
-  saveMetadata();
-  render();
 }
 
 function renameLabel(key, newName) {

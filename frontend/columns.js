@@ -78,7 +78,7 @@ async function addUnscheduledCol() {
 
 function deleteCol(colId) {
   const tasks = state[colId] || [];
-  if (tasks.length > 0) { alert(t('deleteColHasTasks')); return; }
+  if (tasks.length > 0) { showAlert(t('deleteColHasTasks')); return; }
   UndoHistory.push();
   delete state[colId];
   cols = cols.filter(c => c.id !== colId);

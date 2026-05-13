@@ -413,6 +413,38 @@ header .hint { font-size: calc(11px * var(--ui-scale)); color: var(--text-dim); 
 }
 #addLabelPanel input:focus { border-color: rgba(0,0,0,0.3); }
 
+/* ── modal ── */
+#modalOverlay {
+  display: none; position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.32);
+  align-items: center; justify-content: center;
+}
+.modal-card {
+  background: var(--surface); border: 1px solid var(--border-hover);
+  border-radius: 10px; padding: 20px 22px;
+  max-width: 300px; width: calc(100% - 48px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  display: flex; flex-direction: column; gap: 16px;
+}
+.modal-message {
+  font-family: var(--mono); font-size: 12px;
+  color: var(--text); line-height: 1.55;
+}
+.modal-btns { display: flex; gap: 7px; justify-content: flex-end; }
+.modal-btn {
+  font-size: 11px; font-family: var(--mono);
+  padding: 5px 14px; border-radius: 6px;
+  border: 1px solid var(--border-hover);
+  cursor: pointer; background: var(--surface2); color: var(--text-muted);
+  transition: background 0.12s, color 0.12s;
+}
+.modal-btn:hover { background: var(--surface); color: var(--text); }
+.modal-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.modal-btn-danger { background: #fdecea; border-color: #f5bdb8; color: #8a2020; }
+.modal-btn-danger:hover { background: #f9d8d5; color: #6a1010; }
+.modal-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.modal-btn-primary:hover { opacity: 0.85; }
+
 /* ── scrollbar ── */
 ::-webkit-scrollbar { height: 4px; width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

@@ -37,6 +37,8 @@ const TRANSLATIONS = {
     actLabels:          'Labels',
     actSettings:        'Settings',
     actInstructions:    'Help',
+    accountAdd:         'Add account',
+    accountDelete:      'Delete Account',
   },
   ru: {
     appTitle:           'планировщик недели',
@@ -73,9 +75,11 @@ const TRANSLATIONS = {
     scaleLarger:        'Крупнее',
     scaleSmaller:       'Мельче',
     actAccount:         'Аккаунт',
-    actLabels:          'Метки',
+    actLabels:          'Метки задач',
     actSettings:        'Настройки',
     actInstructions:    'Помощь',
+    accountAdd:         'Добавить аккаунт',
+    accountDelete:      'Удалить',
   },
 };
 
@@ -120,6 +124,11 @@ function applyLangToStaticUI() {
   if (newLabelConfirm) newLabelConfirm.textContent = t('newLabelConfirm');
   const newLabelCancel = addPanel?.querySelector('#newLabelCancel');
   if (newLabelCancel) newLabelCancel.textContent = t('newLabelCancel');
+  // account panel buttons
+  const accountAddBtn = document.getElementById('accountAddBtn');
+  if (accountAddBtn) accountAddBtn.textContent = t('accountAdd');
+  const accountDeleteBtn = document.getElementById('accountDeleteBtn');
+  if (accountDeleteBtn) accountDeleteBtn.textContent = t('accountDelete');
   // actbar labels
   ['actAccount', 'actLabels', 'actSettings', 'actInstructions'].forEach(id => {
     const btn = document.getElementById(id);

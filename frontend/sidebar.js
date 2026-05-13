@@ -27,7 +27,14 @@
     });
   });
 
-  document.getElementById('accountDeleteBtn').addEventListener('click', () => showAlert('not implemented'));
+  document.getElementById('accountDeleteBtn').addEventListener('click', () => {
+    showConfirm('Delete this account? This cannot be undone.', () => {
+      deleteAccount(_token).then(res => {
+        if (res.ok) window.location.href = '/';
+        else showAlert('Failed to delete account.');
+      });
+    });
+  });
   document.getElementById('accountAddBtn').addEventListener('click', () => {
     addAccount().then(token => showTokenModal(token));
   });

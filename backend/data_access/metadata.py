@@ -30,9 +30,13 @@ def create_user():
 
 def delete_user(token):
     db = get_db()
-    cur = db.execute('DELETE FROM users WHERE token=?', (token,))
+    row = db.execute('SELECT id FROM users WHERE token=?', (token,)).fetchone()
+    if not row:
+        return False
+    db.execute('DELETE FROM forms WHERE user_id=?', (row['id'],))
+    db.execute('DELETE FROM users WHERE id=?', (row['id'],))
     db.commit()
-    return cur.rowcount > 0
+    return True
 
 
 def get_user(user_id):

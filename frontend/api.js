@@ -1,3 +1,7 @@
+function deleteAccount(token) {
+  return apiFetch(`/api/account?token=${encodeURIComponent(token)}`, { method: 'DELETE' }, 'deleteAccount');
+}
+
 function addAccount() {
   return apiFetch('/api/account', { method: 'POST' }, 'addAccount')
     .then(res => res.json())

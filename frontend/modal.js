@@ -98,7 +98,7 @@ function showTokenModal(token) {
   const doneBtn = document.createElement('button');
   doneBtn.className = 'modal-btn modal-btn-primary';
   doneBtn.textContent = 'done';
-  doneBtn.addEventListener('click', _closeModal);
+  doneBtn.addEventListener('click', () => { _closeModal(); window.location.href = `/?token=${encodeURIComponent(token)}`; });
   row.appendChild(doneBtn);
   card.appendChild(row);
 

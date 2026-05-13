@@ -105,7 +105,8 @@ function showTokenModal(token) {
   _modalOverlay.appendChild(card);
   input.select();
 
-  const onKey = e => { if (e.key === 'Enter' || e.key === 'Escape') _closeModal(); };
+  const redirect = () => { _closeModal(); window.location.href = `/?token=${encodeURIComponent(token)}`; };
+  const onKey = e => { if (e.key === 'Enter' || e.key === 'Escape') redirect(); };
   document.addEventListener('keydown', onKey);
   _modalOverlay._cleanup = () => document.removeEventListener('keydown', onKey);
 }

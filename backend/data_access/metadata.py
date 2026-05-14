@@ -61,6 +61,17 @@ def get_metadata(user_id):
     return meta
 
 
+def rotate_token(old_token):
+    db = get_db()
+    row = db.execute('SELECT id FROM users WHERE token=?', (old_token,)).fetchone()
+    if not row:
+        return None
+    new_token = secrets.token_hex(32)
+    db.execute('UPDATE users SET token=? WHERE id=?', (new_token, row['id']))
+    db.commit()
+    return new_token
+
+
 def update_metadata(user_id, body):
     db = get_db()
     row = db.execute(

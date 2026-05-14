@@ -43,6 +43,17 @@ def create_account():
     return jsonify(token=token), 201
 
 
+@app.route('/api/account/token', methods=['POST'])
+def change_token():
+    token = request.args.get('token')
+    if not token:
+        return jsonify(error='token required'), 400
+    new_token = data_access.rotate_token(token)
+    if new_token is None:
+        return jsonify(error='not found'), 404
+    return jsonify(token=new_token), 200
+
+
 @app.route('/api/account', methods=['DELETE'])
 def delete_account():
     token = request.args.get('token')

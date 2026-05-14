@@ -4,6 +4,11 @@ function deleteAccount(token) {
 
 const CREATE_SECRET = 'todies-create-secret';
 
+function refreshToken(token) {
+  return apiFetch(`/api/account/token?token=${encodeURIComponent(token)}`, { method: 'POST' }, 'refreshToken')
+    .then(res => res.ok ? res.json().then(d => d.token) : Promise.reject(res.status));
+}
+
 function addAccount() {
   return apiFetch('/api/account', { method: 'POST', headers: { 'X-Create-Secret': CREATE_SECRET } }, 'addAccount')
     .then(res => res.json())

@@ -36,6 +36,11 @@
       });
     });
   });
+  document.getElementById('accountRefreshTokenBtn').addEventListener('click', function () {
+    showConfirm('Replace your current token with a new one? Your old token will stop working.', () => {
+      refreshToken(_token).then(token => showTokenModal(token)).catch(() => showAlert('Failed to refresh token.'));
+    });
+  });
   document.getElementById('accountAddBtn').addEventListener('click', function () {
     this.disabled = true;
     addAccount().then(token => showTokenModal(token)).catch(() => showAlert('Failed to create account.'))

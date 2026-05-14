@@ -88,3 +88,5 @@ All in-memory state is a flat set of globals in `state.js`. On load, `loadState(
 ### Tests
 
 `tests/conftest.py` provides an isolated temp DB per test via the `db_paths` fixture, monkeypatching `DB_PATH`. The `seed` fixture exposes `.user()`, `.form()`, `.task()` helpers for quick test setup.
+
+**Do not overwrite or delete existing test files without first warning the user explicitly and receiving their confirmation.**

@@ -26,6 +26,40 @@ def close_db(_exception=None):
         conn.close()
 
 
+def init_db():
+    conn = _connect()
+    conn.executescript('''
+        CREATE TABLE IF NOT EXISTS users (
+            id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            token    TEXT    NOT NULL UNIQUE,
+            metadata TEXT    NOT NULL DEFAULT '{}'
+        );
+        CREATE TABLE IF NOT EXISTS forms (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id        INTEGER NOT NULL REFERENCES users(id),
+            client_id      TEXT    NOT NULL,
+            label          TEXT    NOT NULL DEFAULT '',
+            date           TEXT    NOT NULL DEFAULT '',
+            is_unscheduled INTEGER NOT NULL DEFAULT 0,
+            sort_order     INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(user_id, client_id)
+        );
+        CREATE TABLE IF NOT EXISTS tasks (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER NOT NULL REFERENCES users(id),
+            form_id    INTEGER NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
+            client_id  TEXT    NOT NULL,
+            name       TEXT    NOT NULL DEFAULT '',
+            done       INTEGER NOT NULL DEFAULT 0,
+            sort_order INTEGER NOT NULL DEFAULT 0,
+            metadata   TEXT    NOT NULL DEFAULT '{}',
+            UNIQUE(user_id, client_id)
+        );
+    ''')
+    conn.commit()
+    conn.close()
+
+
 def register(app):
     app.teardown_appcontext(close_db)
 

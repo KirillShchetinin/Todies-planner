@@ -1,6 +1,6 @@
 from backend.data_access.connections import (
     BASE_DIR, DB_PATH,
-    get_db, close_db, register, backup,
+    get_db, close_db, register, backup, init_db,
 )
 from backend.data_access.metadata import (
     create_user, delete_user, get_user, get_metadata, update_metadata, rotate_token,
@@ -14,7 +14,7 @@ from backend.data_access.tasks import (
 
 __all__ = [
     'BASE_DIR', 'DB_PATH',
-    'get_db', 'close_db', 'register', 'backup',
+    'get_db', 'close_db', 'register', 'backup', 'init_db',
     'create_user', 'delete_user', 'get_user', 'get_metadata', 'update_metadata', 'rotate_token',
     'get_forms', 'create_form', 'delete_form',
     'get_tasks', 'get_tasks_by_form', 'create_task', 'update_task', 'delete_task',

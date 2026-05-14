@@ -63,6 +63,13 @@ Key modules:
 - **`collapse.js`** — per-column short/full toggle. A column can collapse if it has done tasks or more than 3 active tasks; shows up to 3 active or 2 done tasks, dots represent overflow.
 - **`i18n.js`** — EN/RU translations. Language toggle persists in state.
 
+### Translation rule
+
+Every user-visible string in the frontend **must** go through `t('key')` — never hardcode English text in `.js` files or in `index.html` button/label text. When adding any frontend feature, always:
+1. Add the key to **both** `en` and `ru` blocks in `i18n.js`.
+2. Use `t('key')` at the call site.
+3. If the string appears in a static HTML element, add a line to `applyLangToStaticUI()` in `i18n.js` that sets its `textContent`.
+
 ### State Model
 
 All in-memory state is a flat set of globals in `state.js`. `saveState()` serializes everything — cols, tasks, counters, typeConfig, lang, uiScale, collapseState — into one JSON PUT request. On load, `loadState()` fetches and repopulates all globals, merging saved `typeConfig` with defaults to handle new built-in types.

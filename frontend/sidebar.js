@@ -29,21 +29,21 @@
   });
 
   document.getElementById('accountDeleteBtn').addEventListener('click', () => {
-    showConfirm('Delete this account? This cannot be undone.', () => {
+    showConfirm(t('accountDeleteConfirm'), () => {
       deleteAccount(_token).then(res => {
         if (res.ok) window.location.href = '/';
-        else showAlert('Failed to delete account.');
+        else showAlert(t('accountDeleteFailed'));
       });
     });
   });
   document.getElementById('accountRefreshTokenBtn').addEventListener('click', function () {
-    showConfirm('Replace your current token with a new one? Your old token will stop working.', () => {
-      refreshToken(_token).then(token => showTokenModal(token)).catch(() => showAlert('Failed to refresh token.'));
+    showConfirm(t('accountRefreshConfirm'), () => {
+      refreshToken(_token).then(token => showTokenModal(token)).catch(() => showAlert(t('accountRefreshFailed')));
     });
   });
   document.getElementById('accountAddBtn').addEventListener('click', function () {
     this.disabled = true;
-    addAccount().then(token => showTokenModal(token)).catch(() => showAlert('Failed to create account.'))
+    addAccount().then(token => showTokenModal(token)).catch(() => showAlert(t('accountCreateFailed')))
       .finally(() => { this.disabled = false; });
   });
 

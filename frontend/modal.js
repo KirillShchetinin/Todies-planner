@@ -54,8 +54,8 @@ function showConfirm(message, onConfirm) {
   _openModal({
     message,
     buttons: [
-      { label: 'cancel', className: 'modal-btn-cancel', cancel: true },
-      { label: 'delete', className: 'modal-btn-danger', primary: true, onClick: onConfirm },
+      { label: t('modalCancel'), className: 'modal-btn-cancel', cancel: true },
+      { label: t('modalDelete'), className: 'modal-btn-danger', primary: true, onClick: onConfirm },
     ],
   });
 }
@@ -69,7 +69,7 @@ function showTokenModal(token) {
 
   const msg = document.createElement('p');
   msg.className = 'modal-message';
-  msg.textContent = 'Your token — save it, it cannot be recovered:';
+  msg.textContent = t('tokenModalMsg');
   card.appendChild(msg);
 
   const tokenRow = document.createElement('div');
@@ -83,11 +83,11 @@ function showTokenModal(token) {
 
   const copyBtn = document.createElement('button');
   copyBtn.className = 'modal-btn';
-  copyBtn.textContent = 'copy';
+  copyBtn.textContent = t('tokenCopy');
   copyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(token).then(() => {
-      copyBtn.textContent = 'copied';
-      setTimeout(() => { copyBtn.textContent = 'copy'; }, 1500);
+      copyBtn.textContent = t('tokenCopied');
+      setTimeout(() => { copyBtn.textContent = t('tokenCopy'); }, 1500);
     });
   });
   tokenRow.appendChild(copyBtn);
@@ -97,7 +97,7 @@ function showTokenModal(token) {
   row.className = 'modal-btns';
   const doneBtn = document.createElement('button');
   doneBtn.className = 'modal-btn modal-btn-primary';
-  doneBtn.textContent = 'done';
+  doneBtn.textContent = t('tokenDone');
   doneBtn.addEventListener('click', () => { _closeModal(); window.location.href = `/?token=${encodeURIComponent(token)}`; });
   row.appendChild(doneBtn);
   card.appendChild(row);
@@ -116,7 +116,7 @@ function showAlert(message) {
   _openModal({
     message,
     buttons: [
-      { label: 'ok', className: 'modal-btn-primary', primary: true },
+      { label: t('modalOk'), className: 'modal-btn-primary', primary: true },
     ],
   });
 }

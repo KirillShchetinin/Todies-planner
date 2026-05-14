@@ -37,8 +37,21 @@ const TRANSLATIONS = {
     actLabels:          'Labels',
     actSettings:        'Settings',
     actInstructions:    'Help',
-    accountAdd:         'Add account',
-    accountDelete:      'Delete Account',
+    accountAdd:              'Add account',
+    accountRefreshToken:     'Refresh Token',
+    accountDelete:           'Delete Account',
+    accountDeleteConfirm:    'Delete this account? This cannot be undone.',
+    accountDeleteFailed:     'Failed to delete account.',
+    accountRefreshConfirm:   'Replace your current token with a new one? Your old token will stop working.',
+    accountRefreshFailed:    'Failed to refresh token.',
+    accountCreateFailed:     'Failed to create account.',
+    modalCancel:             'cancel',
+    modalDelete:             'delete',
+    modalOk:                 'ok',
+    tokenModalMsg:           'Your token — save it, it cannot be recovered:',
+    tokenCopy:               'copy',
+    tokenCopied:             'copied',
+    tokenDone:               'done',
   },
   ru: {
     appTitle:           'планировщик недели',
@@ -78,8 +91,21 @@ const TRANSLATIONS = {
     actLabels:          'Метки задач',
     actSettings:        'Настройки',
     actInstructions:    'Помощь',
-    accountAdd:         'Добавить аккаунт',
-    accountDelete:      'Удалить',
+    accountAdd:              'Добавить аккаунт',
+    accountRefreshToken:     'Обновить токен',
+    accountDelete:           'Удалить',
+    accountDeleteConfirm:    'Удалить этот аккаунт? Это действие необратимо.',
+    accountDeleteFailed:     'Не удалось удалить аккаунт.',
+    accountRefreshConfirm:   'Заменить текущий токен новым? Старый токен перестанет работать.',
+    accountRefreshFailed:    'Не удалось обновить токен.',
+    accountCreateFailed:     'Не удалось создать аккаунт.',
+    modalCancel:             'отмена',
+    modalDelete:             'удалить',
+    modalOk:                 'ок',
+    tokenModalMsg:           'Ваш токен — сохраните его, он не восстанавливается:',
+    tokenCopy:               'скопировать',
+    tokenCopied:             'скопировано',
+    tokenDone:               'готово',
   },
 };
 
@@ -127,6 +153,8 @@ function applyLangToStaticUI() {
   // account panel buttons
   const accountAddBtn = document.getElementById('accountAddBtn');
   if (accountAddBtn) accountAddBtn.textContent = t('accountAdd');
+  const accountRefreshTokenBtn = document.getElementById('accountRefreshTokenBtn');
+  if (accountRefreshTokenBtn) accountRefreshTokenBtn.textContent = t('accountRefreshToken');
   const accountDeleteBtn = document.getElementById('accountDeleteBtn');
   if (accountDeleteBtn) accountDeleteBtn.textContent = t('accountDelete');
   // actbar labels

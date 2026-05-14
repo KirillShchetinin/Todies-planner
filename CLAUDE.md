@@ -22,7 +22,6 @@ There is no build step or linter configured.
 pytest tests/
 ```
 
-Tests live in `tests/` and currently cover DB schema parity (`test_db_parity.py`). Run a single test file with `pytest tests/test_db_parity.py`.
 
 ## Architecture
 

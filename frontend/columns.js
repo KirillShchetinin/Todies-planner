@@ -97,6 +97,22 @@ function uniqueWeekKeys() {
   return keys.size + (hasNoDate ? 1 : 0);
 }
 
+async function ensureTodayCol() {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const todayStr = `${mm}/${dd}`;
+  const todayKey = parseDateToSortKey(todayStr);
+  if (cols.some(c => parseDateToSortKey(c.date) === todayKey)) return;
+  const label = now.toLocaleDateString('en-US', { weekday: 'short' });
+  try {
+    const { id } = await formApiCreate({ label, date: todayStr }, false, cols.length);
+    cols.push({ id, label, date: todayStr });
+    state[id] = [];
+    sortColsByDate();
+  } catch(e) {}
+}
+
 async function ensureUnscheduledForWeeks() {
   const need = Math.max(1, uniqueWeekKeys());
   while (weekUnscheduled.length < need) {

@@ -47,6 +47,7 @@ _formsP.then(formsData => {
 Promise.all([_formsP, _tasksP]).then(async ([formsData, tasksData]) => {
   if (!formsData || !tasksData) return;
   applyTasksData(tasksData);
+  await ensureTodayCol();
   await ensureUnscheduledForWeeks();
   render();
   console.log(`[perf] tasks applied +${(performance.now() - _t0).toFixed(1)}ms`);

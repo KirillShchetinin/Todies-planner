@@ -19,12 +19,14 @@ if PROJECT_ROOT not in sys.path:
 
 from backend import controller  # noqa: E402
 
-TOKEN = "CnNmPUrQawwR5caaGOtyDkuKqyf2KY66jj-ootpyG04"
+TOKEN = os.environ.get("TODIES_TEST_TOKEN", "")
 
 
 @pytest.fixture
 def real_client():
     """Flask test client backed by the real planner.db (no monkeypatching)."""
+    if not TOKEN:
+        pytest.skip("TODIES_TEST_TOKEN env var not set")
     db_path = os.path.join(PROJECT_ROOT, "planner.db")
     if not os.path.exists(db_path):
         pytest.skip("planner.db not present")

@@ -148,63 +148,89 @@ function _renderMobileHeader() {
 }
 
 function _buildDayStrip(container) {
-  const weekKey = _getCurrentWeekKey();
-  if (!weekKey) return;
+  if (cols.length === 0) return;
 
-  const monday = _weekMonday(weekKey);
-  if (!monday) return;
-
-  const weekCols = new Array(7).fill(null);
+  // Collect all unique week keys in order
+  const weekKeys = [];
+  const weekSeen = new Set();
   cols.forEach(col => {
     const info = colWeekInfo(col);
-    if (info && info.key === weekKey) weekCols[info.day] = col;
+    if (info && !weekSeen.has(info.key)) {
+      weekSeen.add(info.key);
+      weekKeys.push(info.key);
+    }
   });
 
   const INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   const now = new Date();
+  let todayChip = null;
 
-  INITIALS.forEach((initial, idx) => {
-    const col       = weekCols[idx];
-    const chipDate  = new Date(monday);
-    chipDate.setDate(monday.getDate() + idx);
-    const isToday   = chipDate.getDate()     === now.getDate() &&
-                      chipDate.getMonth()    === now.getMonth() &&
-                      chipDate.getFullYear() === now.getFullYear();
+  weekKeys.forEach((weekKey, wi) => {
+    const monday = _weekMonday(weekKey);
+    if (!monday) return;
 
-    const chip = document.createElement('div');
-    chip.className = 'mob-day-chip';
-    if (col && expandedDays.has(col.id)) chip.classList.add('expanded');
-    if (isToday) chip.classList.add('today');
-    if (!col)    chip.classList.add('no-col');
-
-    const letter = document.createElement('span');
-    letter.className = 'mob-chip-letter';
-    letter.textContent = initial;
-    chip.appendChild(letter);
-
-    const dateEl = document.createElement('span');
-    dateEl.className = 'mob-chip-date' + (isToday ? ' today' : '');
-    dateEl.textContent = chipDate.getDate();
-    chip.appendChild(dateEl);
-
-    const remEl = document.createElement('span');
-    remEl.className = 'mob-chip-rem';
-    if (col) {
-      const rem = _remainingCount(col.id);
-      remEl.textContent = rem === 0 ? '✓' : rem;
-    }
-    chip.appendChild(remEl);
-
-    if (col) {
-      chip.onclick = () => {
-        if (expandedDays.has(col.id)) expandedDays.delete(col.id);
-        else expandedDays.add(col.id);
-        render();
-      };
+    // Add a week-separator gap between weeks (except before the first)
+    if (wi > 0) {
+      const sep = document.createElement('div');
+      sep.className = 'mob-strip-week-sep';
+      container.appendChild(sep);
     }
 
-    container.appendChild(chip);
+    const weekCols = new Array(7).fill(null);
+    cols.forEach(col => {
+      const info = colWeekInfo(col);
+      if (info && info.key === weekKey) weekCols[info.day] = col;
+    });
+
+    INITIALS.forEach((initial, idx) => {
+      const col      = weekCols[idx];
+      const chipDate = new Date(monday);
+      chipDate.setDate(monday.getDate() + idx);
+      const isToday  = chipDate.getDate()     === now.getDate() &&
+                       chipDate.getMonth()    === now.getMonth() &&
+                       chipDate.getFullYear() === now.getFullYear();
+
+      const chip = document.createElement('div');
+      chip.className = 'mob-day-chip';
+      if (col && expandedDays.has(col.id)) chip.classList.add('expanded');
+      if (isToday) chip.classList.add('today');
+      if (!col)    chip.classList.add('no-col');
+
+      const letter = document.createElement('span');
+      letter.className = 'mob-chip-letter';
+      letter.textContent = initial;
+      chip.appendChild(letter);
+
+      const dateEl = document.createElement('span');
+      dateEl.className = 'mob-chip-date' + (isToday ? ' today' : '');
+      dateEl.textContent = chipDate.getDate();
+      chip.appendChild(dateEl);
+
+      const remEl = document.createElement('span');
+      remEl.className = 'mob-chip-rem';
+      if (col) {
+        const rem = _remainingCount(col.id);
+        remEl.textContent = rem === 0 ? '✓' : rem;
+      }
+      chip.appendChild(remEl);
+
+      if (col) {
+        chip.onclick = () => {
+          if (expandedDays.has(col.id)) expandedDays.delete(col.id);
+          else expandedDays.add(col.id);
+          render();
+        };
+      }
+
+      container.appendChild(chip);
+      if (isToday) todayChip = chip;
+    });
   });
+
+  // Scroll today's chip into view within the strip
+  if (todayChip) {
+    requestAnimationFrame(() => todayChip.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'auto' }));
+  }
 }
 
 // ── Board ──────────────────────────────────────────────────────────────────────

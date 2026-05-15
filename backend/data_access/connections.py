@@ -68,7 +68,30 @@ def backup(backup_dir):
     if not os.path.exists(DB_PATH):
         return None
     os.makedirs(backup_dir, exist_ok=True)
-    ts = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    now = datetime.datetime.now()
+    ts = now.strftime('%Y%m%d_%H%M%S')
     dest = os.path.join(backup_dir, f'planner_db_backup_{ts}.db')
     shutil.copy2(DB_PATH, dest)
+    _prune_old_backups(backup_dir, now)
     return [dest]
+
+
+def _prune_old_backups(backup_dir, now):
+    cutoff = now - datetime.timedelta(days=3)
+    stamps = []
+    for name in os.listdir(backup_dir):
+        if not (name.startswith('planner_db_backup_') and name.endswith('.db')):
+            continue
+        try:
+            ts = datetime.datetime.strptime(name[len('planner_db_backup_'):-len('.db')], '%Y%m%d_%H%M%S')
+        except ValueError:
+            continue
+        stamps.append((ts, name))
+    if not stamps or (now - min(s[0] for s in stamps)) <= datetime.timedelta(days=3):
+        return
+    for ts, name in stamps:
+        if ts < cutoff:
+            try:
+                os.remove(os.path.join(backup_dir, name))
+            except OSError:
+                pass

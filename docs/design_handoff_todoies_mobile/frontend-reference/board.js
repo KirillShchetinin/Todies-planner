@@ -285,14 +285,6 @@ function buildColEl(col) {
 }
 
 function render() {
-  if (document.body.dataset.view === 'mobile') {
-    renderMobile();
-    return;
-  }
-
-  // Clean up mobile-only elements when switching to desktop
-  _cleanupMobileDOM();
-
   renderLegend();
 
   const board = document.getElementById('board');

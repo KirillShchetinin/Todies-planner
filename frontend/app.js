@@ -1,4 +1,12 @@
 const _t0 = performance.now();
+
+// Mobile view toggle (matchMedia listener)
+const _mobileMq = window.matchMedia('(max-width: 720px)');
+function _applyMobileView(matches) {
+  document.body.dataset.view = matches ? 'mobile' : 'desktop';
+}
+_mobileMq.addEventListener('change', e => { _applyMobileView(e.matches); render(); });
+_applyMobileView(_mobileMq.matches);
 console.log('[perf] scripts ready', '+0ms');
 
 document.addEventListener('keydown', e => {

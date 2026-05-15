@@ -14,19 +14,6 @@
   --mono:         'DM Mono', 'Consolas', 'Courier New', monospace;
   --sans:         'DM Sans', system-ui, -apple-system, sans-serif;
   --ui-scale:     1;
-
-  /* mobile tokens */
-  --today-ring:    rgba(220,100,20,0.55);
-  --today-text:    #c25400;
-  --sky-from:      #b8ddf0;
-  --sky-mid:       #cce8f5;
-  --sky-to:        #ddf0f8;
-  --sky-border:    rgba(80,150,200,0.30);
-  --sky-text:      #3a6a8a;
-  --sky-text-dark: #1a4a6a;
-  --scrim:         rgba(0,0,0,0.36);
-  --sheet-radius:  18px;
-  --mobile-bp:     720px;
 }
 
 body {

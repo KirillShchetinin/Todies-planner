@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Todoies — Mobile (Option C)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html,body,#root{height:100%;}
+  body{font-family:'DM Sans',system-ui,sans-serif;background:#efece6;color:#1a1a1a;}
+  ::-webkit-scrollbar{width:0;height:0;}
+  @keyframes cBlink { 50% { opacity: 0; } }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="shared-data.jsx"></script>
+<script type="text/babel" src="mobile-shared.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="option-a-day-focus.jsx"></script>
+<script type="text/babel" src="option-b-stacked.jsx"></script>
+<script type="text/babel" src="option-c-week-strip.jsx"></script>
+<script type="text/babel" src="option-c-overlays.jsx"></script>
+<script type="text/babel" src="option-c-interactive.jsx"></script>
+
+<script type="text/babel">
+
+const PHONE_W = 390;
+const PHONE_H = 844;
+const AB_W = 430;
+const AB_H = 900;
+
+function Phone({ children }) {
+  return (
+    <div style={{width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center'}}>
+      <IOSDevice width={PHONE_W} height={PHONE_H}>
+        <div style={{position:'relative', width:'100%', height:'100%', overflow:'hidden', background:'#d8c298'}}>
+          {children}
+        </div>
+      </IOSDevice>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection
+        id="intro"
+        title="Option C · Week Strip + Today Hero"
+        subtitle="Compact day strip up top — tap any day to expand it as a full-width paper card. Expand as many as you like at once and the page scrolls. The right-hand board is fully interactive: tap strip chips, day rows, the ▾ chevron, tasks, the unscheduled chip, ≡, or quick-add to play through every flow."
+      >
+        <DCArtboard id="notes" label="Why Option C" width={520} height={AB_H} style={{background:'#fff'}}>
+          <NotesCard/>
+        </DCArtboard>
+        <DCArtboard id="try" label="▶ Try it" width={AB_W} height={AB_H}>
+          <Phone><OptionCInteractive/></Phone>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="multi"
+        title="C · Multi-expand"
+        subtitle="Tap multiple chips in the strip to expand more than one day at the same time. Order is always Mon→Sun, so collapsed rows interleave with open cards naturally."
+      >
+        <DCArtboard id="m-2" label="Two days · Wed + Thu" width={AB_W} height={AB_H}>
+          <Phone><OptionC expandedIds={['wed','thu']}/></Phone>
+        </DCArtboard>
+        <DCArtboard id="m-3" label="Three days · Mon · Thu · Fri" width={AB_W} height={AB_H}>
+          <Phone><OptionC expandedIds={['mon','thu','fri']}/></Phone>
+        </DCArtboard>
+        <DCArtboard id="m-all" label="Every day expanded" width={AB_W} height={AB_H}>
+          <Phone><OptionC expandedIds={DAYS.map(d=>d.id)}/></Phone>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="states"
+        title="C · Day states"
+        subtitle="Which day is expanded changes by tapping a row. The hero card uses the same paper-and-shadow as the desktop column, just at full width."
+      >
+        <DCArtboard id="s-thu" label="Today · Thu" width={AB_W} height={AB_H}>
+          <Phone><OptionC expandedId="thu"/></Phone>
+        </DCArtboard>
+        <DCArtboard id="s-fri" label="Tap Fri → expand" width={AB_W} height={AB_H}>
+          <Phone><OptionC expandedId="fri"/></Phone>
+        </DCArtboard>
+        <DCArtboard id="s-sat" label="Light day · Sat" width={AB_W} height={AB_H}>
+          <Phone><OptionC expandedId="sat"/></Phone>
+        </DCArtboard>
+        <DCArtboard id="s-empty" label="Empty day expanded" width={AB_W} height={AB_H}>
+          <Phone><OptionCEmpty/></Phone>
+        </DCArtboard>
+        <DCArtboard id="s-imp" label="Filter · !  only" width={AB_W} height={AB_H}>
+          <Phone><OptionC expandedId="thu" filter="important"/></Phone>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="sheets"
+        title="C · Sheets & drawers"
+        subtitle="Mobile-native replacements for the desktop right-click menu, drag-and-drop, and 64-wide rail. All scrim-dismissible."
+      >
+        <DCArtboard id="sh-action" label="Long-press · action sheet" width={AB_W} height={AB_H}>
+          <Phone>
+            <OptionC
+              expandedId="thu"
+              overlay={<ActionSheet
+                task={{id:'th6', text:'Investigate how to do car inspection', type:'Chore'}}
+                fromDay="thu"
+              />}
+            />
+          </Phone>
+        </DCArtboard>
+        <DCArtboard id="sh-add1" label="Quick add · step 1" width={AB_W} height={AB_H}>
+          <Phone>
+            <OptionC expandedId="thu"
+              overlay={<AddTaskSheet step={1} dayId="thu" selectedType="Work"/>}/>
+          </Phone>
+        </DCArtboard>
+        <DCArtboard id="sh-add2" label="Quick add · step 2 (typing)" width={AB_W} height={AB_H}>
+          <Phone>
+            <OptionC expandedId="thu"
+              overlay={<AddTaskSheet step={2} dayId="thu" selectedType="Finance" typedText="File extension request"/>}/>
+          </Phone>
+        </DCArtboard>
+        <DCArtboard id="sh-unsched" label="Unscheduled drawer" width={AB_W} height={AB_H}>
+          <Phone>
+            <OptionC expandedId="thu" overlay={<UnscheduledDrawer/>}/>
+          </Phone>
+        </DCArtboard>
+        <DCArtboard id="sh-menu" label="≡ Menu (slide-over)" width={AB_W} height={AB_H}>
+          <Phone>
+            <OptionC expandedId="thu" overlay={<SideMenu/>}/>
+          </Phone>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="header-variants"
+        title="C · Header variants"
+        subtitle="Two ways to render the week summary at the top. Both fit comfortably; the strip is denser, the wide is more readable."
+      >
+        <DCArtboard id="h-wide" label="Wide · default" width={AB_W} height={AB_H}>
+          <Phone><OptionC expandedId="thu" header="wide"/></Phone>
+        </DCArtboard>
+        <DCArtboard id="h-strip" label="Compact day-strip" width={AB_W} height={AB_H}>
+          <Phone><OptionC expandedId="thu" header="strip"/></Phone>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="annotated"
+        title="C · Anatomy"
+        subtitle="What every region does and why."
+      >
+        <DCArtboard id="anat" label="Annotated" width={760} height={AB_H} style={{background:'#fff'}}>
+          <Anatomy/>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="alts"
+        title="Alternatives — A & B"
+        subtitle="Kept for reference. The interactive prototype above is Option C only."
+      >
+        <DCArtboard id="alt-a" label="A · Day Focus" width={AB_W} height={AB_H}>
+          <Phone><OptionA initialDayId="thu"/></Phone>
+        </DCArtboard>
+        <DCArtboard id="alt-b" label="B · Stacked Days" width={AB_W} height={AB_H}>
+          <Phone><OptionB scrollTo="thu"/></Phone>
+        </DCArtboard>
+      </DCSection>
+
+    </DesignCanvas>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Empty-day variant: pass a tasks override so global state isn't mutated.
+// ─────────────────────────────────────────────────────────────
+function OptionCEmpty() {
+  const empty = { ...TASKS, sat: [] };
+  return <OptionC expandedId="sat" tasks={empty}/>;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Notes (intro card)
+// ─────────────────────────────────────────────────────────────
+function NotesCard() {
+  return (
+    <div style={{
+      padding:30, fontFamily:THEME.sans, color:'#222', lineHeight:1.55, fontSize:14,
+      height:'100%', display:'flex', flexDirection:'column', gap:14,
+    }}>
+      <div>
+        <div style={{fontFamily:THEME.mono, fontSize:11, color:'#888', textTransform:'uppercase', letterSpacing:'0.1em'}}>proposal</div>
+        <h2 style={{fontFamily:THEME.sans, fontSize:22, fontWeight:500, marginTop:4}}>Option C — Week Strip + Today Hero</h2>
+      </div>
+
+      <p>The week is always visible as a tight summary; the day you care about is full-bleed. One thumb covers everything.</p>
+
+      <Stat n="2" label="taps to add a task (label → type)"/>
+      <Stat n="1" label="long-press to move, mark done, or delete"/>
+      <Stat n="0" label="reliance on touch drag-and-drop (which is flaky on mobile Safari)"/>
+
+      <div style={{height:1, background:'#e6e3de', margin:'4px 0'}}/>
+
+      <div>
+        <div style={{fontFamily:THEME.mono, fontSize:11, color:'#888', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8}}>regions, top to bottom</div>
+        <Region n="1" k="Header" v="Date range + ◆ labels + ≡ menu (the desktop 64-wide rail)."/>
+        <Region n="2" k="Progress bar" v="Tiny week-wide done/total. Free dopamine."/>
+        <Region n="3" k="Unscheduled chip" v="Sky-blue, with one dot per unscheduled task. Tap → drawer."/>
+        <Region n="4" k="Today hero" v="Full-bleed paper card. Real tasks at full size."/>
+        <Region n="5" k="Day rows" v="One per day. Label · dots · remaining-count · ›."/>
+        <Region n="6" k="Quick add" v="Always-docked bottom button → bottom-sheet."/>
+      </div>
+
+      <div style={{height:1, background:'#e6e3de', margin:'4px 0'}}/>
+
+      <div>
+        <div style={{fontFamily:THEME.mono, fontSize:11, color:'#888', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6}}>preserved from desktop</div>
+        <ul style={{paddingLeft:18, display:'flex', flexDirection:'column', gap:3}}>
+          <li>Wood board, paper cards, DM Mono + DM Sans</li>
+          <li>Label color pills from <code>COLOR_PRESETS</code></li>
+          <li>Red <strong style={{color:'#e8130d'}}>!</strong>, ✓ done, X-overlay cancelled</li>
+          <li>Today: orange border + 🔥🔥🔥</li>
+          <li>Sky-blue Unscheduled stripe</li>
+        </ul>
+      </div>
+
+      <div style={{marginTop:'auto', fontFamily:THEME.mono, fontSize:11, color:'#aaa'}}>scroll right ↦ try the prototype</div>
+    </div>
+  );
+}
+
+function Stat({ n, label }) {
+  return (
+    <div style={{display:'flex', alignItems:'baseline', gap:10}}>
+      <span style={{
+        fontFamily:THEME.sans, fontSize:30, fontWeight:500, color:THEME.text,
+        minWidth:36, textAlign:'right',
+      }}>{n}</span>
+      <span style={{fontSize:13, color:'#555'}}>{label}</span>
+    </div>
+  );
+}
+
+function Region({ n, k, v }) {
+  return (
+    <div style={{display:'flex', gap:10, alignItems:'baseline', marginBottom:6}}>
+      <span style={{
+        fontFamily:THEME.mono, fontSize:10, fontWeight:500, color:'#fff',
+        background:'#2a2a2a', borderRadius:'50%', width:20, height:20,
+        display:'inline-flex', alignItems:'center', justifyContent:'center',
+        flexShrink:0,
+      }}>{n}</span>
+      <div style={{flex:1, lineHeight:1.45}}>
+        <span style={{fontWeight:500}}>{k}.</span>{' '}
+        <span style={{color:'#555', fontSize:13}}>{v}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Anatomy — annotated phone with callouts
+// ─────────────────────────────────────────────────────────────
+function Anatomy() {
+  return (
+    <div style={{
+      position:'relative', width:'100%', height:'100%',
+      display:'flex', alignItems:'stretch', padding:24, gap:24,
+    }}>
+      <div style={{
+        position:'relative',
+        width: PHONE_W + 24, flexShrink:0,
+        display:'flex', alignItems:'center', justifyContent:'center',
+      }}>
+        <IOSDevice width={PHONE_W} height={PHONE_H}>
+          <div style={{position:'relative', width:'100%', height:'100%', overflow:'hidden', background:'#d8c298'}}>
+            <OptionC expandedId="thu" header="wide"/>
+            {/* Numbered overlays */}
+            <Marker n="1" top={66}  left={20}/>
+            <Marker n="2" top={108} left={20}/>
+            <Marker n="3" top={148} left={20}/>
+            <Marker n="4" top={210} left={20}/>
+            <Marker n="5" top={560} left={20}/>
+            <Marker n="6" top={760} left={20}/>
+          </div>
+        </IOSDevice>
+      </div>
+
+      <div style={{
+        flex:1, display:'flex', flexDirection:'column', gap:16,
+        fontFamily:THEME.sans, fontSize:14, lineHeight:1.5, color:'#222',
+        paddingTop:30,
+      }}>
+        <Callout n="1" title="Title bar" body="Replaces the desktop 'weekly planner' h1. Date range gives the week context that the column headers used to convey."/>
+        <Callout n="2" title="Weekly progress" body="Aggregates done / total across all 7 days. Pure feedback — no interaction."/>
+        <Callout n="3" title="Unscheduled chip" body="Sky-blue stripe shrunk to a single line. Dots are one-per-task in their label color. Tap to open the drawer."/>
+        <Callout n="4" title="Today hero" body="Same paper card you have on desktop, sized for the full screen width. All controls (add task button, label colors, !/✓/cancel) work the same."/>
+        <Callout n="5" title="Day rows" body="One row per non-expanded day. Dots = tasks, ! = has-important, count = remaining, › = tap to expand."/>
+        <Callout n="6" title="Quick add" body="Docked at the bottom — thumb-reachable. Tap to open the two-step bottom sheet (label → name) over the keyboard."/>
+      </div>
+    </div>
+  );
+}
+
+function Marker({ n, top, left }) {
+  return (
+    <div style={{
+      position:'absolute', top, left,
+      width:24, height:24, borderRadius:'50%',
+      background:'#2a2a2a', color:'#fff',
+      fontFamily:THEME.mono, fontSize:11, fontWeight:500,
+      display:'flex', alignItems:'center', justifyContent:'center',
+      boxShadow:'0 2px 6px rgba(0,0,0,0.30)',
+      zIndex:5,
+    }}>{n}</div>
+  );
+}
+
+function Callout({ n, title, body }) {
+  return (
+    <div style={{display:'flex', gap:12, alignItems:'baseline'}}>
+      <span style={{
+        fontFamily:THEME.mono, fontSize:11, fontWeight:500, color:'#fff',
+        background:'#2a2a2a', borderRadius:'50%', width:22, height:22,
+        display:'inline-flex', alignItems:'center', justifyContent:'center',
+        flexShrink:0,
+      }}>{n}</span>
+      <div>
+        <div style={{fontWeight:500, marginBottom:2}}>{title}</div>
+        <div style={{color:'#555', fontSize:13}}>{body}</div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

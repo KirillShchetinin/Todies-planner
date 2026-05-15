@@ -5,6 +5,9 @@
 let expandedDays = new Set();
 let overlay = null;
 let _vpResizeListener = null;
+let _didInitialScroll = false;
+let _lastTapTaskId = null;
+let _lastTapTime = 0;
 
 // ── Entry point ────────────────────────────────────────────────────────────────
 
@@ -15,6 +18,13 @@ function renderMobile() {
   _renderMobileBoard();
   _renderQuickAdd();
   _renderOverlay();
+  if (!_didInitialScroll) {
+    _didInitialScroll = true;
+    requestAnimationFrame(() => {
+      const todayEl = document.querySelector('.mob-day-hero.is-today');
+      if (todayEl) todayEl.scrollIntoView({ block: 'start', behavior: 'auto' });
+    });
+  }
 }
 
 function _cleanupMobileDOM() {
@@ -22,6 +32,7 @@ function _cleanupMobileDOM() {
   document.getElementById('mob-quick-add')?.remove();
   document.getElementById('mob-overlay')?.remove();
   _removeVpListener();
+  _didInitialScroll = false;
 }
 
 // ── State helpers ──────────────────────────────────────────────────────────────
@@ -374,7 +385,7 @@ function _buildDayHero(col) {
   const done    = tasks.filter(t => t.done || t.cancelled).length;
 
   const hero = document.createElement('div');
-  hero.className = 'mob-day-hero';
+  hero.className = 'mob-day-hero' + (isToday ? ' is-today' : '');
 
   // Header row
   const hdr = document.createElement('div');
@@ -489,10 +500,21 @@ function _buildMobileTaskEl(task, fromColId) {
       clearTimeout(pressTimer); pressTimer = null;
     }
   });
-  const _cancelPress = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
-  el.addEventListener('pointerup',     _cancelPress);
-  el.addEventListener('pointercancel', _cancelPress);
-  el.addEventListener('contextmenu',   e => e.preventDefault());
+  el.addEventListener('pointerup', () => {
+    if (!pressTimer) return;
+    clearTimeout(pressTimer); pressTimer = null;
+    const now = Date.now();
+    if (_lastTapTaskId === task.id && now - _lastTapTime < 300) {
+      _lastTapTaskId = null; _lastTapTime = 0;
+      toggleDone(task.id);
+    } else {
+      _lastTapTaskId = task.id; _lastTapTime = now;
+    }
+  });
+  el.addEventListener('pointercancel', () => {
+    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+  });
+  el.addEventListener('contextmenu', e => e.preventDefault());
 
   return el;
 }

@@ -196,3 +196,29 @@ def seed(db_paths):
             return _seed_task(new_path, user_id, form_id, client_id, name, **kw)
 
     return _Seed
+
+
+# ── shared API test fixtures ──────────────────────────────────────────────
+
+_DEFAULT_META = {
+    'typeCounter': 0, 'typeConfig': {}, 'legendOrder': [],
+    'uiScale': 1, 'lang': 'en', 'collapseState': {},
+}
+
+_TOKEN_A = 'aaaa' * 16
+_TOKEN_B = 'bbbb' * 16
+
+
+@pytest.fixture
+def token(seed):
+    """Single seeded user. Avoids hitting POST /api/account rate limiter."""
+    seed.user(_TOKEN_A, _DEFAULT_META)
+    return _TOKEN_A
+
+
+@pytest.fixture
+def two_tokens(seed):
+    """Two seeded users for isolation tests."""
+    seed.user(_TOKEN_A, _DEFAULT_META)
+    seed.user(_TOKEN_B, _DEFAULT_META)
+    return _TOKEN_A, _TOKEN_B

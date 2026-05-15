@@ -8,6 +8,18 @@ behaves exactly like in production.
 from backend import auth
 
 
+# ── HTTP auth guard ───────────────────────────────────────────────────────
+
+def test_no_token_returns_401(client):
+    assert client.get('/api/v2/forms').status_code == 401
+
+
+def test_invalid_token_returns_401(client):
+    assert client.get('/api/v2/forms', query_string={'token': 'bad'}).status_code == 401
+
+
+# ── resolve_user_id unit tests ────────────────────────────────────────────
+
 def test_resolve_user_id_none_when_no_token(app, seed):
     seed.user("real-token")
     with app.test_request_context("/api/state"):

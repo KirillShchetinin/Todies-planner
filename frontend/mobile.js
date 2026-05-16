@@ -642,15 +642,19 @@ function _buildActionSheet(container) {
   const fromColId = overlay.fromColId;
   const taskId    = overlay.taskId;  // capture before overlay can be nulled
 
-  // Unscheduled buttons (one per week)
-  weekUnscheduled.forEach((unschedCol, i) => {
-    const lbl = weekUnscheduled.length > 1 ? `${t('mobUnsch')} ${i + 1}` : t('mobUnsch');
+  // Unscheduled buttons — show at most 2 (current + next), labeled "Later"
+  weekUnscheduled.slice(0, 2).forEach((unschedCol, i) => {
+    const lbl = weekUnscheduled.length > 1 ? `${t('mobLater')} ${i + 1}` : t('mobLater');
     const btn = _dayGridBtn(lbl, unschedCol.id === fromColId, () => _moveTaskToCol(taskId, unschedCol.id));
     grid.appendChild(btn);
   });
 
-  // Day cols
-  cols.forEach(col => {
+  // Nearby day cols — ±3 around the task's current column
+  const fromIdx = cols.findIndex(c => c.id === fromColId);
+  const nearbyCols = fromIdx === -1
+    ? cols.slice(0, 7)
+    : cols.slice(Math.max(0, fromIdx - 3), fromIdx + 4);
+  nearbyCols.forEach(col => {
     const lbl = (col.label || '').slice(0, 3);
     const btn = _dayGridBtn(lbl, col.id === fromColId, () => _moveTaskToCol(taskId, col.id));
     grid.appendChild(btn);

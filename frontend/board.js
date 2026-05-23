@@ -1,6 +1,8 @@
 // board.js — rendering logic for the weekly planner board
 // Depends on globals from: state.js, tasks.js, columns.js, context-menu.js, legend.js, collapse.js, i18n.js
 
+let _didInitialDesktopScroll = false;
+
 function applyTaskStyle(el, type, done, cancelled) {
   const cfg = typeConfig[type] || typeConfig['Random'] || {bg:'#f2f2f0', border:'#d8d8d4', text:'#444'};
   el.style.background  = cfg.bg;
@@ -365,6 +367,14 @@ function render() {
     weekRow.appendChild(daysGrid);
     board.appendChild(weekRow);
   });
+
+  if (!_didInitialDesktopScroll) {
+    const todayEl = board.querySelector('.col.today');
+    if (todayEl) {
+      _didInitialDesktopScroll = true;
+      requestAnimationFrame(() => todayEl.scrollIntoView({ block: 'start', behavior: 'auto' }));
+    }
+  }
 
   if (weeks.length === 0) {
     const weekRow = document.createElement('div');

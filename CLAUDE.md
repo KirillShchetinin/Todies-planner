@@ -2,6 +2,33 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Engineering Principals
+
+### Rule 1. Think Before Coding.
+No silent assumptions.
+State what you're assuming.
+Surface tradeoffs.
+Ask before guessing.
+Push back when a simpler approach exists.
+
+### Rule 2. Simplicity First.
+Minimum code that solves the problem.
+No speculative features.
+No abstractions for single-use code.
+If a senior engineer would call it overcomplicated — simplify.
+
+### Rule 3. Surgical Changes.
+Touch only what you must.
+Don't "improve" adjacent code, comments, or formatting.
+Don't refactor what isn't broken.
+Match existing style.
+
+### Rule 4. Goal-Driven Execution.
+Define success criteria.
+Loop until verified.
+Don't tell Claude what steps to follow, tell it what success looks like and let it iterate.
+
+
 ## Running the App
 
 ```bash
@@ -51,18 +78,19 @@ Normalized SQLite schema:
 - **`forms`** — one row per day column or unscheduled container; has `label`, `date`, `is_unscheduled`, `sort_order`
 - **`tasks`** — one row per task; linked to a form via `form_id`; extra fields (type, locked, cancelled, important) in JSON `metadata`
 
-`internal/` contains migration scripts from the legacy single-blob schema (`planner.db`). `tests/test_db_parity.py` validates migrated data.
+`internal/` contains migration scripts (`migrate_to_planner_db.py`, `verify_planner_db.py`) used for the one-time move from the legacy single-blob schema (`planner.db`) to the normalized `planner_db.db`.
 
 ### Frontend (`frontend/`)
 
 Script load order (all deferred, defined in `index.html`):
-`sidebar.js` → `collapse.js` → `constants.js` → `api.js` → `i18n.js` → `state.js` → `undo.js` → `modal.js` → `labels.js` → `tasks.js` → `columns.js` → `scale.js` → `add-label-panel.js` → `context-menu.js` → `legend.js` → `board.js` → `showcase.js` → `app.js`
+`sidebar.js` → `collapse.js` → `constants.js` → `api.js` → `i18n.js` → `state.js` → `undo.js` → `modal.js` → `labels.js` → `tasks.js` → `columns.js` → `scale.js` → `add-label-panel.js` → `context-menu.js` → `legend.js` → `mobile.js` → `board.js` → `showcase.js` → `app.js`
 
 Key modules:
 - **`state.js`** — global state (`cols`, `weekUnscheduled`, `state` keyed by form_id, counters, `typeConfig`, `uiScale`) and `loadState`/`saveState`. `saveMetadata()` batches UI settings; forms/tasks have per-item endpoints.
 - **`app.js`** — orchestrates initial load: fetches metadata, forms, and tasks in parallel; merges `typeConfig` with defaults; applies lang/scale/collapse.
 - **`api.js`** — `apiFetch` wrapper and account management helpers (deleteAccount, refreshToken, addAccount).
-- **`board.js`** — `render()` rebuilds the entire DOM from state. Handles drag-and-drop for tasks (within/between columns) and columns.
+- **`board.js`** — `render()` rebuilds the entire DOM from state. Handles drag-and-drop for tasks (within/between columns) and columns. Used for the desktop layout.
+- **`mobile.js`** / **`mobile.css`** — separate mobile rendering path (`renderMobile()`), with its own day-strip header, quick-add, and move-to-day overlay; reuses state/task/column helpers from the desktop modules rather than duplicating them.
 - **`tasks.js`** — task CRUD: `addTask`, `deleteTask`, `toggleDone`, `toggleCancelled`.
 - **`columns.js`** — column CRUD and date utilities: `addCol`, `deleteCol`, `sortColsByDate`, `colWeekInfo`. Date format is `MM/DD` or `MM/DD/YYYY`.
 - **`undo.js`** — snapshots full state before every mutation (max 10 snapshots). Restored via Ctrl+Z.

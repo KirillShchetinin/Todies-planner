@@ -670,10 +670,15 @@ function _buildActionSheet(container) {
   [
     { icon: '✓', label: t('mobMarkDone'), cls: '', action: () => { overlay = null; toggleDone(taskId); } },
     { icon: '!',  label: t('mobMarkImportant'), cls: 'mob-action-important', action: () => {
-        UndoHistory.push();
+        overlay = null;
         const t2 = findTask(taskId);
-        if (t2) { t2.important = !t2.important; taskApiUpdate(taskId, { metadata: { important: !!t2.important } }); }
-        overlay = null; render();
+        if (!t2 || t2.pending) { render(); return; }
+        const prev = t2.important;
+        optimistic(
+          () => { t2.important = !prev; },
+          () => taskApiUpdate(taskId, { metadata: { important: !!t2.important } }),
+          () => { t2.important = prev; },
+        );
       }
     },
     { icon: '✕', label: t('mobCancelTask'), cls: 'mob-action-cancel', action: () => { overlay = null; toggleCancelled(taskId); } },
@@ -708,19 +713,25 @@ function _dayGridBtn(label, isSource, onclick) {
 }
 
 function _moveTaskToCol(taskId, targetColId) {
-  UndoHistory.push();
-  let task = null;
-  allCols().forEach(c => {
-    if (!state[c.id]) return;
-    const i = state[c.id].findIndex(t => t.id === taskId);
-    if (i > -1) { task = state[c.id].splice(i, 1)[0]; }
-  });
-  if (!task) return;
+  let sourceColId = null;
+  allCols().forEach(c => { if ((state[c.id] || []).some(t => t.id === taskId)) sourceColId = c.id; });
+  const task = sourceColId != null ? state[sourceColId].find(t => t.id === taskId) : null;
+  if (!task || task.pending) return;
+  if (sourceColId === targetColId) { overlay = null; render(); return; }
   if (!state[targetColId]) state[targetColId] = [];
-  state[targetColId].push(task);
-  taskApiUpdate(taskId, { form_id: targetColId });
+
+  // Revert is scoped to the two columns this move touches.
+  const prevSource = [...state[sourceColId]];
+  const prevTarget = [...state[targetColId]];
   overlay = null;
-  render();
+  optimistic(
+    () => {
+      state[sourceColId] = state[sourceColId].filter(t => t.id !== taskId);
+      state[targetColId].push(task);
+    },
+    () => taskApiUpdate(taskId, { form_id: targetColId }),
+    () => { state[sourceColId] = prevSource; state[targetColId] = prevTarget; },
+  );
 }
 
 // ── Add-task sheet ─────────────────────────────────────────────────────────────
@@ -930,11 +941,11 @@ function _buildSideMenu(container) {
       btn.className   = 'mob-settings-pill' + (lang === l ? ' active' : '');
       btn.textContent = l.toUpperCase();
       btn.onclick = () => {
-        lang = l;
-        saveMetadata();
-        applyLangToStaticUI();
-        render();
-        renderScaleBtns();
+        const prev = lang;
+        pessimisticMeta(
+          () => { lang = l; applyLangToStaticUI(); renderScaleBtns(); },
+          () => { lang = prev; applyLangToStaticUI(); renderScaleBtns(); },
+        );
       };
       langRow.appendChild(btn);
     });
@@ -947,7 +958,9 @@ function _buildSideMenu(container) {
     minus.textContent = '− ' + t('scaleSmaller');
     minus.onclick = () => {
       const idx = UI_SCALES.indexOf(uiScale);
-      if (idx > 0) { applyScale(UI_SCALES[idx - 1]); saveMetadata(); }
+      if (idx <= 0) return;
+      const prev = uiScale;
+      pessimisticMeta(() => applyScale(UI_SCALES[idx - 1]), () => applyScale(prev));
     };
 
     const plus = document.createElement('button');
@@ -955,7 +968,9 @@ function _buildSideMenu(container) {
     plus.textContent = t('scaleLarger') + ' +';
     plus.onclick = () => {
       const idx = UI_SCALES.indexOf(uiScale);
-      if (idx < UI_SCALES.length - 1) { applyScale(UI_SCALES[idx + 1]); saveMetadata(); }
+      if (idx >= UI_SCALES.length - 1) return;
+      const prev = uiScale;
+      pessimisticMeta(() => applyScale(UI_SCALES[idx + 1]), () => applyScale(prev));
     };
 
     scaleRow.appendChild(minus);

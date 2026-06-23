@@ -80,10 +80,10 @@ function deleteCol(colId) {
   const tasks = state[colId] || [];
   if (tasks.length > 0) { showAlert(t('deleteColHasTasks')); return; }
   UndoHistory.push();
-  delete state[colId];
-  cols = cols.filter(c => c.id !== colId);
-  formApiDelete(colId);
-  render();
+  pessimistic(
+    () => formApiDelete(colId),
+    () => { delete state[colId]; cols = cols.filter(c => c.id !== colId); },
+  );
 }
 
 function uniqueWeekKeys() {

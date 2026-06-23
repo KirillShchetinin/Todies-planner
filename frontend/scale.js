@@ -17,7 +17,9 @@ function renderScaleBtns() {
   minus.title = t('scaleSmaller');
   minus.onclick = () => {
     const idx = UI_SCALES.indexOf(uiScale);
-    if (idx > 0) { applyScale(UI_SCALES[idx - 1]); saveMetadata(); }
+    if (idx <= 0) return;
+    const prev = uiScale;
+    pessimisticMeta(() => applyScale(UI_SCALES[idx - 1]), () => applyScale(prev));
   };
 
   const plus = document.createElement('button');
@@ -26,7 +28,9 @@ function renderScaleBtns() {
   plus.title = t('scaleLarger');
   plus.onclick = () => {
     const idx = UI_SCALES.indexOf(uiScale);
-    if (idx < UI_SCALES.length - 1) { applyScale(UI_SCALES[idx + 1]); saveMetadata(); }
+    if (idx >= UI_SCALES.length - 1) return;
+    const prev = uiScale;
+    pessimisticMeta(() => applyScale(UI_SCALES[idx + 1]), () => applyScale(prev));
   };
 
   container.appendChild(minus);

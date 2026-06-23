@@ -64,11 +64,11 @@ Promise.all([_formsP, _tasksP]).then(async ([formsData, tasksData]) => {
 });
 
 document.getElementById('langBtn').addEventListener('click', () => {
-  lang = lang === 'en' ? 'ru' : 'en';
-  saveMetadata();
-  applyLangToStaticUI();
-  render();
-  renderScaleBtns();
+  const prev = lang;
+  pessimisticMeta(
+    () => { lang = lang === 'en' ? 'ru' : 'en'; applyLangToStaticUI(); renderScaleBtns(); },
+    () => { lang = prev; applyLangToStaticUI(); renderScaleBtns(); },
+  );
 });
 
 function renderCustomLoadBtn() {
@@ -79,9 +79,11 @@ function renderCustomLoadBtn() {
 }
 
 document.getElementById('customLoadBtn').addEventListener('click', () => {
-  customLoad = !customLoad;
-  saveMetadata();
-  renderCustomLoadBtn();
+  const prev = customLoad;
+  pessimisticMeta(
+    () => { customLoad = !customLoad; renderCustomLoadBtn(); },
+    () => { customLoad = prev; renderCustomLoadBtn(); },
+  );
 });
 
 const addDayBtn   = document.getElementById('addDayBtn');

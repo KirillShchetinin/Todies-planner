@@ -43,12 +43,44 @@ function optimistic(mutate, apiCall, revert) {
     .catch(() => { revert(); render(); });
 }
 
+// Resolves only when the server accepts the write; rejects on network or !ok
+// so pessimistic callers can apply the change only after it has persisted.
 function saveMetadata() {
-  apiFetch(_metadataUrl, {
+  return apiFetch(_metadataUrl, {
     method:  'PUT',
     headers: {'Content-Type':'application/json'},
     body:    JSON.stringify({lang, uiScale, legendOrder, typeConfig, typeCounter, collapseState: Collapse.getAll(), customLoad}),
-  }, 'save metadata').catch(() => {});
+  }, 'save metadata').then(res => {
+    if (res && res.ok === false) throw new Error('save metadata failed');
+    return res;
+  });
+}
+
+// Pessimistic mutation: persist FIRST, and only apply to the in-memory model +
+// render once the server confirms. On failure nothing changes — the UI never
+// diverges from the server. `apiCall` must carry the intended change itself
+// (the model isn't mutated until it succeeds). Use when an optimistic revert
+// would be messy (metadata-blob writes, server-id-dependent creates).
+function pessimistic(apiCall, apply) {
+  return Promise.resolve()
+    .then(apiCall)
+    .then(res => {
+      if (res && res.ok === false) throw new Error('request failed');
+      apply(res);
+      render();
+      return res;
+    })
+    .catch(() => {});
+}
+
+// Pessimistic variant for metadata-blob writes, where the change IS the request
+// payload (saveMetadata serializes the live globals). Mutates, saves, and on
+// failure reverts so the UI never persists a change the server rejected.
+// `mutate` applies the change to the globals; `revert` undoes exactly that.
+function pessimisticMeta(mutate, revert) {
+  mutate();
+  render();
+  return saveMetadata().catch(() => { revert(); render(); });
 }
 
 async function formApiCreate(data, isUnscheduled, sortOrder) {
@@ -68,7 +100,7 @@ async function formApiCreate(data, isUnscheduled, sortOrder) {
 
 function formApiDelete(formId) {
   const url = _withToken(`/api/v2/forms/${formId}`);
-  return apiFetch(url, { method: 'DELETE' }, 'delete form').catch(() => {});
+  return apiFetch(url, { method: 'DELETE' }, 'delete form');
 }
 
 async function taskApiCreate(formId, name, metadata) {

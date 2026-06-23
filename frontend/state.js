@@ -2,6 +2,7 @@ let cols = [], weekUnscheduled = [], state = {}, typeCounter = 0, dragging = nul
 let typeConfig  = structuredClone(DEFAULT_TYPE_CONFIG);
 let legendOrder = [...DEFAULT_LEGEND_ORDER];
 let uiScale = 1;
+let customLoad = false;
 
 const _token = new URLSearchParams(window.location.search).get('token');
 const _withToken = path => _token ? `${path}?token=${encodeURIComponent(_token)}` : path;
@@ -30,7 +31,7 @@ function saveMetadata() {
   apiFetch(_metadataUrl, {
     method:  'PUT',
     headers: {'Content-Type':'application/json'},
-    body:    JSON.stringify({lang, uiScale, legendOrder, typeConfig, typeCounter, collapseState: Collapse.getAll()}),
+    body:    JSON.stringify({lang, uiScale, legendOrder, typeConfig, typeCounter, collapseState: Collapse.getAll(), customLoad}),
   }, 'save metadata').catch(() => {});
 }
 

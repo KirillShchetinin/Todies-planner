@@ -33,6 +33,9 @@ const TRANSLATIONS = {
     dayLocale:          'en-US',
     scaleLarger:        'Larger',
     scaleSmaller:       'Smaller',
+    customLoad:         'custom load',
+    on:                 'ON',
+    off:                'OFF',
     actAccount:         'Account',
     actLabels:          'Labels',
     actSettings:        'Settings',
@@ -108,6 +111,9 @@ const TRANSLATIONS = {
     dayLocale:          'ru-RU',
     scaleLarger:        'Крупнее',
     scaleSmaller:       'Мельче',
+    customLoad:         'своя загрузка',
+    on:                 'ВКЛ',
+    off:                'ВЫКЛ',
     actAccount:         'Аккаунт',
     actLabels:          'Метки задач',
     actSettings:        'Настройки',
@@ -192,6 +198,11 @@ function applyLangToStaticUI() {
   if (newLabelConfirm) newLabelConfirm.textContent = t('newLabelConfirm');
   const newLabelCancel = addPanel?.querySelector('#newLabelCancel');
   if (newLabelCancel) newLabelCancel.textContent = t('newLabelCancel');
+  // custom load setting
+  const customLoadLabel = document.getElementById('customLoadLabel');
+  if (customLoadLabel) customLoadLabel.textContent = t('customLoad');
+  const customLoadBtn = document.getElementById('customLoadBtn');
+  if (customLoadBtn) customLoadBtn.textContent = customLoad ? t('on') : t('off');
   // account panel buttons
   const accountAddBtn = document.getElementById('accountAddBtn');
   if (accountAddBtn) accountAddBtn.textContent = t('accountAdd');

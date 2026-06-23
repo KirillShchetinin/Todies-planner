@@ -25,6 +25,7 @@ _metadataP.then(userSettings => {
   if (!userSettings) return;
   lang        = userSettings.lang        || lang;
   uiScale     = userSettings.uiScale     || uiScale;
+  customLoad  = !!userSettings.customLoad;
   typeCounter = userSettings.typeCounter || typeCounter;
   const _builtinLabels = new Set(Object.values(DEFAULT_TYPE_CONFIG).map(t => t.label.toLowerCase()));
   const customCfg = Object.fromEntries(Object.entries(userSettings.typeConfig || {}).filter(([k, v]) =>
@@ -41,6 +42,7 @@ _metadataP.then(userSettings => {
   applyScale(uiScale);
   applyLangToStaticUI();
   renderScaleBtns();
+  renderCustomLoadBtn();
   render();
   console.log(`[perf] metadata applied +${(performance.now() - _t0).toFixed(1)}ms`);
 });
@@ -67,6 +69,19 @@ document.getElementById('langBtn').addEventListener('click', () => {
   applyLangToStaticUI();
   render();
   renderScaleBtns();
+});
+
+function renderCustomLoadBtn() {
+  const btn = document.getElementById('customLoadBtn');
+  if (!btn) return;
+  btn.textContent = customLoad ? t('on') : t('off');
+  btn.setAttribute('aria-pressed', customLoad ? 'true' : 'false');
+}
+
+document.getElementById('customLoadBtn').addEventListener('click', () => {
+  customLoad = !customLoad;
+  saveMetadata();
+  renderCustomLoadBtn();
 });
 
 const addDayBtn   = document.getElementById('addDayBtn');

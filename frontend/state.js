@@ -27,6 +27,22 @@ function applyFormsData(data) {
   sortColsByDate();
 }
 
+// Optimistic mutation, scoped to one entity. Applies `mutate` and renders
+// immediately, fires the API, and if it fails runs `revert` — which must undo
+// only what `mutate` changed, so concurrent in-flight actions are unaffected.
+function optimistic(mutate, apiCall, revert) {
+  UndoHistory.push();
+  mutate();
+  render();
+  return Promise.resolve()
+    .then(apiCall)
+    .then(res => {
+      if (res && res.ok === false) throw new Error('request failed');
+      return res;
+    })
+    .catch(() => { revert(); render(); });
+}
+
 function saveMetadata() {
   apiFetch(_metadataUrl, {
     method:  'PUT',
@@ -71,10 +87,10 @@ function taskApiUpdate(taskId, data) {
     method:  'PUT',
     headers: {'Content-Type': 'application/json'},
     body:    JSON.stringify(data),
-  }, 'update task').catch(() => {});
+  }, 'update task');
 }
 
 function taskApiDelete(taskId) {
   const url = _withToken(`/api/v2/tasks/${taskId}`);
-  return apiFetch(url, { method: 'DELETE' }, 'delete task').catch(() => {});
+  return apiFetch(url, { method: 'DELETE' }, 'delete task');
 }

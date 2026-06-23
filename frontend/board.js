@@ -85,7 +85,7 @@ function buildColEl(col) {
 
     (state[col.id]||[]).forEach(task => {
       const el = document.createElement('div');
-      el.className = 'task' + (task.done ? ' done' : '') + (task.cancelled ? ' cancelled' : '');
+      el.className = 'task' + (task.done ? ' done' : '') + (task.cancelled ? ' cancelled' : '') + (task.pending ? ' pending' : '');
       el.dataset.id = task.id;
       el.title = task.text;
       applyTaskStyle(el, task.type, task.done, task.cancelled);
@@ -162,22 +162,27 @@ function buildColEl(col) {
       zone.classList.remove('drag-over');
       document.querySelectorAll('.task').forEach(t => t.classList.remove('insert-before','insert-after'));
       if (!dragging) return;
-      UndoHistory.push();
 
       const tc = Number(zone.dataset.col);
       const targetEl = e.target.closest('.task[data-id]');
       const draggedId = dragging;
 
-      let task = null;
       let sourceColId = null;
       allCols().forEach(c => {
-        if (!state[c.id]) return;
-        const i = state[c.id].findIndex(t => t.id === draggedId);
-        if (i > -1) { task = state[c.id].splice(i, 1)[0]; sourceColId = c.id; }
+        if ((state[c.id] || []).some(t => t.id === draggedId)) sourceColId = c.id;
       });
+      const task = sourceColId != null ? state[sourceColId].find(t => t.id === draggedId) : null;
       if (!task) return;
+      if (task.pending) return;  // id not persisted yet
 
       if (!state[tc]) state[tc] = [];
+      // Revert is scoped to just the two columns this drop touches.
+      const prevSource = [...state[sourceColId]];
+      const prevTarget = sourceColId === tc ? prevSource : [...state[tc]];
+
+      UndoHistory.push();
+      state[sourceColId] = state[sourceColId].filter(t => t.id !== draggedId);
+      if (sourceColId !== tc && !state[tc]) state[tc] = [];
 
       if (targetEl && Number(targetEl.dataset.id) !== task.id) {
         const rect     = targetEl.getBoundingClientRect();
@@ -190,10 +195,17 @@ function buildColEl(col) {
       }
 
       const movedToOtherCol = sourceColId !== tc;
-      state[tc].forEach((t, i) => {
+      const calls = state[tc].map((t, i) => {
         const patch = { sort_order: i };
         if (t.id === task.id && movedToOtherCol) patch.form_id = tc;
-        taskApiUpdate(t.id, patch);
+        return taskApiUpdate(t.id, patch).then(res => {
+          if (res && res.ok === false) throw new Error('reorder failed');
+        });
+      });
+      Promise.all(calls).catch(() => {
+        state[sourceColId] = prevSource;          // restore only the two affected columns
+        if (sourceColId !== tc) state[tc] = prevTarget;
+        render();
       });
       render();
     });
@@ -423,12 +435,16 @@ function startTaskInlineEdit(taskId) {
     if (committed) return;
     committed = true;
     const val = input.value.trim();
-    if (val && val !== original) {
-      UndoHistory.push();
-      allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.text = val; }); });
-      taskApiUpdate(taskId, { name: val });
+    const task = findTask(taskId);
+    if (val && val !== original && task && !task.pending) {
+      optimistic(
+        () => { task.text = val; },
+        () => taskApiUpdate(taskId, { name: val }),
+        () => { task.text = original; },
+      );
+    } else {
+      render();
     }
-    render();
   };
 
   const cancel = () => { committed = true; render(); };

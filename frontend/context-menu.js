@@ -29,11 +29,14 @@ function openTaskCtxMenu(e, taskId) {
   impBtn.className = 'ctx-item ctx-important-item';
   impBtn.textContent = task?.important ? t('ctxUnmarkImportant') : t('ctxMarkImportant');
   impBtn.onclick = () => {
-    UndoHistory.push();
-    let updated;
-    allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) { t.important = !t.important; updated = t; } }); });
-    if (updated) taskApiUpdate(taskId, { metadata: { important: !!updated.important } });
-    closeCtxMenu(); render();
+    closeCtxMenu();
+    if (!task || task.pending) return;
+    const prev = task.important;
+    optimistic(
+      () => { task.important = !prev; },
+      () => taskApiUpdate(taskId, { metadata: { important: !!task.important } }),
+      () => { task.important = prev; },
+    );
   };
   ctxMenu.appendChild(impBtn);
 
@@ -64,10 +67,14 @@ function openTaskCtxMenu(e, taskId) {
     btn.style.cssText = `border-left: 3px solid ${cfg.border}`;
     btn.textContent = cfg.label;
     btn.onclick = () => {
-      UndoHistory.push();
-      allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) t.type = key; }); });
-      taskApiUpdate(taskId, { metadata: { type: key } });
-      closeCtxMenu(); render();
+      closeCtxMenu();
+      if (!task || task.pending) return;
+      const prev = task.type;
+      optimistic(
+        () => { task.type = key; },
+        () => taskApiUpdate(taskId, { metadata: { type: key } }),
+        () => { task.type = prev; },
+      );
     };
     ctxMenu.appendChild(btn);
   });

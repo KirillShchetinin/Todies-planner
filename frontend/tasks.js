@@ -10,12 +10,10 @@ function findTask(id) {
   return null;
 }
 
-let _tempIdSeq = -1;
-
 function addTask(colId, text, type) {
   const name = text.trim();
   if (!name) return;
-  const tempId = _tempIdSeq--;          // negative id marks a not-yet-persisted task
+  const tempId = _tempId();             // negative id marks a not-yet-persisted task
   UndoHistory.push();
   if (!state[colId]) state[colId] = [];
   const task = { id: tempId, text: name, type, locked: false, done: false, pending: true };

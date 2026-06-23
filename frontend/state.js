@@ -30,6 +30,8 @@ function applyFormsData(data) {
 // Optimistic mutation, scoped to one entity. Applies `mutate` and renders
 // immediately, fires the API, and if it fails runs `revert` — which must undo
 // only what `mutate` changed, so concurrent in-flight actions are unaffected.
+// (On the default page apiFetch returns a synthetic success, so failures and
+// rollbacks only ever happen for real, token-backed accounts.)
 function optimistic(mutate, apiCall, revert) {
   UndoHistory.push();
   mutate();

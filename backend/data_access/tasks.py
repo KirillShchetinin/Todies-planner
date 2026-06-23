@@ -1,5 +1,7 @@
+import datetime
 import json
 from backend.data_access.connections import get_db
+from backend.date_utils import parse_form_date
 
 
 _INTERNAL_META_KEYS = {'col', 'id'}
@@ -7,6 +9,17 @@ _INTERNAL_META_KEYS = {'col', 'id'}
 
 def _clean_meta(meta):
     return {k: v for k, v in (meta or {}).items() if k not in _INTERNAL_META_KEYS}
+
+
+def _row_to_task(r):
+    return {
+        'id':         r['id'],
+        'form_id':    r['form_id'],
+        'name':       r['name'],
+        'done':       bool(r['done']),
+        'sort_order': r['sort_order'],
+        'metadata':   _clean_meta(json.loads(r['metadata'] or '{}')),
+    }
 
 
 def get_tasks_by_form(user_id, form_id):
@@ -23,18 +36,41 @@ def get_tasks(user_id):
         ' FROM tasks WHERE user_id=? ORDER BY form_id, sort_order',
         (user_id,)
     ).fetchall()
-    result = []
-    for r in rows:
-        meta = _clean_meta(json.loads(r['metadata'] or '{}'))
-        result.append({
-            'id':         r['id'],
-            'form_id':    r['form_id'],
-            'name':       r['name'],
-            'done':       bool(r['done']),
-            'sort_order': r['sort_order'],
-            'metadata':   meta,
-        })
-    return result
+    return [_row_to_task(r) for r in rows]
+
+
+def get_tasks_for_forms(user_id, form_ids):
+    """Tasks belonging to the given form IDs, scoped to the user."""
+    ids = [int(f) for f in form_ids]
+    if not ids:
+        return []
+    placeholders = ','.join('?' * len(ids))
+    rows = get_db().execute(
+        'SELECT id, form_id, name, done, sort_order, metadata'
+        f' FROM tasks WHERE user_id=? AND form_id IN ({placeholders})'
+        ' ORDER BY form_id, sort_order',
+        (user_id, *ids)
+    ).fetchall()
+    return [_row_to_task(r) for r in rows]
+
+
+def get_tasks_in_range(user_id, start, end, today=None):
+    """Tasks on dated forms whose date falls within [start, end] inclusive.
+
+    ``start`` and ``end`` are ``datetime.date``. Forms with unparseable dates
+    are excluded.
+    """
+    today = today or datetime.date.today()
+    form_rows = get_db().execute(
+        'SELECT id, date FROM forms WHERE user_id=? AND is_unscheduled=0',
+        (user_id,)
+    ).fetchall()
+    form_ids = []
+    for f in form_rows:
+        d = parse_form_date(f['date'], today)
+        if d is not None and start <= d <= end:
+            form_ids.append(f['id'])
+    return get_tasks_for_forms(user_id, form_ids)
 
 
 def create_task(user_id, data):

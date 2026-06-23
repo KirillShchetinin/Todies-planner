@@ -1,3 +1,6 @@
+import datetime
+
+
 # ── GET /api/v2/forms ─────────────────────────────────────────────────────
 
 def test_get_empty(client, token):
@@ -20,6 +23,48 @@ def test_get_splits_scheduled_and_unscheduled(client, token):
     assert len(data['weekUnscheduled']) == 1
     assert data['weekUnscheduled'][0]['label'] == 'Backlog'
     assert 'date' not in data['weekUnscheduled'][0]
+
+
+# ── GET /api/v2/forms?latest=N ────────────────────────────────────────────
+
+def test_latest_filters_old_forms(client, token):
+    qs = {'token': token}
+    today = datetime.date.today()
+    recent = today - datetime.timedelta(days=2)
+    old = today - datetime.timedelta(days=60)
+    client.post('/api/v2/forms', query_string=qs,
+                json={'label': 'Recent', 'date': recent.strftime('%m/%d/%Y')})
+    client.post('/api/v2/forms', query_string=qs,
+                json={'label': 'Old', 'date': old.strftime('%m/%d/%Y')})
+
+    data = client.get('/api/v2/forms', query_string={**qs, 'latest': '14'}).get_json()
+    labels = {c['label'] for c in data['cols']}
+    assert 'Recent' in labels
+    assert 'Old' not in labels
+
+
+def test_latest_includes_unscheduled(client, token):
+    qs = {'token': token}
+    client.post('/api/v2/forms', query_string=qs,
+                json={'label': 'Backlog', 'is_unscheduled': True})
+    data = client.get('/api/v2/forms', query_string={**qs, 'latest': '14'}).get_json()
+    assert [u['label'] for u in data['weekUnscheduled']] == ['Backlog']
+
+
+def test_latest_omitted_returns_all(client, token):
+    qs = {'token': token}
+    old = (datetime.date.today() - datetime.timedelta(days=120)).strftime('%m/%d/%Y')
+    client.post('/api/v2/forms', query_string=qs, json={'label': 'Old', 'date': old})
+    data = client.get('/api/v2/forms', query_string=qs).get_json()
+    assert any(c['label'] == 'Old' for c in data['cols'])
+
+
+def test_latest_invalid_returns_400(client, token):
+    qs = {'token': token}
+    assert client.get('/api/v2/forms',
+                      query_string={**qs, 'latest': 'abc'}).status_code == 400
+    assert client.get('/api/v2/forms',
+                      query_string={**qs, 'latest': '-5'}).status_code == 400
 
 
 # ── POST /api/v2/forms ────────────────────────────────────────────────────

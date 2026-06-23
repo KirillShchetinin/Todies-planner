@@ -1,6 +1,9 @@
-def _form(client, token):
+import datetime
+
+
+def _form(client, token, **kw):
     return client.post('/api/v2/forms', query_string={'token': token},
-                       json={'label': 'Mon'}).get_json()['id']
+                       json={'label': 'Mon', **kw}).get_json()['id']
 
 
 def _task(client, token, fid, **kw):
@@ -28,6 +31,59 @@ def test_get_shape(client, token):
     assert t['name'] == 'Buy milk'
     assert t['done'] is False
     assert t['metadata'] == {'type': 'async'}
+
+
+# ── GET /api/v2/tasks?form_ids= / ?start=&end= ────────────────────────────
+
+def test_get_by_form_ids(client, token):
+    qs = {'token': token}
+    f1 = _form(client, token, date='06/15/2026')
+    f2 = _form(client, token, date='06/16/2026')
+    _task(client, token, f1, name='One')
+    _task(client, token, f2, name='Two')
+
+    data = client.get('/api/v2/tasks',
+                      query_string={**qs, 'form_ids': str(f1)}).get_json()
+    assert {t['name'] for t in data['tasks']} == {'One'}
+
+
+def test_get_by_form_ids_invalid(client, token):
+    r = client.get('/api/v2/tasks',
+                   query_string={'token': token, 'form_ids': 'abc'})
+    assert r.status_code == 400
+
+
+def test_get_by_date_range(client, token):
+    qs = {'token': token}
+    f_in = _form(client, token, date='06/15/2026')
+    f_out = _form(client, token, date='07/15/2026')
+    _task(client, token, f_in, name='In')
+    _task(client, token, f_out, name='Out')
+
+    data = client.get('/api/v2/tasks', query_string={
+        **qs, 'from': '2026-06-01', 'to': '2026-06-30'}).get_json()
+    assert {t['name'] for t in data['tasks']} == {'In'}
+
+
+def test_get_by_date_range_invalid_date(client, token):
+    r = client.get('/api/v2/tasks', query_string={
+        'token': token, 'from': 'nope', 'to': '2026-06-30'})
+    assert r.status_code == 400
+
+
+def test_get_by_date_range_from_after_to(client, token):
+    r = client.get('/api/v2/tasks', query_string={
+        'token': token, 'from': '2026-06-30', 'to': '2026-06-01'})
+    assert r.status_code == 400
+
+
+def test_get_by_form_ids_user_isolation(client, two_tokens):
+    t1, t2 = two_tokens
+    f1 = _form(client, t1, date='06/15/2026')
+    _task(client, t1, f1, name='Secret')
+    data = client.get('/api/v2/tasks',
+                      query_string={'token': t2, 'form_ids': str(f1)}).get_json()
+    assert data['tasks'] == []
 
 
 # ── POST /api/v2/tasks ────────────────────────────────────────────────────

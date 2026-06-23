@@ -8,15 +8,22 @@ def register(bp, require_user):
         user_id, err = require_user()
         if err:
             return err
-        forms = DA.get_forms(user_id)
+        latest_arg = request.args.get('latest')
+        if latest_arg is not None:
+            if not latest_arg.lstrip('-').isdigit() or int(latest_arg) < 0:
+                return jsonify(error='latest must be a non-negative integer'), 400
+            cols, unscheduled = DA.get_recent_forms(user_id, int(latest_arg))
+        else:
+            forms = DA.get_forms(user_id)
+            cols = [f for f in forms if not f['is_unscheduled']]
+            unscheduled = [f for f in forms if f['is_unscheduled']]
         return jsonify({
             'cols': [
                 {'id': f['id'], 'label': f['label'], 'date': f['date']}
-                for f in forms if not f['is_unscheduled']
+                for f in cols
             ],
             'weekUnscheduled': [
-                {'id': f['id'], 'label': f['label']}
-                for f in forms if f['is_unscheduled']
+                {'id': f['id'], 'label': f['label']} for f in unscheduled
             ],
         })
 

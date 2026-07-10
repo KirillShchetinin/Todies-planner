@@ -35,6 +35,9 @@ const COLOR_PRESETS = [
   { bg:'#fef0e6', border:'#f5c895', text:'#7a3000' },
   { bg:'#fceaf4', border:'#e8b0d8', text:'#6a1a4a' },
   { bg:'#f4f4f2', border:'#c4c4be', text:'#888888' },
+  { bg:'#dbe4f5', border:'#7fa0d8', text:'#0d2f66' },
+  { bg:'#ffe0e0', border:'#ff8080', text:'#cc0000' },
+  { bg:'#000000', border:'#000000', text:'#ffffff' },
 ];
 
 const UI_SCALES = [0.75, 0.875, 1, 1.125, 1.25];

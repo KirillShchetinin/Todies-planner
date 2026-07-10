@@ -161,11 +161,28 @@ function _buildDayStrip(container) {
     }
   });
 
+  // customLoad ON: strip only lists loaded weeks; older weeks are revealed
+  // via the "earlier weeks" chip prepended below. Frozen at load — toggling
+  // customLoad never changes the view until refresh.
+  const _loadedKeys = customLoadActive
+    ? new Set(cols.filter(c => loadedFormIds.has(c.id)).map(c => colWeekInfo(c)?.key).filter(Boolean))
+    : null;
+  const visibleWeekKeys = _loadedKeys ? weekKeys.filter(k => _loadedKeys.has(k)) : weekKeys;
+
+  if (hasUnloadedWeeks()) {
+    const chip = document.createElement('button');
+    chip.className = 'mob-earlier-chip';
+    chip.textContent = loadingEarlier ? '…' : t('earlierWeeks');
+    chip.disabled = loadingEarlier;
+    chip.onclick = loadEarlierWeeks;
+    container.appendChild(chip);
+  }
+
   const INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   const now = new Date();
   let todayChip = null;
 
-  weekKeys.forEach((weekKey, wi) => {
+  visibleWeekKeys.forEach((weekKey, wi) => {
     const monday = _weekMonday(weekKey);
     if (!monday) return;
 
@@ -253,7 +270,14 @@ function _renderMobileBoard() {
     else      bucket.slots.push(col);
   });
 
-  const weeks = [...weekMap.values()].sort((a, b) => a.order - b.order);
+  const allWeeks = [...weekMap.values()].sort((a, b) => a.order - b.order);
+
+  // customLoad ON: render only weeks with a loaded col; week.order stays the
+  // ABSOLUTE index so unscheduled pairing never re-pairs (see board.js).
+  const _colLoaded = col => !customLoadActive || loadedFormIds.has(col.id);
+  const weeks = customLoadActive
+    ? allWeeks.filter(w => w.slots.some(c => c && _colLoaded(c)))
+    : allWeeks;
 
   const area = document.createElement('div');
   area.className = 'mob-scroll-area';
@@ -262,15 +286,15 @@ function _renderMobileBoard() {
     area.appendChild(_buildUnschedChip(weekUnscheduled[0]));
   }
 
-  weeks.forEach((week, wi) => {
-    const unschedCol = weekUnscheduled[wi] || weekUnscheduled[weekUnscheduled.length - 1];
+  weeks.forEach((week) => {
+    const unschedCol = weekUnscheduled[week.order] || weekUnscheduled[weekUnscheduled.length - 1];
     if (unschedCol) area.appendChild(_buildUnschedChip(unschedCol));
 
     const dayList = document.createElement('div');
     dayList.className = 'mob-day-list';
 
     week.slots.forEach(col => {
-      if (!col) return;
+      if (!col || !_colLoaded(col)) return;
       dayList.appendChild(
         expandedDays.has(col.id) ? _buildDayHero(col) : _buildDayRow(col)
       );

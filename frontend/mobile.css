@@ -74,6 +74,21 @@ body[data-view="mobile"] #board {
 }
 .mob-day-strip::-webkit-scrollbar { display: none; }
 
+.mob-earlier-chip {
+  flex: 0 0 auto;
+  align-self: stretch;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px dashed var(--border-hover);
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mob-earlier-chip:disabled { opacity: 0.6; cursor: default; }
+
 .mob-day-chip {
   flex: 0 0 44px;
   display: flex;

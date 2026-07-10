@@ -300,6 +300,18 @@ function buildColEl(col) {
     return colEl;
 }
 
+function _buildEarlierWeeksRow() {
+  const row = document.createElement('div');
+  row.className = 'earlier-weeks-row';
+  const btn = document.createElement('button');
+  btn.className = 'earlier-weeks-btn';
+  btn.textContent = loadingEarlier ? '…' : t('earlierWeeks');
+  btn.disabled = loadingEarlier;
+  btn.onclick = loadEarlierWeeks;
+  row.appendChild(btn);
+  return row;
+}
+
 function render() {
   if (document.body.dataset.view === 'mobile') {
     renderMobile();
@@ -332,12 +344,26 @@ function render() {
     weekMap.get(info.key).slots[info.day] = col;
   });
 
-  const weeks = [...weekMap.values()].sort((a, b) => a.order - b.order);
+  const allWeeks = [...weekMap.values()].sort((a, b) => a.order - b.order);
+
+  // customLoad ON: render a week only if at least one of its cols is loaded
+  // (unloaded weeks are revealed via "earlier weeks"). week.order stays the
+  // ABSOLUTE index over all weeks so unscheduled pairing never re-pairs.
+  // Uses the session-frozen flag: toggling customLoad never changes the view until refresh.
+  const _colLoaded = col => !customLoadActive || loadedFormIds.has(col.id);
+  const weeks = customLoadActive
+    ? allWeeks.filter(w => (w.key === '__nodate__'
+        ? w.slots.some(s => _colLoaded(s.col))
+        : w.slots.some(c => c && _colLoaded(c))))
+    : allWeeks;
 
   const weekCount = Math.max(1, weeks.length);
 
+  // Desktop "earlier weeks" control — one full-width row above the first week.
+  if (hasUnloadedWeeks()) board.appendChild(_buildEarlierWeeksRow());
+
   weeks.forEach((week, wi) => {
-    const unschedCol = weekUnscheduled[wi] || weekUnscheduled[weekUnscheduled.length - 1];
+    const unschedCol = weekUnscheduled[week.order] || weekUnscheduled[weekUnscheduled.length - 1];
     if (!unschedCol) return;
 
     const weekRow = document.createElement('div');
@@ -361,7 +387,8 @@ function render() {
     let ghostAdded = false;
 
     for (let di = 0; di < 7; di++) {
-      const entry = week.key === '__nodate__' ? (slots[di] || null) : slots[di];
+      let entry = week.key === '__nodate__' ? (slots[di] || null) : slots[di];
+      if (entry && !_colLoaded(entry)) entry = null;   // hide unloaded day within a partially-loaded week
       if (entry) {
         daysGrid.appendChild(buildColEl(entry));
       } else if (isLastWeek && !ghostAdded) {
@@ -395,9 +422,12 @@ function render() {
     weekRow.className = 'week-row';
     const bar = document.createElement('div');
     bar.className = 'unscheduled-bar';
-    const emptyTasks = state[weekUnscheduled[0].id] || [];
-    if (emptyTasks.length > 0) bar.classList.add('has-tasks');
-    bar.appendChild(buildColEl(weekUnscheduled[0]));
+    const emptyUnsched = weekUnscheduled[0];
+    if (emptyUnsched) {
+      const emptyTasks = state[emptyUnsched.id] || [];
+      if (emptyTasks.length > 0) bar.classList.add('has-tasks');
+      bar.appendChild(buildColEl(emptyUnsched));
+    }
     weekRow.appendChild(bar);
     const daysGrid = document.createElement('div');
     daysGrid.className = 'week-days';

@@ -18,14 +18,13 @@ document.addEventListener('keydown', e => {
 });
 
 const _metadataP = apiFetch(_metadataUrl, undefined, 'load metadata').then(r => r.ok ? r.json() : Promise.reject()).catch(() => { loadShowcase(); return null; });
-const _formsP    = apiFetch(_formsUrl,    undefined, 'load forms')   .then(r => r.ok ? r.json() : null).catch(() => null);
-const _tasksP    = apiFetch(_tasksUrl,    undefined, 'load tasks')   .then(r => r.ok ? r.json() : null).catch(() => null);
 
 _metadataP.then(userSettings => {
   if (!userSettings) return;
   lang        = userSettings.lang        || lang;
   uiScale     = userSettings.uiScale     || uiScale;
   customLoad  = !!userSettings.customLoad;
+  customLoadActive = customLoad;   // freeze for the session; toggling won't change the view until refresh
   typeCounter = userSettings.typeCounter || typeCounter;
   const _builtinLabels = new Set(Object.values(DEFAULT_TYPE_CONFIG).map(t => t.label.toLowerCase()));
   const customCfg = Object.fromEntries(Object.entries(userSettings.typeConfig || {}).filter(([k, v]) =>
@@ -45,23 +44,62 @@ _metadataP.then(userSettings => {
   renderCustomLoadBtn();
   render();
   console.log(`[perf] metadata applied +${(performance.now() - _t0).toFixed(1)}ms`);
+  loadBoard();
 });
 
-_formsP.then(formsData => {
+// Forms/tasks fetching is specialized by customLoad, which lives in metadata,
+// so it can only run after _metadataP resolves. OFF path is byte-for-byte
+// today's behavior; ON path fetches all forms but only recent weeks' tasks.
+function loadBoard() {
+  if (customLoadActive) return loadBoardPartial();
+  return loadBoardFull();
+}
+
+function loadBoardFull() {
+  const formsP = apiFetch(_formsUrl, undefined, 'load forms').then(r => r.ok ? r.json() : null).catch(() => null);
+  const tasksP = apiFetch(_tasksUrl, undefined, 'load tasks').then(r => r.ok ? r.json() : null).catch(() => null);
+
+  formsP.then(formsData => {
+    if (!formsData) return;
+    applyFormsData(formsData);
+    render();
+    console.log(`[perf] forms applied +${(performance.now() - _t0).toFixed(1)}ms`);
+  });
+
+  Promise.all([formsP, tasksP]).then(async ([formsData, tasksData]) => {
+    if (!formsData || !tasksData) return;
+    applyTasksData(tasksData);
+    await ensureTodayCol();
+    await ensureUnscheduledForWeeks();
+    render();
+    console.log(`[perf] tasks applied +${(performance.now() - _t0).toFixed(1)}ms`);
+  });
+}
+
+async function loadBoardPartial() {
+  const formsData = await apiFetch(_formsUrl + (_token ? '&' : '?') + 'mark_recent=1', undefined, 'load forms').then(r => r.ok ? r.json() : null).catch(() => null);
   if (!formsData) return;
   applyFormsData(formsData);
   render();
   console.log(`[perf] forms applied +${(performance.now() - _t0).toFixed(1)}ms`);
-});
 
-Promise.all([_formsP, _tasksP]).then(async ([formsData, tasksData]) => {
-  if (!formsData || !tasksData) return;
-  applyTasksData(tasksData);
+  // Fetch tasks only for recent scheduled cols + all unscheduled containers.
+  const initialIds = [
+    ...cols.filter(c => c.recent).map(c => c.id),
+    ...weekUnscheduled.map(u => u.id),
+  ];
+  const tasksData = initialIds.length
+    ? await apiFetch(_tasksUrl + (_token ? '&' : '?') + `form_ids=${initialIds.join(',')}`, undefined, 'load tasks').then(r => r.ok ? r.json() : null).catch(() => null)
+    : { tasks: [] };
+  if (!tasksData) return;
+  mergeTasksData(tasksData, initialIds);
+  console.log(`[perf] partial tasks applied +${(performance.now() - _t0).toFixed(1)}ms`);
+
   await ensureTodayCol();
   await ensureUnscheduledForWeeks();
   render();
   console.log(`[perf] tasks applied +${(performance.now() - _t0).toFixed(1)}ms`);
-});
+}
 
 document.getElementById('langBtn').addEventListener('click', () => {
   const prev = lang;

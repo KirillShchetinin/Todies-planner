@@ -1,6 +1,10 @@
 import datetime
+import re
 from flask import jsonify, request
 from backend.data_access import tasks as DA_tasks
+
+_INT_RE = re.compile(r'-?\d+')
+_MAX_ID = 2 ** 63 - 1
 
 
 def register(bp, require_user):
@@ -11,14 +15,19 @@ def register(bp, require_user):
             return err
 
         form_ids = request.args.get('form_ids')
-        if form_ids is not None:
-            ids = [p for p in form_ids.split(',') if p.strip()]
-            if not all(p.strip().lstrip('-').isdigit() for p in ids):
-                return jsonify(error='form_ids must be comma-separated integers'), 400
-            return jsonify({'tasks': DA_tasks.get_tasks_for_forms(user_id, ids)})
-
         from_arg = request.args.get('from')
         to_arg = request.args.get('to')
+
+        if form_ids is not None:
+            if from_arg is not None or to_arg is not None:
+                return jsonify(error='form_ids and from/to are mutually exclusive'), 400
+            ids = [p.strip() for p in form_ids.split(',') if p.strip()]
+            if not all(_INT_RE.fullmatch(p) for p in ids):
+                return jsonify(error='form_ids must be comma-separated integers'), 400
+            if any(abs(int(p)) > _MAX_ID for p in ids):
+                return jsonify(error='form_ids out of range'), 400
+            return jsonify({'tasks': DA_tasks.get_tasks_for_forms(user_id, ids)})
+
         if from_arg is not None or to_arg is not None:
             try:
                 start = datetime.date.fromisoformat(from_arg)

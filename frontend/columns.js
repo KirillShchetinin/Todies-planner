@@ -3,7 +3,8 @@ function parseDateToSortKey(dateStr) {
   const base = dateStr.replace(/\+$/, '');
   const m = base.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
   if (!m) return Infinity;
-  const yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
+  let yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
+  if (yr < 100) yr += 2000;
   return yr * 10000 + parseInt(m[1]) * 100 + parseInt(m[2]);
 }
 
@@ -14,7 +15,8 @@ function sortColsByDate() {
 function inferDay(dateStr) {
   const m = dateStr.trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
   if (!m) return '';
-  const yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
+  let yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
+  if (yr < 100) yr += 2000;
   const d  = new Date(yr, parseInt(m[1]) - 1, parseInt(m[2]));
   return isNaN(d) ? '' : d.toLocaleDateString('en-US', {weekday:'short'});
 }
@@ -24,7 +26,8 @@ function colWeekInfo(col) {
   const base = (col.date || '').replace(/\+$/, '');
   const m = base.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
   if (!m) return null;
-  const yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
+  let yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
+  if (yr < 100) yr += 2000;
   const d  = new Date(yr, parseInt(m[1]) - 1, parseInt(m[2]));
   if (isNaN(d)) return null;
   const day = (d.getDay() + 6) % 7; // 0=Mon…6=Sun
@@ -41,6 +44,7 @@ async function addCol(label, date) {
     UndoHistory.push();
     cols.push({ id, label: label.trim(), date: date.trim() });
     state[id] = [];
+    loadedFormIds.add(id);   // newly created form starts empty → already "loaded"
     sortColsByDate();
     await ensureUnscheduledForWeeks();
     render();
@@ -72,6 +76,7 @@ async function addUnscheduledCol() {
     const { id } = await formApiCreate({ label: 'Unscheduled', date: '' }, true, weekUnscheduled.length);
     UndoHistory.push();
     weekUnscheduled.push({ id, label: 'Unscheduled' });
+    loadedFormIds.add(id);
     render();
   } catch(e) {}
 }
@@ -109,6 +114,7 @@ async function ensureTodayCol() {
     const { id } = await formApiCreate({ label, date: todayStr }, false, cols.length);
     cols.push({ id, label, date: todayStr });
     state[id] = [];
+    loadedFormIds.add(id);
     sortColsByDate();
   } catch(e) {}
 }
@@ -119,6 +125,79 @@ async function ensureUnscheduledForWeeks() {
     try {
       const { id } = await formApiCreate({ label: 'Unscheduled', date: '' }, true, weekUnscheduled.length);
       weekUnscheduled.push({ id, label: 'Unscheduled' });
+      loadedFormIds.add(id);
     } catch (e) { break; }
+  }
+}
+
+// True when at least one scheduled form's tasks have not been fetched yet.
+// Gated on the session-frozen flag (a session that started with full load has
+// nothing unloaded); the control's presence must not change when customLoad is
+// toggled mid-session.
+function hasUnloadedWeeks() {
+  return customLoadActive && cols.some(c => !loadedFormIds.has(c.id));
+}
+
+// The vertical scroll container differs per view: the document scrolls on
+// desktop, #board scrolls on mobile. Prepending week rows must not shift the
+// viewport, so anchor whichever element actually scrolls.
+function _boardScrollEl() {
+  return document.body.dataset.view === 'mobile'
+    ? document.getElementById('board')
+    : document.scrollingElement;
+}
+
+// Reveal older unloaded weeks. Shared by desktop button + mobile chip. Fetches
+// those forms' tasks by ID, merges, clears undo (a stale snapshot predates the
+// merged tasks), and re-renders with scroll preserved. Normally loads the 2
+// newest unloaded weeks, but if customLoad has been toggled OFF this session,
+// a click loads ALL remaining weeks at once (catch up to full immediately).
+async function loadEarlierWeeks() {
+  if (loadingEarlier) return;
+
+  // Group unloaded scheduled forms by week key; undated forms load last.
+  const unloaded = cols.filter(c => !loadedFormIds.has(c.id));
+  if (!unloaded.length) return;
+  const byKey = new Map();
+  const NODATE = '__nodate__';
+  unloaded.forEach(c => {
+    const info = colWeekInfo(c);
+    const key  = info ? info.key : NODATE;
+    if (!byKey.has(key)) byKey.set(key, []);
+    byKey.get(key).push(c.id);
+  });
+  // Newest weeks first; the undated bucket always sorts to the very end.
+  const keys = [...byKey.keys()].sort((a, b) => {
+    if (a === NODATE) return 1;
+    if (b === NODATE) return -1;
+    return a < b ? 1 : a > b ? -1 : 0;
+  });
+  // customLoad ON → next 2 weeks; toggled OFF this session → all remaining.
+  const take = customLoad ? 2 : keys.length;
+  const ids = keys.slice(0, take).flatMap(k => byKey.get(k));
+  if (!ids.length) return;
+
+  loadingEarlier = true;
+  render();  // re-render so the control shows its loading label
+
+  const scroller = _boardScrollEl();
+  const prevTop    = scroller ? scroller.scrollTop    : 0;
+  const prevHeight = scroller ? scroller.scrollHeight : 0;
+
+  try {
+    const url  = _tasksUrl + (_token ? '&' : '?') + `form_ids=${ids.join(',')}`;
+    const res  = await apiFetch(url, undefined, 'load earlier tasks');
+    if (!res.ok) throw new Error('load earlier tasks failed');
+    const data = await res.json();
+    mergeTasksData(data, ids);
+    UndoHistory.clear();      // a pre-merge snapshot would drop the merged tasks
+    loadingEarlier = false;
+    render();
+    // Keep the viewport anchored: prepended rows grow scrollHeight from the top.
+    const s = _boardScrollEl();
+    if (s) s.scrollTop = prevTop + (s.scrollHeight - prevHeight);
+  } catch (e) {
+    loadingEarlier = false;   // loaded data untouched — retry = click again
+    render();
   }
 }

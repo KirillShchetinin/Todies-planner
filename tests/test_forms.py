@@ -67,6 +67,63 @@ def test_latest_invalid_returns_400(client, token):
                       query_string={**qs, 'latest': '-5'}).status_code == 400
 
 
+def test_latest_double_dash_returns_400(client, token):
+    # Regression: lstrip('-') let '--5' pass and int('--5') 500'd.
+    assert client.get('/api/v2/forms',
+                      query_string={'token': token, 'latest': '--5'}).status_code == 400
+
+
+def test_latest_overflow_returns_400(client, token):
+    # Regression: a huge latest overflowed timedelta in get_recent_forms → 500.
+    assert client.get('/api/v2/forms',
+                      query_string={'token': token,
+                                    'latest': '99999999999999999999'}).status_code == 400
+
+
+# ── GET /api/v2/forms?mark_recent=1 ───────────────────────────────────────
+
+def test_mark_recent_absent_by_default(client, token):
+    qs = {'token': token}
+    client.post('/api/v2/forms', query_string=qs,
+                json={'label': 'Mon', 'date': '01/20'})
+    data = client.get('/api/v2/forms', query_string=qs).get_json()
+    assert 'recent' not in data['cols'][0]
+
+
+def test_mark_recent_adds_flag(client, token):
+    qs = {'token': token}
+    today = datetime.date.today()
+    recent = today - datetime.timedelta(days=2)
+    old = today - datetime.timedelta(days=60)
+    client.post('/api/v2/forms', query_string=qs,
+                json={'label': 'Recent', 'date': recent.strftime('%m/%d/%Y')})
+    client.post('/api/v2/forms', query_string=qs,
+                json={'label': 'Old', 'date': old.strftime('%m/%d/%Y')})
+    client.post('/api/v2/forms', query_string=qs,
+                json={'label': 'Undated'})
+
+    data = client.get('/api/v2/forms',
+                      query_string={**qs, 'mark_recent': '1'}).get_json()
+    by_label = {c['label']: c for c in data['cols']}
+    # Full list is still returned (no filtering); each col carries the flag.
+    assert set(by_label) == {'Recent', 'Old', 'Undated'}
+    assert by_label['Recent']['recent'] is True
+    assert by_label['Old']['recent'] is False
+    assert by_label['Undated']['recent'] is False
+
+
+def test_mark_recent_ignored_with_latest(client, token):
+    # Chosen behavior: mark_recent is ignored when latest is supplied.
+    qs = {'token': token}
+    recent = (datetime.date.today() - datetime.timedelta(days=2)).strftime('%m/%d/%Y')
+    client.post('/api/v2/forms', query_string=qs,
+                json={'label': 'Recent', 'date': recent})
+    data = client.get('/api/v2/forms',
+                      query_string={**qs, 'latest': '14', 'mark_recent': '1'}).get_json()
+    assert data['cols']
+    assert 'recent' not in data['cols'][0]
+
+
 # ── POST /api/v2/forms ────────────────────────────────────────────────────
 
 def test_create_returns_id(client, token):

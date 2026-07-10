@@ -33,7 +33,7 @@ def test_get_shape(client, token):
     assert t['metadata'] == {'type': 'async'}
 
 
-# ── GET /api/v2/tasks?form_ids= / ?start=&end= ────────────────────────────
+# ── GET /api/v2/tasks?form_ids= / ?from=&to= ──────────────────────────────
 
 def test_get_by_form_ids(client, token):
     qs = {'token': token}
@@ -74,6 +74,34 @@ def test_get_by_date_range_invalid_date(client, token):
 def test_get_by_date_range_from_after_to(client, token):
     r = client.get('/api/v2/tasks', query_string={
         'token': token, 'from': '2026-06-30', 'to': '2026-06-01'})
+    assert r.status_code == 400
+
+
+def test_get_by_form_ids_double_dash_returns_400(client, token):
+    # Regression: lstrip('-') let '--5' pass and int('--5') 500'd.
+    r = client.get('/api/v2/tasks',
+                   query_string={'token': token, 'form_ids': '--5'})
+    assert r.status_code == 400
+
+
+def test_get_by_form_ids_overflow_returns_400(client, token):
+    # Regression: a 20-digit int > 2**63-1 raised sqlite OverflowError (500).
+    r = client.get('/api/v2/tasks',
+                   query_string={'token': token, 'form_ids': '9' * 20})
+    assert r.status_code == 400
+
+
+def test_get_by_form_ids_negative_single_dash_ok(client, token):
+    # A single leading '-' is valid syntax (matches nothing, returns []).
+    r = client.get('/api/v2/tasks',
+                   query_string={'token': token, 'form_ids': '-5'})
+    assert r.status_code == 200
+    assert r.get_json() == {'tasks': []}
+
+
+def test_form_ids_and_range_together_returns_400(client, token):
+    r = client.get('/api/v2/tasks', query_string={
+        'token': token, 'form_ids': '1', 'from': '2026-06-01', 'to': '2026-06-30'})
     assert r.status_code == 400
 
 

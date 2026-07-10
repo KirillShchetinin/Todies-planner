@@ -30,5 +30,7 @@ const UndoHistory = (() => {
     return true;
   }
 
-  return { push, pop };
+  function clear() { stack.length = 0; }
+
+  return { push, pop, clear };
 })();

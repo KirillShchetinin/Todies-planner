@@ -9,7 +9,7 @@ year when omitted, week starting on Monday).
 import datetime
 import re
 
-_DATE_RE = re.compile(r'^\s*(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\s*$')
+_DATE_RE = re.compile(r'^(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\+?$')
 
 
 def parse_form_date(date_str, today=None):
@@ -20,8 +20,7 @@ def parse_form_date(date_str, today=None):
     """
     if not date_str:
         return None
-    base = date_str.rstrip('+')
-    m = _DATE_RE.match(base)
+    m = _DATE_RE.match(date_str)
     if not m:
         return None
     today = today or datetime.date.today()

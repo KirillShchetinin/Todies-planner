@@ -30,6 +30,19 @@ def test_parse_invalid_returns_none():
     assert parse_form_date('13/40') is None  # impossible date
 
 
+def test_parse_rejects_surrounding_whitespace():
+    # Aligns with the stricter frontend rule: no padding tolerated, so a
+    # space-prefixed date is undated on both sides.
+    today = datetime.date(2026, 6, 22)
+    assert parse_form_date(' 7/4', today) is None
+    assert parse_form_date('7/4 ', today) is None
+
+
+def test_parse_rejects_multiple_trailing_plus():
+    today = datetime.date(2026, 6, 22)
+    assert parse_form_date('07/04++', today) is None
+
+
 # ── week_start ────────────────────────────────────────────────────────────
 
 def test_week_start_is_monday():

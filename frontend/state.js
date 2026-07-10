@@ -2,7 +2,10 @@ let cols = [], weekUnscheduled = [], state = {}, typeCounter = 0, dragging = nul
 let typeConfig  = structuredClone(DEFAULT_TYPE_CONFIG);
 let legendOrder = [...DEFAULT_LEGEND_ORDER];
 let uiScale = 1;
-let customLoad = false;
+let customLoad = false;          // live setting: button label, persistence, earlier-weeks fetch scope
+let customLoadActive = false;    // customLoad frozen at page load — governs rendering; toggling never changes the view until refresh
+let loadedFormIds = new Set();   // forms whose tasks have been fetched (customLoad ON)
+let loadingEarlier = false;      // one in-flight guard for batch fetches
 
 const _token = new URLSearchParams(window.location.search).get('token');
 const _withToken = path => _token ? `${path}?token=${encodeURIComponent(_token)}` : path;
@@ -19,6 +22,20 @@ function applyTasksData(tasksData) {
     const meta = t.metadata || {};
     state[formId].push({ id: t.id, text: t.name, done: !!t.done, ...meta });
   }
+}
+
+// Merge variant of applyTasksData for progressive loading: replaces (never
+// appends) the tasks for exactly the given form IDs and marks them loaded.
+// Idempotent — re-fetching the same batch produces the same state.
+function mergeTasksData(tasksData, formIds) {
+  for (const id of formIds) state[id] = [];      // fetched-but-empty forms
+  for (const t of (tasksData.tasks || [])) {
+    const formId = t.form_id;
+    if (!state[formId]) state[formId] = [];
+    const meta = t.metadata || {};
+    state[formId].push({ id: t.id, text: t.name, done: !!t.done, ...meta });
+  }
+  for (const id of formIds) loadedFormIds.add(id);
 }
 
 function applyFormsData(data) {

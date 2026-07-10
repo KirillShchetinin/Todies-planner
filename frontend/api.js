@@ -25,12 +25,14 @@ function apiFetch(url, options, label) {
   const method = (options && options.method) || 'GET';
   const path = url.split('?')[0];
 
-  // Default page (no token): authenticated WRITES would be rejected, so skip the
-  // network and return a synthetic success — writes "succeed" locally, the UI
+  // Default page (no token): authenticated data WRITES would be rejected, so skip
+  // the network and return a synthetic success — writes "succeed" locally, the UI
   // sticks, and creates get a client-side temp id. This is the one place
   // token-awareness lives; mutation callers stay oblivious. GETs are left alone
-  // so the initial load can still fail and fall back to the showcase.
-  if (!_token && method !== 'GET') {
+  // so the initial load can still fail and fall back to the showcase. Account
+  // endpoints (/api/account*) are excluded: creating an account is precisely the
+  // write that has no token yet and must reach the server to mint one.
+  if (!_token && method !== 'GET' && path.startsWith('/api/v2/')) {
     return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ id: _tempId() }) });
   }
 

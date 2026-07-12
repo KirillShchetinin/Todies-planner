@@ -899,6 +899,17 @@ function _buildSideMenu(container) {
         .finally(() => { this.disabled = false; });
     };
 
+    const refreshBtn = document.createElement('button');
+    refreshBtn.className   = 'mob-menu-btn';
+    refreshBtn.textContent = t('accountRefreshToken');
+    refreshBtn.onclick = () => {
+      showConfirm(t('accountRefreshConfirm'), () => {
+        refreshToken(_token)
+          .then(token => { overlay = null; render(); showTokenModal(token); })
+          .catch(() => showAlert(t('accountRefreshFailed')));
+      });
+    };
+
     const delBtn = document.createElement('button');
     delBtn.className   = 'mob-menu-btn';
     delBtn.textContent = t('accountDelete');
@@ -911,7 +922,7 @@ function _buildSideMenu(container) {
       });
     };
 
-    return [addBtn, delBtn];
+    return [addBtn, refreshBtn, delBtn];
   });
 
   // Labels
@@ -1000,7 +1011,37 @@ function _buildSideMenu(container) {
     scaleRow.appendChild(minus);
     scaleRow.appendChild(plus);
 
-    return [langRow, scaleRow];
+    const loadRow = document.createElement('div');
+    loadRow.className = 'mob-settings-row';
+
+    const loadLbl = document.createElement('span');
+    loadLbl.className    = 'mob-menu-info';
+    loadLbl.style.alignSelf = 'center';
+    loadLbl.textContent = t('customLoad');
+    loadRow.appendChild(loadLbl);
+
+    const loadBtn = document.createElement('button');
+    loadBtn.className   = 'mob-settings-pill' + (customLoad ? ' active' : '');
+    loadBtn.textContent = customLoad ? t('on') : t('off');
+    loadBtn.setAttribute('aria-pressed', customLoad ? 'true' : 'false');
+    loadBtn.onclick = () => {
+      const prev = customLoad;
+      pessimisticMeta(
+        () => { customLoad = !customLoad; renderCustomLoadBtn(); },
+        () => { customLoad = prev; renderCustomLoadBtn(); },
+      );
+    };
+    loadRow.appendChild(loadBtn);
+
+    return [langRow, scaleRow, loadRow];
+  });
+
+  // Help
+  _menuSection(panel, t('actInstructions'), () => {
+    const info = document.createElement('span');
+    info.className   = 'mob-menu-info';
+    info.textContent = t('hint');
+    return [info];
   });
 
   container.appendChild(panel);

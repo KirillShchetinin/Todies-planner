@@ -71,6 +71,30 @@ function addNextDay() {
   addCol(label || t('dayFallback'), date);
 }
 
+// Monday (day 0) of the ISO week identified by "YYYY-Www".
+function weekKeyToMonday(key) {
+  const m = key.match(/^(\d{4})-W(\d{2})$/);
+  if (!m) return null;
+  const year = parseInt(m[1]), week = parseInt(m[2]);
+  const jan4 = new Date(year, 0, 4);
+  const dow  = (jan4.getDay() + 6) % 7;
+  const monday = new Date(jan4);
+  monday.setDate(jan4.getDate() - dow + (week - 1) * 7);
+  return monday;
+}
+
+// Creates the day form for one empty slot in an already-rendered week
+// (double-click on desktop, tap on mobile's empty day chip).
+function addDayAtSlot(weekKey, dayIndex) {
+  const monday = weekKeyToMonday(weekKey);
+  if (!monday) return;
+  const d = new Date(monday);
+  d.setDate(monday.getDate() + dayIndex);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  addCol(d.toLocaleDateString('en-US', {weekday: 'short'}), `${mm}/${dd}`);
+}
+
 async function addUnscheduledCol() {
   try {
     const { id } = await formApiCreate({ label: 'Unscheduled', date: '' }, true, weekUnscheduled.length);

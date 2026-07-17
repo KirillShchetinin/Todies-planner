@@ -383,21 +383,18 @@ function render() {
       ? week.slots.map(s => s.col)
       : week.slots;
 
-    const isLastWeek = wi === weeks.length - 1;
-    let ghostAdded = false;
-
     for (let di = 0; di < 7; di++) {
-      let entry = week.key === '__nodate__' ? (slots[di] || null) : slots[di];
+      const rawEntry = week.key === '__nodate__' ? (slots[di] || null) : slots[di];
+      let entry = rawEntry;
       if (entry && !_colLoaded(entry)) entry = null;   // hide unloaded day within a partially-loaded week
       if (entry) {
         daysGrid.appendChild(buildColEl(entry));
-      } else if (isLastWeek && !ghostAdded) {
+      } else if (!rawEntry && week.key !== '__nodate__') {
         const ghost = document.createElement('div');
         ghost.className = 'col-ghost';
         ghost.title = t('ghostTitle');
-        ghost.addEventListener('dblclick', e => { e.stopPropagation(); addNextDay(); });
+        ghost.addEventListener('dblclick', e => { e.stopPropagation(); addDayAtSlot(week.key, di); });
         daysGrid.appendChild(ghost);
-        ghostAdded = true;
       } else {
         const spacer = document.createElement('div');
         spacer.className = 'col-spacer';

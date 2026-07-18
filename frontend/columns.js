@@ -16,6 +16,19 @@ function parseDateToSortKey(dateStr) {
   return resolveYear(m[3]) * 10000 + parseInt(m[1]) * 100 + parseInt(m[2]);
 }
 
+// Empty is allowed (dateless column); otherwise MM/DD[/YYYY] must name a real
+// calendar day — rejects 13/01, 07/45, 02/29 in a non-leap year, 01/2/02/02.
+function isValidColDate(dateStr) {
+  const raw = (dateStr || '').trim();
+  if (!raw) return true;
+  const m = raw.replace(/\+$/, '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (!m) return false;
+  const mo = parseInt(m[1]), day = parseInt(m[2]);
+  if (mo < 1 || mo > 12 || day < 1) return false;
+  const d = new Date(resolveYear(m[3]), mo - 1, day);
+  return d.getMonth() === mo - 1 && d.getDate() === day;
+}
+
 // Pins an explicit year at write time so a stored date can't re-anchor to a
 // later "current year". Leaves unparseable input alone.
 function normalizeColDate(dateStr) {
@@ -64,6 +77,7 @@ function colWeekInfo(col) {
 
 async function addCol(label, date) {
   if (!label.trim()) return;
+  if (!isValidColDate(date)) { showAlert(t('invalidDate')); return; }
   const colDate = normalizeColDate(date);
   try {
     const { id } = await formApiCreate({ label: label.trim(), date: colDate }, false, cols.length);

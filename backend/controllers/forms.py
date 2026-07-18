@@ -1,6 +1,7 @@
 import re
 from flask import jsonify, request
 from backend.data_access import data_access as DA
+from backend.date_utils import is_valid_form_date
 
 _INT_RE = re.compile(r'-?\d+')
 _MAX_LATEST = 999999999  # datetime.timedelta.max.days; larger overflows in get_recent_forms
@@ -49,6 +50,8 @@ def register(bp, require_user):
         if err:
             return err
         body = request.get_json(silent=True) or {}
+        if not is_valid_form_date(body.get('date', '')):
+            return jsonify(error='date must be MM/DD or MM/DD/YYYY'), 400
         db_id = DA.create_form(user_id, body)
         return jsonify({'id': db_id}), 201
 

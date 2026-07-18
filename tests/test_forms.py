@@ -1,5 +1,7 @@
 import datetime
 
+import pytest
+
 
 # ── GET /api/v2/forms ─────────────────────────────────────────────────────
 
@@ -139,6 +141,26 @@ def test_create_appears_in_get(client, token):
                       json={'label': 'Wed', 'date': '01/22'}).get_json()['id']
     assert any(c['id'] == fid
                for c in client.get('/api/v2/forms', query_string=qs).get_json()['cols'])
+
+
+@pytest.mark.parametrize('date', ['13/01', '07/45', '01/2/02/02', '02/29', 'Backlog', 5])
+def test_create_rejects_invalid_date(client, token, date):
+    r = client.post('/api/v2/forms', query_string={'token': token},
+                    json={'label': 'Bad', 'date': date})
+    assert r.status_code == 400
+
+
+@pytest.mark.parametrize('date', ['04/01/2025', '06/02', '6/2', '06/02+', '02/29/2028', ''])
+def test_create_accepts_valid_date(client, token, date):
+    r = client.post('/api/v2/forms', query_string={'token': token},
+                    json={'label': 'Good', 'date': date})
+    assert r.status_code == 201
+
+
+def test_create_rejects_invalid_date_before_insert(client, token):
+    qs = {'token': token}
+    client.post('/api/v2/forms', query_string=qs, json={'label': 'Bad', 'date': '13/01'})
+    assert client.get('/api/v2/forms', query_string=qs).get_json()['cols'] == []
 
 
 # ── DELETE /api/v2/forms/<id> ─────────────────────────────────────────────

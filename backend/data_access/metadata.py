@@ -14,7 +14,7 @@ _DEFAULT_METADATA = {
     'uiScale': 1,
     'lang': 'en',
     'collapseState': {},
-    'customLoad': False,
+    'customLoad': True,
 }
 
 

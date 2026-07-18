@@ -41,6 +41,18 @@ def parse_form_date(date_str, today=None):
         return None
 
 
+def is_valid_form_date(date_str):
+    """Empty is allowed (dateless form); otherwise must name a real calendar day.
+
+    Mirrors the frontend's ``isValidColDate``.
+    """
+    if not date_str:
+        return True
+    if not isinstance(date_str, str):
+        return False
+    return parse_form_date(date_str) is not None
+
+
 def week_start(d):
     """Monday of the ISO week containing ``d``."""
     return d - datetime.timedelta(days=d.weekday())

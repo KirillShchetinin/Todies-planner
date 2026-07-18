@@ -237,6 +237,9 @@ function _buildDayStrip(container) {
           else expandedDays.add(col.id);
           render();
         };
+      } else {
+        chip.title = t('tapToAddDay');
+        chip.onclick = () => addDayAtSlot(weekKey, idx);
       }
 
       container.appendChild(chip);

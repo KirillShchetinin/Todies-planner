@@ -4,7 +4,7 @@ function loadShowcase() {
   const mon = new Date(today);
   mon.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
 
-  const fmt = d => `${String(d.getMonth() + 1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+  const fmt = d => `${String(d.getMonth() + 1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
 
   const labels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const ids    = [901, 902, 903, 904, 905, 906, 907];

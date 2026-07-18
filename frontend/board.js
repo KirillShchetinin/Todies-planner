@@ -58,7 +58,7 @@ function buildColEl(col) {
     const left = document.createElement('div');
     left.className = 'col-header-left';
     const flames = isToday ? '<span class="today-flames"><span>🔥</span><span>🔥</span><span>🔥</span></span>' : '';
-    left.innerHTML = `<span class="col-header-text"><span>${translateLabel(col.label)}</span>` + (col.date ? `<span class="date">${col.date}</span>` : '') + `</span>` + flames;
+    left.innerHTML = `<span class="col-header-text"><span>${translateLabel(col.label)}</span>` + (col.date ? `<span class="date">${formatColDate(col.date)}</span>` : '') + `</span>` + flames;
     hdr.appendChild(left);
     {
       const dc = document.createElement('button');

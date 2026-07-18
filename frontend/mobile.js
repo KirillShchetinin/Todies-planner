@@ -455,8 +455,7 @@ function _buildDayHero(col) {
   if (col.date) {
     const m = col.date.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
     if (m) {
-      const yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
-      const d  = new Date(yr, parseInt(m[1]) - 1, parseInt(m[2]));
+      const d  = new Date(resolveYear(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
       const dateSpan = document.createElement('span');
       dateSpan.className = 'mob-hero-date';
       dateSpan.textContent = d.toLocaleDateString(t('dayLocale'), { month: 'short', day: 'numeric' });

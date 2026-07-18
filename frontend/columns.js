@@ -1,11 +1,40 @@
+// Dates written before the year was recorded were all created in 2026, so
+// legacy year-less values resolve there rather than drifting with the clock.
+const LEGACY_DATE_YEAR = 2026;
+
+function resolveYear(rawYear) {
+  if (!rawYear) return LEGACY_DATE_YEAR;
+  const yr = parseInt(rawYear);
+  return yr < 100 ? yr + 2000 : yr;
+}
+
 function parseDateToSortKey(dateStr) {
   if (!dateStr) return Infinity;
   const base = dateStr.replace(/\+$/, '');
   const m = base.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
   if (!m) return Infinity;
+  return resolveYear(m[3]) * 10000 + parseInt(m[1]) * 100 + parseInt(m[2]);
+}
+
+// Pins an explicit year at write time so a stored date can't re-anchor to a
+// later "current year". Leaves unparseable input alone.
+function normalizeColDate(dateStr) {
+  const raw  = (dateStr || '').trim();
+  const plus = raw.endsWith('+') ? '+' : '';
+  const m    = raw.replace(/\+$/, '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (!m) return raw;
   let yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
   if (yr < 100) yr += 2000;
-  return yr * 10000 + parseInt(m[1]) * 100 + parseInt(m[2]);
+  return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${yr}${plus}`;
+}
+
+// Column headers stay MM/DD — the stored year is not shown.
+function formatColDate(dateStr) {
+  const raw  = (dateStr || '').trim();
+  const plus = raw.endsWith('+') ? '+' : '';
+  const m    = raw.replace(/\+$/, '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (!m) return raw;
+  return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}${plus}`;
 }
 
 function sortColsByDate() {
@@ -15,9 +44,7 @@ function sortColsByDate() {
 function inferDay(dateStr) {
   const m = dateStr.trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
   if (!m) return '';
-  let yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
-  if (yr < 100) yr += 2000;
-  const d  = new Date(yr, parseInt(m[1]) - 1, parseInt(m[2]));
+  const d  = new Date(resolveYear(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
   return isNaN(d) ? '' : d.toLocaleDateString('en-US', {weekday:'short'});
 }
 
@@ -26,9 +53,7 @@ function colWeekInfo(col) {
   const base = (col.date || '').replace(/\+$/, '');
   const m = base.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
   if (!m) return null;
-  let yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
-  if (yr < 100) yr += 2000;
-  const d  = new Date(yr, parseInt(m[1]) - 1, parseInt(m[2]));
+  const d  = new Date(resolveYear(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
   if (isNaN(d)) return null;
   const day = (d.getDay() + 6) % 7; // 0=Mon…6=Sun
   const thu  = new Date(d); thu.setDate(d.getDate() + (3 - day));
@@ -39,10 +64,11 @@ function colWeekInfo(col) {
 
 async function addCol(label, date) {
   if (!label.trim()) return;
+  const colDate = normalizeColDate(date);
   try {
-    const { id } = await formApiCreate({ label: label.trim(), date: date.trim() }, false, cols.length);
+    const { id } = await formApiCreate({ label: label.trim(), date: colDate }, false, cols.length);
     UndoHistory.push();
-    cols.push({ id, label: label.trim(), date: date.trim() });
+    cols.push({ id, label: label.trim(), date: colDate });
     state[id] = [];
     loadedFormIds.add(id);   // newly created form starts empty → already "loaded"
     sortColsByDate();
@@ -59,12 +85,11 @@ function addNextDay() {
     const baseDate = last.date.replace(/\+$/, '');
     const m = baseDate.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
     if (m) {
-      const yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
-      const d  = new Date(yr, parseInt(m[1]) - 1, parseInt(m[2]));
+      const d  = new Date(resolveYear(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
       d.setDate(d.getDate() + 1);
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
-      date  = `${mm}/${dd}`;
+      date  = `${mm}/${dd}/${d.getFullYear()}`;
       label = d.toLocaleDateString('en-US', {weekday: 'short'});
     }
   }
@@ -92,7 +117,7 @@ function addDayAtSlot(weekKey, dayIndex) {
   d.setDate(monday.getDate() + dayIndex);
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
-  addCol(d.toLocaleDateString('en-US', {weekday: 'short'}), `${mm}/${dd}`);
+  addCol(d.toLocaleDateString('en-US', {weekday: 'short'}), `${mm}/${dd}/${d.getFullYear()}`);
 }
 
 async function addUnscheduledCol() {
@@ -130,7 +155,7 @@ async function ensureTodayCol() {
   const now = new Date();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
-  const todayStr = `${mm}/${dd}`;
+  const todayStr = `${mm}/${dd}/${now.getFullYear()}`;
   const todayKey = parseDateToSortKey(todayStr);
   if (cols.some(c => parseDateToSortKey(c.date) === todayKey)) return;
   const label = now.toLocaleDateString('en-US', { weekday: 'short' });

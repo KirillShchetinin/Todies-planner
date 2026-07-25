@@ -1,4 +1,4 @@
-import datetime, os, shutil, sqlite3
+import datetime, os, sqlite3
 from flask import g
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -71,7 +71,14 @@ def backup(backup_dir):
     now = datetime.datetime.now()
     ts = now.strftime('%Y%m%d_%H%M%S')
     dest = os.path.join(backup_dir, f'planner_db_backup_{ts}.db')
-    shutil.copy2(DB_PATH, dest)
+    tmp_dest = dest + '.tmp'
+    src_conn = sqlite3.connect(DB_PATH)
+    dest_conn = sqlite3.connect(tmp_dest)
+    with dest_conn:
+        src_conn.backup(dest_conn)
+    dest_conn.close()
+    src_conn.close()
+    os.replace(tmp_dest, dest)
     _prune_old_backups(backup_dir, now)
     return [dest]
 

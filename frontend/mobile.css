@@ -630,7 +630,7 @@ body[data-view="mobile"] .task:active {
   border: none;
   outline: none;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 16px;
   color: inherit;
   min-width: 0;
 }

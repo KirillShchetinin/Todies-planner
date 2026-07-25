@@ -1,5 +1,12 @@
 function allCols() { return [...cols, ...weekUnscheduled]; }
 
+function isUnscheduledCol(colId) { return weekUnscheduled.some(u => u.id === colId); }
+
+// "move along" only means anything while a task sits in an unscheduled box.
+// Absent means on: the flag is written when a task lands in one, so a missing
+// value can only come from a task that predates the feature.
+function movesAlong(task) { return task.moveAlong !== false; }
+
 function findTask(id) {
   for (const c of allCols()) {
     const list = state[c.id];
@@ -16,12 +23,14 @@ function addTask(colId, text, type) {
   const tempId = _tempId();             // negative id marks a not-yet-persisted task
   UndoHistory.push();
   if (!state[colId]) state[colId] = [];
-  const task = { id: tempId, text: name, type, locked: false, done: false, pending: true };
+  const meta = { type, locked: false };
+  if (isUnscheduledCol(colId)) meta.moveAlong = true;
+  const task = { id: tempId, text: name, done: false, pending: true, ...meta };
   state[colId].push(task);
   render();
 
   return Promise.resolve()
-    .then(() => taskApiCreate(colId, name, { type, locked: false }))
+    .then(() => taskApiCreate(colId, name, meta))
     .then(created => {
       task.id = created.id;             // reconcile temp id with the server id
       delete task.pending;
@@ -62,6 +71,17 @@ function toggleDone(id) {
     () => { task.done = !prev; },
     () => taskApiUpdate(id, { done: task.done }),
     () => { task.done = prev; },
+  );
+}
+
+function toggleMoveAlong(id) {
+  const task = findTask(id);
+  if (!task || task.pending) return;
+  const prev = task.moveAlong;
+  optimistic(
+    () => { task.moveAlong = !movesAlong(task); },
+    () => taskApiUpdate(id, { metadata: { moveAlong: task.moveAlong } }),
+    () => { task.moveAlong = prev; },
   );
 }
 

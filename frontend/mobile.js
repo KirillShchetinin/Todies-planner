@@ -708,6 +708,13 @@ function _buildActionSheet(container) {
       }
     },
     { icon: '✕', label: t('mobCancelTask'), cls: 'mob-action-cancel', action: () => { overlay = null; toggleCancelled(taskId); } },
+    // Only meaningful in an unscheduled box — day columns never carry over.
+    ...(isUnscheduledCol(fromColId) ? [{
+      icon: '→',
+      label: movesAlong(task) ? t('mobNoMoveAlong') : t('mobMoveAlong'),
+      cls: '',
+      action: () => { overlay = null; toggleMoveAlong(taskId); },
+    }] : []),
     { icon: '🗑', label: t('mobDelete'), cls: 'mob-action-delete', action: () => { overlay = null; deleteTask(taskId); } },
   ].forEach(({ icon, label, cls, action }) => {
     const row = document.createElement('button');
@@ -749,14 +756,22 @@ function _moveTaskToCol(taskId, targetColId) {
   // Revert is scoped to the two columns this move touches.
   const prevSource = [...state[sourceColId]];
   const prevTarget = [...state[targetColId]];
+  // Landing in an unscheduled box with no decision recorded opts in.
+  const adoptsMoveAlong = isUnscheduledCol(targetColId) && task.moveAlong === undefined;
+  const patch = { form_id: targetColId };
+  if (adoptsMoveAlong) patch.metadata = { moveAlong: true };
   overlay = null;
   optimistic(
     () => {
       state[sourceColId] = state[sourceColId].filter(t => t.id !== taskId);
       state[targetColId].push(task);
+      if (adoptsMoveAlong) task.moveAlong = true;
     },
-    () => taskApiUpdate(taskId, { form_id: targetColId }),
-    () => { state[sourceColId] = prevSource; state[targetColId] = prevTarget; },
+    () => taskApiUpdate(taskId, patch),
+    () => {
+      state[sourceColId] = prevSource; state[targetColId] = prevTarget;
+      if (adoptsMoveAlong) delete task.moveAlong;
+    },
   );
 }
 

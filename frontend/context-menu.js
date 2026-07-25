@@ -7,8 +7,8 @@ function openTaskCtxMenu(e, taskId) {
   e.preventDefault();
   ctxKey = null;
 
-  let task = null;
-  allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) task = t; }); });
+  let task = null, taskColId = null;
+  allCols().forEach(c => { (state[c.id]||[]).forEach(t => { if (t.id === taskId) { task = t; taskColId = c.id; } }); });
 
   ctxMenu.innerHTML = '';
 
@@ -45,6 +45,15 @@ function openTaskCtxMenu(e, taskId) {
   cancelBtn.textContent = task?.cancelled ? t('ctxUncancel') : t('ctxCancel');
   cancelBtn.onclick = () => { closeCtxMenu(); toggleCancelled(taskId); };
   ctxMenu.appendChild(cancelBtn);
+
+  // Only meaningful in an unscheduled box — day columns never carry over.
+  if (isUnscheduledCol(taskColId)) {
+    const moveAlongBtn = document.createElement('button');
+    moveAlongBtn.className = 'ctx-item';
+    moveAlongBtn.textContent = movesAlong(task) ? t('ctxNoMoveAlong') : t('ctxMoveAlong');
+    moveAlongBtn.onclick = () => { closeCtxMenu(); toggleMoveAlong(taskId); };
+    ctxMenu.appendChild(moveAlongBtn);
+  }
 
   const sep = document.createElement('div');
   sep.className = 'ctx-sep';

@@ -187,10 +187,35 @@ async function ensureUnscheduledForWeeks() {
   while (weekUnscheduled.length < need) {
     try {
       const { id } = await formApiCreate({ label: 'Unscheduled', date: '' }, true, weekUnscheduled.length);
+      const prev = weekUnscheduled[weekUnscheduled.length - 1];
       weekUnscheduled.push({ id, label: 'Unscheduled' });
       loadedFormIds.add(id);
+      state[id] = [];
+      if (prev) await carryUnscheduled(prev.id, id);
     } catch (e) { break; }
   }
+}
+
+// A week ending is the only moment unscheduled tasks migrate: when the box for
+// a new week is created, still-active "move along" tasks follow it forward.
+// Done and cancelled tasks stay behind in the week they belonged to.
+async function carryUnscheduled(fromColId, toColId) {
+  const moving = (state[fromColId] || []).filter(
+    t => !t.pending && !t.done && !t.cancelled && movesAlong(t)
+  );
+  if (!moving.length) return;
+
+  const results = await Promise.all(moving.map((t, i) =>
+    taskApiUpdate(t.id, { form_id: toColId, sort_order: i })
+      .then(res => !res || res.ok !== false)
+      .catch(() => false)
+  ));
+  // Only tasks the server accepted actually move; the rest stay put.
+  moving.forEach((t, i) => {
+    if (!results[i]) return;
+    state[fromColId] = state[fromColId].filter(x => x.id !== t.id);
+    state[toColId].push(t);
+  });
 }
 
 // True when at least one scheduled form's tasks have not been fetched yet.

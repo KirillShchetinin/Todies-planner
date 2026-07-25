@@ -197,9 +197,13 @@ function buildColEl(col) {
       }
 
       const movedToOtherCol = sourceColId !== tc;
+      // Landing in an unscheduled box with no decision recorded opts in.
+      const adoptsMoveAlong = movedToOtherCol && isUnscheduledCol(tc) && task.moveAlong === undefined;
+      if (adoptsMoveAlong) task.moveAlong = true;
       const calls = state[tc].map((t, i) => {
         const patch = { sort_order: i };
         if (t.id === task.id && movedToOtherCol) patch.form_id = tc;
+        if (t.id === task.id && adoptsMoveAlong) patch.metadata = { moveAlong: true };
         return taskApiUpdate(t.id, patch).then(res => {
           if (res && res.ok === false) throw new Error('reorder failed');
         });

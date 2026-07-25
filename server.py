@@ -17,7 +17,10 @@ if __name__ == '__main__':
     def _periodic_backup():
         while True:
             time.sleep(BACKUP_INTERVAL_SECONDS)
-            backup(backup_dir)
+            try:
+                backup(backup_dir)
+            except Exception as e:
+                print(f'  backup failed: {e}')
     threading.Thread(target=_periodic_backup, daemon=True).start()
 
     print('  planner  ->  http://localhost:5000')

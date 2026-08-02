@@ -31,8 +31,6 @@ function _cleanupMobileDOM() {
   document.getElementById('mobile-header')?.remove();
   document.getElementById('mob-quick-add')?.remove();
   document.getElementById('mob-overlay')?.remove();
-  clearTimeout(_toastTimer);
-  document.getElementById('mob-toast')?.remove();
   _removeVpListener();
   _didInitialScroll = false;
 }
@@ -664,66 +662,31 @@ function _buildActionSheet(container) {
   moveLabel.textContent = t('mobMoveTo');
   card.appendChild(moveLabel);
 
-  const fromColId = overlay.fromColId;
-  const taskId    = overlay.taskId;  // capture before overlay can be nulled
-  const fromCol   = allCols().find(c => c.id === fromColId);
-  const fromKey   = fromCol ? parseDateToSortKey(fromCol.date) : null;
-
-  // Quick picks — forward-biased (most moves are "push this to a later day"),
-  // each labeled with the actual weekday/date so nothing is ambiguous.
   const grid = document.createElement('div');
   grid.className = 'mob-day-grid';
-  _quickMoveTargets().forEach(target => {
-    const btn = _moveGridBtn(target.label, target.dateNum, target.key === fromKey,
-      () => _moveTaskToDate(taskId, target.dateStr));
+
+  const fromColId = overlay.fromColId;
+  const taskId    = overlay.taskId;  // capture before overlay can be nulled
+
+  // Unscheduled buttons — show at most 2 (current + next), labeled "Later"
+  weekUnscheduled.slice(0, 2).forEach((unschedCol, i) => {
+    const lbl = weekUnscheduled.length > 1 ? `${t('mobLater')} ${i + 1}` : t('mobLater');
+    const btn = _dayGridBtn(lbl, unschedCol.id === fromColId, () => _moveTaskToCol(taskId, unschedCol.id));
     grid.appendChild(btn);
   });
+
+  // Nearby day cols — ±3 around the task's current column
+  const fromIdx = cols.findIndex(c => c.id === fromColId);
+  const nearbyCols = fromIdx === -1
+    ? cols.slice(0, 7)
+    : cols.slice(Math.max(0, fromIdx - 3), fromIdx + 4);
+  nearbyCols.forEach(col => {
+    const lbl = (col.label || '').slice(0, 3);
+    const btn = _dayGridBtn(lbl, col.id === fromColId, () => _moveTaskToCol(taskId, col.id));
+    grid.appendChild(btn);
+  });
+
   card.appendChild(grid);
-
-  // Pick an exact date — native input so it can be typed, not just tapped.
-  const pickLabel = document.createElement('div');
-  pickLabel.className = 'mob-pick-date-label';
-  pickLabel.textContent = t('mobPickDate');
-  card.appendChild(pickLabel);
-
-  const pickRow = document.createElement('div');
-  pickRow.className = 'mob-pick-date-row';
-
-  const dateInput = document.createElement('input');
-  dateInput.type = 'date';
-  dateInput.className = 'mob-pick-date-input';
-
-  const pickBtn = document.createElement('button');
-  pickBtn.className   = 'mob-pick-date-btn';
-  pickBtn.textContent = t('mobMove');
-  pickBtn.disabled = true;
-
-  dateInput.addEventListener('input', () => { pickBtn.disabled = !dateInput.value; });
-  pickBtn.onclick = () => {
-    if (!dateInput.value) return;
-    const [y, m, d] = dateInput.value.split('-');
-    _moveTaskToDate(taskId, `${m}/${d}/${y}`);
-  };
-
-  pickRow.appendChild(dateInput);
-  pickRow.appendChild(pickBtn);
-  card.appendChild(pickRow);
-
-  // Later (unscheduled) — secondary to dated moves, kept for the no-date case
-  if (weekUnscheduled.length > 0) {
-    const laterRow = document.createElement('div');
-    laterRow.className = 'mob-later-row';
-    weekUnscheduled.slice(0, 2).forEach((unschedCol, i) => {
-      const lbl = weekUnscheduled.length > 1 ? `${t('mobLater')} ${i + 1}` : t('mobLater');
-      const btn = document.createElement('button');
-      btn.className   = 'mob-later-btn';
-      btn.textContent = lbl;
-      if (unschedCol.id === fromColId) btn.disabled = true;
-      else btn.onclick = () => _moveTaskToUnsched(taskId, unschedCol.id);
-      laterRow.appendChild(btn);
-    });
-    card.appendChild(laterRow);
-  }
 
   const sep = document.createElement('div');
   sep.className = 'mob-sheet-sep';
@@ -763,90 +726,24 @@ function _buildActionSheet(container) {
   container.appendChild(card);
 }
 
-// Forward-biased quick picks: today (to undo an accidental push), tomorrow,
-// +2/+3 days, and a week out — covers the common "move this to a later day"
-// case without wasting grid space on days already in the past.
-function _quickMoveTargets() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const offsets = [
-    { offset: 0, key: 'mobMoveToday' },
-    { offset: 1, key: 'mobTomorrow' },
-    { offset: 2 },
-    { offset: 3 },
-    { offset: 7, key: 'mobInAWeek' },
-  ];
-  return offsets.map(o => {
-    const d = new Date(today);
-    d.setDate(d.getDate() + o.offset);
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const dateStr = `${mm}/${dd}/${d.getFullYear()}`;
-    return {
-      dateStr,
-      key:     parseDateToSortKey(dateStr),
-      label:   o.key ? t(o.key) : d.toLocaleDateString('en-US', { weekday: 'short' }),
-      dateNum: d.getDate(),
-    };
-  });
-}
-
-function _moveGridBtn(label, dateNum, isSource, onclick) {
+function _dayGridBtn(label, isSource, onclick) {
   const btn = document.createElement('button');
   btn.className = 'mob-day-grid-btn';
-
-  const top = document.createElement('span');
-  top.className = 'mob-move-btn-top';
-  top.textContent = label;
-  btn.appendChild(top);
-
-  const num = document.createElement('span');
-  num.className = 'mob-move-btn-num';
-  num.textContent = dateNum;
-  btn.appendChild(num);
-
-  if (isSource) btn.disabled = true;
-  else btn.onclick = onclick;
+  btn.textContent = label;
+  if (isSource) {
+    btn.disabled = true;
+  } else {
+    btn.onclick = onclick;
+  }
   return btn;
 }
 
-// Moves a task to whatever column already covers dateStr (MM/DD/YYYY),
-// creating that day column first if none exists yet.
-async function _moveTaskToDate(taskId, dateStr) {
-  const key = parseDateToSortKey(dateStr);
-  overlay = null;
-  render();
-
-  let col = cols.find(c => parseDateToSortKey(c.date) === key);
-  if (!col) {
-    const m = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    const d = new Date(parseInt(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
-    await addCol(d.toLocaleDateString('en-US', { weekday: 'short' }), dateStr);
-    col = cols.find(c => parseDateToSortKey(c.date) === key);
-  }
-  if (!col) return;
-
-  if (_moveTaskToCol(taskId, col.id)) _showMoveToast(_formatMoveDate(dateStr));
-}
-
-function _moveTaskToUnsched(taskId, unschedColId) {
-  if (_moveTaskToCol(taskId, unschedColId)) _showMoveToast(t('mobMovedToLater'));
-}
-
-function _formatMoveDate(dateStr) {
-  const m = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  const d = new Date(parseInt(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
-  return `${t('mobMovedTo')} ${d.toLocaleDateString(t('dayLocale'), { weekday: 'short', month: 'short', day: 'numeric' })}`;
-}
-
-// Returns true if a move actually happened (false for no-op / missing task),
-// so callers can decide whether a toast is warranted.
 function _moveTaskToCol(taskId, targetColId) {
   let sourceColId = null;
   allCols().forEach(c => { if ((state[c.id] || []).some(t => t.id === taskId)) sourceColId = c.id; });
   const task = sourceColId != null ? state[sourceColId].find(t => t.id === taskId) : null;
-  if (!task || task.pending) return false;
-  if (sourceColId === targetColId) { overlay = null; render(); return false; }
+  if (!task || task.pending) return;
+  if (sourceColId === targetColId) { overlay = null; render(); return; }
   if (!state[targetColId]) state[targetColId] = [];
 
   // Revert is scoped to the two columns this move touches.
@@ -861,38 +758,6 @@ function _moveTaskToCol(taskId, targetColId) {
     () => taskApiUpdate(taskId, { form_id: targetColId }),
     () => { state[sourceColId] = prevSource; state[targetColId] = prevTarget; },
   );
-  return true;
-}
-
-// ── Move confirmation toast ────────────────────────────────────────────────────
-
-let _toastTimer = null;
-
-function _showMoveToast(message) {
-  clearTimeout(_toastTimer);
-  document.getElementById('mob-toast')?.remove();
-
-  const toast = document.createElement('div');
-  toast.id = 'mob-toast';
-  toast.className = 'mob-toast';
-
-  const msg = document.createElement('span');
-  msg.className   = 'mob-toast-msg';
-  msg.textContent = message;
-  toast.appendChild(msg);
-
-  const undoBtn = document.createElement('button');
-  undoBtn.className   = 'mob-toast-undo';
-  undoBtn.textContent = t('mobUndo');
-  undoBtn.onclick = () => {
-    clearTimeout(_toastTimer);
-    toast.remove();
-    if (UndoHistory.pop()) render();
-  };
-  toast.appendChild(undoBtn);
-
-  document.body.appendChild(toast);
-  _toastTimer = setTimeout(() => toast.remove(), 4000);
 }
 
 // ── Add-task sheet ─────────────────────────────────────────────────────────────

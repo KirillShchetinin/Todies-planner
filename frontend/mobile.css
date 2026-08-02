@@ -554,89 +554,16 @@ body[data-view="mobile"] .task:active {
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface2);
-  padding: 8px 4px 7px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  padding: 8px 4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
   cursor: pointer;
   text-align: center;
   transition: background 0.12s;
 }
-.mob-day-grid-btn:hover:not(:disabled) { background: var(--surface); }
+.mob-day-grid-btn:hover:not(:disabled) { background: var(--surface); color: var(--text); }
 .mob-day-grid-btn:disabled { opacity: 0.55; cursor: default; }
-
-.mob-move-btn-top {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-muted);
-}
-.mob-day-grid-btn:hover:not(:disabled) .mob-move-btn-top { color: var(--text); }
-
-.mob-move-btn-num {
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--text-dim);
-}
-
-/* ── Pick-a-date row (move-to in action sheet) ────────────── */
-.mob-pick-date-label {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text-dim);
-  margin-top: -2px;
-}
-
-.mob-pick-date-row {
-  display: flex;
-  gap: 6px;
-}
-
-.mob-pick-date-input {
-  flex: 1;
-  min-width: 0;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 7px 8px;
-  font-family: var(--mono);
-  font-size: 13px;
-  color: var(--text);
-}
-
-.mob-pick-date-btn {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 0 14px;
-  font-family: var(--mono);
-  font-size: 11px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.mob-pick-date-btn:disabled { opacity: 0.4; cursor: default; }
-
-/* ── Later row (unscheduled — secondary to dated moves) ───── */
-.mob-later-row {
-  display: flex;
-  gap: 6px;
-}
-
-.mob-later-btn {
-  flex: 1;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--sky-text);
-  background: rgba(80,150,200,0.12);
-  border: 1px solid var(--sky-border);
-  border-radius: 8px;
-  padding: 8px 4px;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-.mob-later-btn:hover:not(:disabled) { background: rgba(80,150,200,0.22); }
-.mob-later-btn:disabled { opacity: 0.55; cursor: default; }
 
 /* ── Action rows ──────────────────────────────────────────── */
 .mob-action-row {
@@ -923,46 +850,4 @@ body[data-view="mobile"] .task:active {
   text-align: center;
   color: var(--sky-text);
   opacity: 0.8;
-}
-
-/* ── Move confirmation toast ──────────────────────────────── */
-#mob-toast {
-  position: fixed;
-  left: 14px;
-  right: 14px;
-  bottom: 88px;
-  z-index: 500;
-  background: var(--text);
-  color: var(--bg);
-  border-radius: 10px;
-  padding: 11px 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-  animation: mob-toast-in 180ms ease-out;
-}
-
-@keyframes mob-toast-in {
-  from { transform: translateY(12px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
-}
-
-.mob-toast-msg {
-  flex: 1;
-  font-family: var(--mono);
-  font-size: 12px;
-}
-
-.mob-toast-undo {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--bg);
-  background: none;
-  border: 1px solid var(--bg);
-  border-radius: 6px;
-  padding: 5px 10px;
-  cursor: pointer;
-  flex-shrink: 0;
 }

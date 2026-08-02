@@ -647,12 +647,6 @@ body[data-view="mobile"] .task:active {
   flex-shrink: 0;
 }
 
-.mob-name-hint {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--text-dim);
-}
-
 /* ── Side menu sections ───────────────────────────────────── */
 .mob-menu-section {
   display: flex;

@@ -857,11 +857,6 @@ function _buildAddSheet(container) {
     inputRow.appendChild(addBtn);
     sheet.appendChild(inputRow);
 
-    const hint = document.createElement('div');
-    hint.className   = 'mob-name-hint';
-    hint.textContent = t('mobAddHint');
-    sheet.appendChild(hint);
-
     requestAnimationFrame(() => inp.focus());
     _addVpListener(sheet);
   }

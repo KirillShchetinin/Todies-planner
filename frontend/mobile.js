@@ -6,6 +6,7 @@ let expandedDays = new Set();
 let overlay = null;
 let _vpResizeListener = null;
 let _didInitialScroll = false;
+let _didStripScroll = false;
 let _lastTapTaskId = null;
 let _lastTapTime = 0;
 
@@ -33,6 +34,7 @@ function _cleanupMobileDOM() {
   document.getElementById('mob-overlay')?.remove();
   _removeVpListener();
   _didInitialScroll = false;
+  _didStripScroll = false;
 }
 
 // ── State helpers ──────────────────────────────────────────────────────────────
@@ -130,6 +132,10 @@ function _renderMobileHeader() {
     const main = document.getElementById('main');
     main.insertBefore(hdr, main.firstChild);
   }
+  // The header is rebuilt wholesale on every render, which resets the strip's
+  // scroll to 0. Carry the old position over so re-rendering never yanks the
+  // strip away from where the user scrolled it.
+  const prevScroll = hdr.querySelector('.mob-day-strip')?.scrollLeft;
   hdr.innerHTML = '';
 
   // Title row
@@ -166,6 +172,7 @@ function _renderMobileHeader() {
   strip.className = 'mob-day-strip';
   _buildDayStrip(strip);
   hdr.appendChild(strip);
+  if (prevScroll) strip.scrollLeft = prevScroll;
 }
 
 function _buildDayStrip(container) {
@@ -268,8 +275,10 @@ function _buildDayStrip(container) {
     });
   });
 
-  // Scroll today's chip into view within the strip
-  if (todayChip) {
+  // Centre today's chip on the first build only — re-centring on every render
+  // would drag the strip back to today each time a day is tapped.
+  if (todayChip && !_didStripScroll) {
+    _didStripScroll = true;
     requestAnimationFrame(() => todayChip.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'auto' }));
   }
 }

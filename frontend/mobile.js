@@ -48,12 +48,33 @@ function _initMobileState() {
   }
 }
 
-function _getTodayCol() {
+function _todayDateStr() {
   const now = new Date();
   const mm  = String(now.getMonth() + 1).padStart(2, '0');
   const dd  = String(now.getDate()).padStart(2, '0');
-  const key = parseDateToSortKey(`${mm}/${dd}`);
+  return `${mm}/${dd}/${now.getFullYear()}`;
+}
+
+function _colForDate(dateStr) {
+  const key = parseDateToSortKey(dateStr);
+  if (key === Infinity) return null;
   return cols.find(c => parseDateToSortKey(c.date) === key) || null;
+}
+
+function _getTodayCol() {
+  return _colForDate(_todayDateStr());
+}
+
+// MM/DD/YYYY ⇄ YYYY-MM-DD (the value format of <input type="date">).
+function _dateStrToIso(dateStr) {
+  const m = (dateStr || '').replace(/\+$/, '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (!m) return '';
+  return `${resolveYear(m[3])}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
+}
+
+function _isoToDateStr(iso) {
+  const m = (iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[2]}/${m[3]}/${m[1]}` : '';
 }
 
 function _isToday(col) {
@@ -505,7 +526,7 @@ function _buildDayHero(col) {
   addBtn.className = 'add-btn';
   addBtn.textContent = t('addTask');
   addBtn.onclick = () => {
-    overlay = { kind: 'add', step: 1, dayId: col.id, selectedType: null, typedText: '' };
+    overlay = { kind: 'add', step: 1, dayId: col.id, targetDate: col.date || null, selectedType: null, typedText: '' };
     render();
   };
   hero.appendChild(addBtn);
@@ -582,8 +603,25 @@ function _renderQuickAdd() {
   }
   qa.innerHTML = '';
 
+  const row = document.createElement('div');
+  row.className = 'mob-quick-add-btn';
+
+  // Opens the add sheet aimed at today. Today's form may not exist yet — the
+  // sheet resolves the date to a form (creating it) only once a task is added.
+  const openAdd = pickDate => {
+    const today = _todayDateStr();
+    overlay = {
+      kind: 'add', step: 1,
+      dayId: _getTodayCol()?.id || null,
+      targetDate: today,
+      pickDate,
+      selectedType: null, typedText: '',
+    };
+    render();
+  };
+
   const btn = document.createElement('button');
-  btn.className = 'mob-quick-add-btn';
+  btn.className = 'mob-qa-main';
 
   const plus = document.createElement('span');
   plus.className = 'mob-qa-plus';
@@ -595,19 +633,17 @@ function _renderQuickAdd() {
   lbl.textContent = t('mobQuickAdd');
   btn.appendChild(lbl);
 
-  const todaySpan = document.createElement('span');
-  todaySpan.className = 'mob-qa-today';
-  todaySpan.textContent = t('mobToday');
-  btn.appendChild(todaySpan);
+  btn.onclick = () => openAdd(false);
+  row.appendChild(btn);
 
-  btn.onclick = () => {
-    const todayCol = _getTodayCol();
-    const dayId    = todayCol ? todayCol.id : (cols[0]?.id || weekUnscheduled[0]?.id || null);
-    overlay = { kind: 'add', step: 1, dayId, selectedType: null, typedText: '' };
-    render();
-  };
+  const todayBtn = document.createElement('button');
+  todayBtn.className   = 'mob-qa-today';
+  todayBtn.textContent = t('mobToday') + ' ▾';
+  todayBtn.title       = t('mobPickDay');
+  todayBtn.onclick     = () => openAdd(true);
+  row.appendChild(todayBtn);
 
-  qa.appendChild(btn);
+  qa.appendChild(row);
 }
 
 // ── Overlay dispatcher ─────────────────────────────────────────────────────────
@@ -775,6 +811,8 @@ function _buildAddSheet(container) {
   handle.className = 'mob-grab-handle';
   sheet.appendChild(handle);
 
+  sheet.appendChild(_buildTargetRow());
+
   if (overlay.step === 1) {
     const stepLbl = document.createElement('div');
     stepLbl.className = 'mob-sheet-section-label';
@@ -830,28 +868,15 @@ function _buildAddSheet(container) {
     addBtn.className   = 'mob-name-add-btn';
     addBtn.textContent = t('addDayConfirm');
 
-    // Capture before overlay is nulled
-    const _dayId = overlay.dayId;
-    const _type  = overlay.selectedType;
-
     inp.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+      if (e.key === 'Enter') {
         e.preventDefault();
-        const text = inp.value.trim();
-        if (text && _dayId) { overlay = null; addTask(_dayId, text, _type); }
-      }
-      if (e.key === 'Enter' && e.shiftKey) {
-        e.preventDefault();
-        const text = inp.value.trim();
-        if (text && _dayId) { addTask(_dayId, text, _type); overlay.typedText = ''; render(); }
+        _submitAddSheet(inp.value.trim(), e.shiftKey);
       }
       if (e.key === 'Escape') { overlay = null; render(); }
     });
 
-    addBtn.onclick = () => {
-      const text = inp.value.trim();
-      if (text && _dayId) { overlay = null; addTask(_dayId, text, _type); }
-    };
+    addBtn.onclick = () => _submitAddSheet(inp.value.trim(), false);
 
     inputRow.appendChild(inp);
     inputRow.appendChild(addBtn);
@@ -862,6 +887,98 @@ function _buildAddSheet(container) {
   }
 
   container.appendChild(sheet);
+}
+
+function _targetLabel(dateStr) {
+  const m = (dateStr || '').replace(/\+$/, '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+  if (!m) return t('mobUnscheduled');
+  const d = new Date(resolveYear(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
+  return d.toLocaleDateString(t('dayLocale'), { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+// The day the task will land on. Tapping it opens the native date picker, so
+// any day is reachable — including one that has no form yet.
+function _buildTargetRow() {
+  const row = document.createElement('div');
+  row.className = 'mob-add-target';
+
+  const lbl = document.createElement('span');
+  lbl.className   = 'mob-sheet-section-label';
+  lbl.textContent = t('mobAddFor');
+  row.appendChild(lbl);
+
+  const chip = document.createElement('span');
+  chip.className = 'mob-target-chip';
+  chip.title     = t('mobPickDay');
+
+  const txt = document.createElement('span');
+  txt.className   = 'mob-target-text';
+  txt.textContent = _targetLabel(overlay.targetDate);
+  chip.appendChild(txt);
+
+  const caret = document.createElement('span');
+  caret.className   = 'mob-target-caret';
+  caret.textContent = '▾';
+  chip.appendChild(caret);
+
+  const inp = document.createElement('input');
+  inp.type      = 'date';
+  inp.className = 'mob-target-input';
+  inp.value     = _dateStrToIso(overlay.targetDate);
+  inp.setAttribute('aria-label', t('mobPickDay'));
+  // Re-rendering here would tear down the open native picker mid-scroll (iOS
+  // fires change on every wheel settle), so the chip text is patched in place.
+  inp.addEventListener('change', () => {
+    const picked = _isoToDateStr(inp.value);
+    if (!picked || !overlay) return;
+    overlay.targetDate = picked;
+    overlay.dayId      = null;   // a picked date outranks the form we came from
+    txt.textContent    = _targetLabel(picked);
+  });
+  chip.appendChild(inp);
+
+  row.appendChild(chip);
+
+  if (overlay.pickDate) {
+    overlay.pickDate = false;
+    requestAnimationFrame(() => { try { inp.showPicker(); } catch (e) { inp.focus(); } });
+  }
+  return row;
+}
+
+// A picked date may name a day with no form yet — create it on submit. Returns
+// the form id to add the task to, or null if it couldn't be resolved.
+async function _resolveAddDayId(dayId, targetDate) {
+  if (dayId) { _expandDay(dayId); return dayId; }
+  if (!targetDate) return null;
+
+  const existing = _colForDate(targetDate);
+  if (existing) { _expandDay(existing.id); return existing.id; }
+
+  const m = targetDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const d  = new Date(parseInt(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
+  const id = await addCol(d.toLocaleDateString('en-US', { weekday: 'short' }), targetDate);
+  if (id) _expandDay(id);
+  return id;
+}
+
+function _expandDay(id) {
+  if (cols.some(c => c.id === id)) expandedDays.add(id);
+}
+
+function _submitAddSheet(text, keepOpen) {
+  if (!text || !overlay) return;
+  // Read the target now: the date chip mutates the overlay without re-rendering.
+  const dayId = overlay.dayId;
+  const date  = overlay.targetDate;
+  const type  = overlay.selectedType;
+
+  if (keepOpen) overlay.typedText = '';
+  else          overlay = null;
+  render();
+
+  _resolveAddDayId(dayId, date).then(id => { if (id) addTask(id, text, type); });
 }
 
 // ── Side menu ──────────────────────────────────────────────────────────────────
@@ -1093,7 +1210,7 @@ function _buildUnschedDrawer(container) {
   addBtn.className   = 'mob-unsched-add-btn';
   addBtn.textContent = '+ ' + t('addTask').replace(/^\+\s*/, '');
   addBtn.onclick = () => {
-    overlay = { kind: 'add', step: 1, dayId: colId, selectedType: null, typedText: '' };
+    overlay = { kind: 'add', step: 1, dayId: colId, targetDate: null, selectedType: null, typedText: '' };
     render();
   };
   hdrBlock.appendChild(addBtn);

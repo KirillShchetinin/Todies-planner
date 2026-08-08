@@ -75,9 +75,10 @@ function colWeekInfo(col) {
   return { key: `${thu.getFullYear()}-W${String(week).padStart(2,'0')}`, day };
 }
 
+// Returns the new form's id, or null if it wasn't created.
 async function addCol(label, date) {
-  if (!label.trim()) return;
-  if (!isValidColDate(date)) { showAlert(t('invalidDate')); return; }
+  if (!label.trim()) return null;
+  if (!isValidColDate(date)) { showAlert(t('invalidDate')); return null; }
   const colDate = normalizeColDate(date);
   try {
     const { id } = await formApiCreate({ label: label.trim(), date: colDate }, false, cols.length);
@@ -88,7 +89,8 @@ async function addCol(label, date) {
     sortColsByDate();
     await ensureUnscheduledForWeeks();
     render();
-  } catch(e) {}
+    return id;
+  } catch(e) { return null; }
 }
 
 function addNextDay() {

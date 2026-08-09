@@ -19,13 +19,19 @@ function renderMobile() {
   _renderMobileBoard();
   _renderQuickAdd();
   _renderOverlay();
-  if (!_didInitialScroll) {
+  // The first render runs before forms/tasks land, so today's hero doesn't
+  // exist yet — keep trying until it does, then never again for this session.
+  if (!_didInitialScroll) _scrollToToday();
+}
+
+function _scrollToToday() {
+  requestAnimationFrame(() => {
+    if (_didInitialScroll) return;
+    const todayEl = document.querySelector('.mob-day-hero.is-today');
+    if (!todayEl) return;
     _didInitialScroll = true;
-    requestAnimationFrame(() => {
-      const todayEl = document.querySelector('.mob-day-hero.is-today');
-      if (todayEl) todayEl.scrollIntoView({ block: 'start', behavior: 'auto' });
-    });
-  }
+    todayEl.scrollIntoView({ block: 'start', behavior: 'auto' });
+  });
 }
 
 function _cleanupMobileDOM() {

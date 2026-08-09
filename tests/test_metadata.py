@@ -21,6 +21,15 @@ def test_put_persists_changes(client, token):
     assert data['uiScale'] == 0.75
 
 
+def test_put_scales_are_independent(client, token):
+    qs = {'token': token}
+    client.put('/api/v2/metadata', query_string=qs,
+               json={'uiScale': 1.25, 'uiScaleMobile': 0.75})
+    data = client.get('/api/v2/metadata', query_string=qs).get_json()
+    assert data['uiScale'] == 1.25
+    assert data['uiScaleMobile'] == 0.75
+
+
 def test_put_ignores_unknown_keys(client, token):
     qs = {'token': token}
     client.put('/api/v2/metadata', query_string=qs, json={'lang': 'ru', 'hack': 'x'})

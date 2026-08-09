@@ -1121,16 +1121,16 @@ function _buildSideMenu(container) {
     const scaleRow = document.createElement('div');
     scaleRow.className = 'mob-settings-row';
 
-    const scaleIdx = UI_SCALES.indexOf(uiScale);
+    const scaleIdx = UI_SCALES.indexOf(currentScale());
 
     const minus = document.createElement('button');
     minus.className   = 'mob-settings-pill';
     minus.textContent = '− ' + t('scaleSmaller');
     minus.disabled    = scaleIdx <= 0;
     minus.onclick = () => {
-      const idx = UI_SCALES.indexOf(uiScale);
+      const idx = UI_SCALES.indexOf(currentScale());
       if (idx <= 0) return;
-      const prev = uiScale;
+      const prev = currentScale();
       pessimisticMeta(() => applyScale(UI_SCALES[idx - 1]), () => applyScale(prev));
     };
 
@@ -1139,9 +1139,9 @@ function _buildSideMenu(container) {
     plus.textContent = t('scaleLarger') + ' +';
     plus.disabled    = scaleIdx >= UI_SCALES.length - 1;
     plus.onclick = () => {
-      const idx = UI_SCALES.indexOf(uiScale);
+      const idx = UI_SCALES.indexOf(currentScale());
       if (idx >= UI_SCALES.length - 1) return;
-      const prev = uiScale;
+      const prev = currentScale();
       pessimisticMeta(() => applyScale(UI_SCALES[idx + 1]), () => applyScale(prev));
     };
 

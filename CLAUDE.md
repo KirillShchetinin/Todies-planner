@@ -74,7 +74,7 @@ Token-based auth: token passed as `?token=<token>` query param on every request;
 ### Database (`planner_db.db`)
 
 Normalized SQLite schema:
-- **`users`** — token auth + JSON `metadata` (lang, uiScale, counters, typeConfig, legendOrder, collapseState)
+- **`users`** — token auth + JSON `metadata` (lang, uiScale, uiScaleMobile, counters, typeConfig, legendOrder, collapseState)
 - **`forms`** — one row per day column or unscheduled container; has `label`, `date`, `is_unscheduled`, `sort_order`
 - **`tasks`** — one row per task; linked to a form via `form_id`; extra fields (type, locked, cancelled, important) in JSON `metadata`
 
@@ -86,7 +86,7 @@ Script load order (all deferred, defined in `index.html`):
 `sidebar.js` → `collapse.js` → `constants.js` → `api.js` → `i18n.js` → `state.js` → `undo.js` → `modal.js` → `labels.js` → `tasks.js` → `columns.js` → `scale.js` → `add-label-panel.js` → `context-menu.js` → `legend.js` → `mobile.js` → `board.js` → `showcase.js` → `app.js`
 
 Key modules:
-- **`state.js`** — global state (`cols`, `weekUnscheduled`, `state` keyed by form_id, counters, `typeConfig`, `uiScale`) and `loadState`/`saveState`. `saveMetadata()` batches UI settings; forms/tasks have per-item endpoints.
+- **`state.js`** — global state (`cols`, `weekUnscheduled`, `state` keyed by form_id, counters, `typeConfig`, `uiScale`/`uiScaleMobile`) and `loadState`/`saveState`. `saveMetadata()` batches UI settings; forms/tasks have per-item endpoints.
 - **`app.js`** — orchestrates initial load: fetches metadata, forms, and tasks in parallel; merges `typeConfig` with defaults; applies lang/scale/collapse.
 - **`api.js`** — `apiFetch` wrapper and account management helpers (deleteAccount, refreshToken, addAccount).
 - **`board.js`** — `render()` rebuilds the entire DOM from state. Handles drag-and-drop for tasks (within/between columns) and columns. Used for the desktop layout.

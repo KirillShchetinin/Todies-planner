@@ -4,7 +4,8 @@ from backend.data_access.connections import get_db
 
 
 _PERSISTED_KEYS = ('typeCounter', 'typeConfig', 'legendOrder',
-                   'uiScale', 'lang', 'collapseState', 'customLoad')
+                   'uiScale', 'uiScaleMobile', 'lang', 'collapseState',
+                   'customLoad')
 
 
 _DEFAULT_METADATA = {
@@ -12,6 +13,7 @@ _DEFAULT_METADATA = {
     'typeConfig': {},
     'legendOrder': [],
     'uiScale': 1,
+    'uiScaleMobile': 1,
     'lang': 'en',
     'collapseState': {},
     'customLoad': True,

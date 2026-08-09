@@ -1,7 +1,8 @@
 let cols = [], weekUnscheduled = [], state = {}, typeCounter = 0, dragging = null, draggingCol = null;
 let typeConfig  = structuredClone(DEFAULT_TYPE_CONFIG);
 let legendOrder = [...DEFAULT_LEGEND_ORDER];
-let uiScale = 1;
+let uiScale = 1;                 // desktop view scale
+let uiScaleMobile = 1;           // mobile view scale — independent of desktop
 let customLoad = false;          // live setting: button label, persistence, earlier-weeks fetch scope
 let customLoadActive = false;    // customLoad frozen at page load — governs rendering; toggling never changes the view until refresh
 let loadedFormIds = new Set();   // forms whose tasks have been fetched (customLoad ON)
@@ -68,7 +69,7 @@ function saveMetadata() {
   return apiFetch(_metadataUrl, {
     method:  'PUT',
     headers: {'Content-Type':'application/json'},
-    body:    JSON.stringify({lang, uiScale, legendOrder, typeConfig, typeCounter, collapseState: Collapse.getAll(), customLoad}),
+    body:    JSON.stringify({lang, uiScale, uiScaleMobile, legendOrder, typeConfig, typeCounter, collapseState: Collapse.getAll(), customLoad}),
   }, 'save metadata').then(res => {
     if (res && res.ok === false) throw new Error('save metadata failed');
     return res;

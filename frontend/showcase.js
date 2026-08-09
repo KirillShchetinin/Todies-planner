@@ -86,7 +86,7 @@ function loadShowcase() {
     ],
   };
 
-  applyScale(uiScale);
+  applyScale(currentScale());
   applyLangToStaticUI();
   renderScaleBtns();
   render();

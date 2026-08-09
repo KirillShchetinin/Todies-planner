@@ -202,7 +202,7 @@ def seed(db_paths):
 
 _DEFAULT_META = {
     'typeCounter': 0, 'typeConfig': {}, 'legendOrder': [],
-    'uiScale': 1, 'lang': 'en', 'collapseState': {},
+    'uiScale': 1, 'uiScaleMobile': 1, 'lang': 'en', 'collapseState': {},
 }
 
 _TOKEN_A = 'aaaa' * 16

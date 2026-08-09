@@ -5,7 +5,7 @@ const _mobileMq = window.matchMedia('(max-width: 720px)');
 function _applyMobileView(matches) {
   document.body.dataset.view = matches ? 'mobile' : 'desktop';
 }
-_mobileMq.addEventListener('change', e => { _applyMobileView(e.matches); render(); });
+_mobileMq.addEventListener('change', e => { _applyMobileView(e.matches); applyScale(currentScale()); render(); });
 _applyMobileView(_mobileMq.matches);
 console.log('[perf] scripts ready', '+0ms');
 
@@ -23,6 +23,9 @@ _metadataP.then(userSettings => {
   if (!userSettings) return;
   lang        = userSettings.lang        || lang;
   uiScale     = userSettings.uiScale     || uiScale;
+  // Pre-split accounts have no uiScaleMobile — seed it from the shared value so
+  // the mobile view keeps the size the user already had.
+  uiScaleMobile = userSettings.uiScaleMobile || userSettings.uiScale || uiScaleMobile;
   customLoad  = !!userSettings.customLoad;
   customLoadActive = customLoad;   // freeze for the session; toggling won't change the view until refresh
   typeCounter = userSettings.typeCounter || typeCounter;
@@ -38,7 +41,7 @@ _metadataP.then(userSettings => {
   if (!legendOrder.includes('Random')) legendOrder.unshift('Random');
   if (!legendOrder.length) legendOrder = [...DEFAULT_LEGEND_ORDER];
   Collapse.loadAll(userSettings.collapseState || {});
-  applyScale(uiScale);
+  applyScale(currentScale());
   applyLangToStaticUI();
   renderScaleBtns();
   renderCustomLoadBtn();

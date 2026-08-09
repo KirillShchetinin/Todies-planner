@@ -1111,9 +1111,12 @@ function _buildSideMenu(container) {
     const scaleRow = document.createElement('div');
     scaleRow.className = 'mob-settings-row';
 
+    const scaleIdx = UI_SCALES.indexOf(uiScale);
+
     const minus = document.createElement('button');
     minus.className   = 'mob-settings-pill';
     minus.textContent = '− ' + t('scaleSmaller');
+    minus.disabled     = scaleIdx <= 0;
     minus.onclick = () => {
       const idx = UI_SCALES.indexOf(uiScale);
       if (idx <= 0) return;
@@ -1121,9 +1124,15 @@ function _buildSideMenu(container) {
       pessimisticMeta(() => applyScale(UI_SCALES[idx - 1]), () => applyScale(prev));
     };
 
+    const pct = document.createElement('span');
+    pct.className   = 'mob-menu-info';
+    pct.style.alignSelf = 'center';
+    pct.textContent = Math.round(uiScale * 100) + '%';
+
     const plus = document.createElement('button');
     plus.className   = 'mob-settings-pill';
     plus.textContent = t('scaleLarger') + ' +';
+    plus.disabled     = scaleIdx >= UI_SCALES.length - 1;
     plus.onclick = () => {
       const idx = UI_SCALES.indexOf(uiScale);
       if (idx >= UI_SCALES.length - 1) return;
@@ -1132,6 +1141,7 @@ function _buildSideMenu(container) {
     };
 
     scaleRow.appendChild(minus);
+    scaleRow.appendChild(pct);
     scaleRow.appendChild(plus);
 
     const loadRow = document.createElement('div');

@@ -17,6 +17,10 @@ body[data-view="mobile"] #board {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Column flex so .mob-scroll-area can claim the leftover height; a % height
+     won't resolve here since #board is a flex item with auto height. */
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── Mobile header (sticky) ───────────────────────────────── */
@@ -153,6 +157,7 @@ body[data-view="mobile"] #board {
   display: flex;
   flex-direction: column;
   padding-bottom: calc(80px * var(--ui-scale));
+  flex: 1;
 }
 
 /* ── Unscheduled chip ─────────────────────────────────────── */
@@ -218,6 +223,7 @@ body[data-view="mobile"] #board {
 .mob-day-list {
   display: flex;
   flex-direction: column;
+  /* flex-grow set per list in _renderMobileBoard (proportional to row count). */
   gap: calc(6px * var(--ui-scale));
   padding: calc(6px * var(--ui-scale)) calc(12px * var(--ui-scale)) 0;
 }
@@ -238,12 +244,10 @@ body[data-view="mobile"] #board {
   font-family: inherit;
   color: inherit;
   transition: background 0.12s;
-  /* A collapsed week should fill the screen rather than huddle at the top:
-     divide the viewport left over by the header/strip/quick-add across the
-     7 day rows, clamped so it stays sane on very short and very tall screens. */
-  min-height: clamp(calc(52px * var(--ui-scale)), calc((100vh  - 240px * var(--ui-scale)) / 7), 104px);
-  min-height: clamp(calc(52px * var(--ui-scale)), calc((100dvh - 240px * var(--ui-scale)) / 7), 104px);
-  flex-shrink: 0;
+  /* Rows share the scroll area's leftover height so a week fills the screen. */
+  flex: 1;
+  min-height: calc(52px * var(--ui-scale));
+  max-height: calc(104px * var(--ui-scale));
 }
 .mob-day-row:hover { background: var(--surface2); }
 

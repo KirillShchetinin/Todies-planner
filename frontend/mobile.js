@@ -326,12 +326,16 @@ function _renderMobileBoard() {
     const dayList = document.createElement('div');
     dayList.className = 'mob-day-list';
 
+    let collapsed = 0;
     week.slots.forEach(col => {
       if (!col || !_colLoaded(col)) return;
-      dayList.appendChild(
-        expandedDays.has(col.id) ? _buildDayHero(col) : _buildDayRow(col)
-      );
+      const isHero = expandedDays.has(col.id);
+      if (!isHero) collapsed++;
+      dayList.appendChild(isHero ? _buildDayHero(col) : _buildDayRow(col));
     });
+
+    // Grow by row count so rows get an equal share across weeks, not per week.
+    dayList.style.flexGrow = collapsed;
 
     area.appendChild(dayList);
   });

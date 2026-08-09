@@ -3,19 +3,27 @@
 /* ── Layout resets ────────────────────────────────────────── */
 body[data-view="mobile"] {
   padding: 0;
+  /* Lock the document itself: #board is the only scroller, so the sticky
+     header can never be dragged out of view by a page-level scroll. */
+  overflow: hidden;
+  height: 100vh;
+  height: 100dvh;
 }
 body[data-view="mobile"] #actbar  { display: none; }
 body[data-view="mobile"] #main > header { display: none; }
 body[data-view="mobile"] #main {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  /* dvh last: on iOS 100vh is taller than the visible viewport, which would
+     overflow #main and make the document scroll. */
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 body[data-view="mobile"] #board {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   /* Column flex so .mob-scroll-area can claim the leftover height; a % height
      won't resolve here since #board is a flex item with auto height. */

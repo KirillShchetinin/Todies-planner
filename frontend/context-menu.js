@@ -19,11 +19,12 @@ function openTaskCtxMenu(e, taskId) {
     closeCtxMenu();
     if (!task || task.pending) return;
     const open = text => showTaskDetails(text, saved => {
-      const prev = task.content;
       optimistic(
         () => { task.content = saved; },
         () => taskApiSetContent(taskId, saved),
-        () => { task.content = prev; },
+        // Undefined, not `prev`: a cached value here would be indistinguishable
+        // from a loaded-empty one and would block the re-fetch on next open.
+        () => { task.content = undefined; },
       );
     });
     // undefined means "never loaded"; '' is a real, cached empty content.

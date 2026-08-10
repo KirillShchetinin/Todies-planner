@@ -1,4 +1,4 @@
-import datetime, os, sqlite3
+import os, sqlite3
 from flask import g
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -26,79 +26,5 @@ def close_db(_exception=None):
         conn.close()
 
 
-def init_db():
-    conn = _connect()
-    conn.executescript('''
-        CREATE TABLE IF NOT EXISTS users (
-            id       INTEGER PRIMARY KEY AUTOINCREMENT,
-            token    TEXT    NOT NULL UNIQUE,
-            metadata TEXT    NOT NULL DEFAULT '{}'
-        );
-        CREATE TABLE IF NOT EXISTS forms (
-            id             INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id        INTEGER NOT NULL REFERENCES users(id),
-            client_id      TEXT    NOT NULL,
-            label          TEXT    NOT NULL DEFAULT '',
-            date           TEXT    NOT NULL DEFAULT '',
-            is_unscheduled INTEGER NOT NULL DEFAULT 0,
-            sort_order     INTEGER NOT NULL DEFAULT 0,
-            UNIQUE(user_id, client_id)
-        );
-        CREATE TABLE IF NOT EXISTS tasks (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id    INTEGER NOT NULL REFERENCES users(id),
-            form_id    INTEGER NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
-            client_id  TEXT    NOT NULL,
-            name       TEXT    NOT NULL DEFAULT '',
-            done       INTEGER NOT NULL DEFAULT 0,
-            sort_order INTEGER NOT NULL DEFAULT 0,
-            metadata   TEXT    NOT NULL DEFAULT '{}',
-            UNIQUE(user_id, client_id)
-        );
-    ''')
-    conn.commit()
-    conn.close()
-
-
 def register(app):
     app.teardown_appcontext(close_db)
-
-
-def backup(backup_dir):
-    if not os.path.exists(DB_PATH):
-        return None
-    os.makedirs(backup_dir, exist_ok=True)
-    now = datetime.datetime.now()
-    ts = now.strftime('%Y%m%d_%H%M%S')
-    dest = os.path.join(backup_dir, f'planner_db_backup_{ts}.db')
-    tmp_dest = dest + '.tmp'
-    src_conn = sqlite3.connect(DB_PATH)
-    dest_conn = sqlite3.connect(tmp_dest)
-    with dest_conn:
-        src_conn.backup(dest_conn)
-    dest_conn.close()
-    src_conn.close()
-    os.replace(tmp_dest, dest)
-    _prune_old_backups(backup_dir, now)
-    return [dest]
-
-
-def _prune_old_backups(backup_dir, now):
-    cutoff = now - datetime.timedelta(days=3)
-    stamps = []
-    for name in os.listdir(backup_dir):
-        if not (name.startswith('planner_db_backup_') and name.endswith('.db')):
-            continue
-        try:
-            ts = datetime.datetime.strptime(name[len('planner_db_backup_'):-len('.db')], '%Y%m%d_%H%M%S')
-        except ValueError:
-            continue
-        stamps.append((ts, name))
-    if not stamps or (now - min(s[0] for s in stamps)) <= datetime.timedelta(days=3):
-        return
-    for ts, name in stamps:
-        if ts < cutoff:
-            try:
-                os.remove(os.path.join(backup_dir, name))
-            except OSError:
-                pass

@@ -1,8 +1,6 @@
 import os, threading, time, webbrowser
-from backend.data_access.data_access import backup, init_db
+from backend.data_access.db_mgmt import backup, init_db, run_backup_loop
 from backend.controllers.controller import app
-
-BACKUP_INTERVAL_SECONDS = 4 * 60 * 60
 
 backup_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
 backup(backup_dir)
@@ -14,14 +12,7 @@ if __name__ == '__main__':
         webbrowser.open('http://localhost:5000')
     threading.Thread(target=_open, daemon=True).start()
 
-    def _periodic_backup():
-        while True:
-            time.sleep(BACKUP_INTERVAL_SECONDS)
-            try:
-                backup(backup_dir)
-            except Exception as e:
-                print(f'  backup failed: {e}')
-    threading.Thread(target=_periodic_backup, daemon=True).start()
+    threading.Thread(target=run_backup_loop, args=(backup_dir,), daemon=True).start()
 
     print('  planner  ->  http://localhost:5000')
     app.run(host='0.0.0.0', port=5000, debug=False)

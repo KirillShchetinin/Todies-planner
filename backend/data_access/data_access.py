@@ -1,7 +1,8 @@
 from backend.data_access.connections import (
     BASE_DIR, DB_PATH,
-    get_db, close_db, register, backup, init_db,
+    get_db, close_db, register,
 )
+from backend.data_access.db_mgmt import backup, init_db
 from backend.data_access.metadata import (
     create_user, delete_user, get_user, get_metadata, update_metadata, rotate_token,
 )

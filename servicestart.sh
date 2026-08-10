@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Restart the gunicorn server, or start it if it is not running.
+# Reload the gunicorn server, or start it if it is not running.
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
+ARGS='--bind 0.0.0.0:5000 --workers 2 --threads 4 server:app'
 PATTERN='gunicorn --bind 0.0.0.0:5000'
 LOG=gunicorn.log
 
@@ -21,28 +22,59 @@ find_master() {
     done
 }
 
+workers() { pgrep -P "$1" | sort | tr '\n' ' '; }
+
+start() {
+    nohup venv/bin/gunicorn $ARGS >> "$LOG" 2>&1 &
+    sleep 1
+    master=$(find_master)
+}
+
 master=$(find_master)
-if [ -n "$master" ]; then
-    echo "stopping gunicorn (master $master)"
+
+if [ -z "$master" ]; then
+    echo "not running, starting"
+    start
+elif ! grep -q -- "$ARGS" <(tr '\0' ' ' < "/proc/$master/cmdline"); then
+    # SIGHUP reloads the code but never the command line, so workers/threads
+    # would stay as they are. Changed flags need a full restart.
+    echo "flags differ from $ARGS, restarting (master $master)"
+    # Only ever signal the master and its own children: matching on the
+    # command line would also hit an unrelated process that happens to
+    # mention it, a passing grep included.
+    kids=$(workers "$master")
     kill "$master"
     for _ in $(seq 20); do
-        pgrep -f "$PATTERN" >/dev/null || break
+        kill -0 "$master" 2>/dev/null || break
         sleep 0.5
     done
-    if pgrep -f "$PATTERN" >/dev/null; then
+    if kill -0 "$master" 2>/dev/null; then
         echo "did not exit in 10s, forcing"
-        pkill -9 -f "$PATTERN" || true
+        kill -9 "$master" $kids 2>/dev/null || true
         sleep 1
     fi
+    start
 else
-    echo "not running"
+    # Same flags, so a graceful reload is enough: the master keeps the
+    # listening socket while it swaps in workers running the new code.
+    echo "reloading (master $master)"
+    before=$(workers "$master")
+    kill -HUP "$master"
+    # Old workers finish their in-flight requests before exiting, so wait for
+    # every one of them to go rather than for the first new worker to appear.
+    for _ in $(seq 20); do
+        after=" $(workers "$master")"
+        stale=0
+        for old in $before; do
+            case "$after" in *" $old "*) stale=1 ;; esac
+        done
+        [ "$stale" = 0 ] && [ -n "${after// /}" ] && break
+        sleep 0.5
+    done
 fi
 
-nohup venv/bin/gunicorn --bind 0.0.0.0:5000 --workers 2 --threads 4 server:app >> "$LOG" 2>&1 &
-sleep 1
-
-if [ -z "$(find_master)" ]; then
-    echo "failed to start, last lines of $LOG:"
+if [ -z "$master" ] || [ -z "$(workers "$master")" ]; then
+    echo "failed, last lines of $LOG:"
     tail -n 20 "$LOG"
     exit 1
 fi

@@ -112,6 +112,55 @@ function showTokenModal(token) {
   _modalOverlay._cleanup = () => document.removeEventListener('keydown', onKey);
 }
 
+function showTaskDetails(initialText, onSave) {
+  _modalOverlay.innerHTML = '';
+  _modalOverlay.style.display = 'flex';
+
+  const card = document.createElement('div');
+  card.className = 'modal-card modal-card-wide';
+
+  const msg = document.createElement('p');
+  msg.className = 'modal-message';
+  msg.textContent = t('detailsTitle');
+  card.appendChild(msg);
+
+  const area = document.createElement('textarea');
+  area.className = 'modal-textarea';
+  area.placeholder = t('detailsPh');
+  area.value = initialText || '';
+  card.appendChild(area);
+
+  const row = document.createElement('div');
+  row.className = 'modal-btns';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'modal-btn modal-btn-cancel';
+  cancelBtn.textContent = t('modalCancel');
+  cancelBtn.addEventListener('click', () => _closeModal());
+  row.appendChild(cancelBtn);
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'modal-btn modal-btn-primary';
+  saveBtn.textContent = t('modalSave');
+  saveBtn.addEventListener('click', () => { const v = area.value; _closeModal(); onSave?.(v); });
+  row.appendChild(saveBtn);
+
+  card.appendChild(row);
+  _modalOverlay.appendChild(card);
+
+  // Enter inserts newlines here, so only Escape closes; Ctrl/Cmd+Enter saves.
+  const onKey = e => {
+    if (e.key === 'Escape') _closeModal();
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { const v = area.value; _closeModal(); onSave?.(v); }
+  };
+  document.addEventListener('keydown', onKey);
+  _modalOverlay._cleanup = () => document.removeEventListener('keydown', onKey);
+
+  _modalOverlay.onclick = e => { if (e.target === _modalOverlay) _closeModal(); };
+
+  area.focus();
+}
+
 function showAlert(message) {
   _openModal({
     message,

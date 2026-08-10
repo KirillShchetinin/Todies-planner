@@ -2,7 +2,7 @@ import os, sqlite3
 from flask import g
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DB_PATH  = os.path.join(BASE_DIR, 'planner_db.db')
+DB_PATH  = os.environ.get('TODIES_DB_PATH') or os.path.join(BASE_DIR, 'planner_db.db')
 
 
 def _connect():

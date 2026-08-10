@@ -269,3 +269,61 @@ def test_update_bumps_updated_at_except_pure_reorder(client, token, db_paths):
     client.put(f'/api/v2/tasks/{tid}', query_string=qs,
                json={'form_id': other, 'sort_order': 0})
     assert _updated_at(db_paths, tid) != 'OLD'
+
+
+# ── content ───────────────────────────────────────────────────────────
+
+def _content(db_paths, tid):
+    conn = sqlite3.connect(db_paths['new'])
+    row = conn.execute('SELECT content FROM task_content WHERE task_id=?', (tid,)).fetchone()
+    conn.close()
+    return row[0] if row else None
+
+
+def test_content_set_then_overwritten(client, token, db_paths):
+    qs = {'token': token}
+    tid = _task(client, token, _form(client, token), name='x')
+    assert _content(db_paths, tid) is None          # nothing written at creation
+
+    r = client.put(f'/api/v2/tasks/{tid}/content', query_string=qs,
+                   json={'content': 'first'})
+    assert r.status_code == 204
+    assert _content(db_paths, tid) == 'first'
+
+    client.put(f'/api/v2/tasks/{tid}/content', query_string=qs,
+               json={'content': 'second'})
+    assert _content(db_paths, tid) == 'second'      # upsert, not a duplicate row
+
+
+def test_content_rejects_bad_input_and_other_users(client, two_tokens, db_paths):
+    t1, t2 = two_tokens
+    tid = _task(client, t1, _form(client, t1), name='x')
+    assert client.put(f'/api/v2/tasks/{tid}/content',
+                      query_string={'token': t1}, json={}).status_code == 400
+    assert client.put(f'/api/v2/tasks/{tid}/content', query_string={'token': t2},
+                      json={'content': 'nope'}).status_code == 404
+    assert _content(db_paths, tid) is None
+
+
+def test_content_cascades_on_task_delete(client, token, db_paths):
+    qs = {'token': token}
+    tid = _task(client, token, _form(client, token), name='x')
+    client.put(f'/api/v2/tasks/{tid}/content', query_string=qs, json={'content': 'x'})
+    client.delete(f'/api/v2/tasks/{tid}', query_string=qs)
+    assert _content(db_paths, tid) is None
+
+
+def test_content_get_roundtrip(client, token):
+    tid = _task(client, token, _form(client, token), name='x')
+    url = f'/api/v2/tasks/{tid}/content'
+    qs = {'token': token}
+
+    r = client.get(url, query_string=qs)
+    assert r.status_code == 200 and r.get_json() == {'content': ''}   # never set
+
+    client.put(url, query_string=qs, json={'content': 'notes'})
+    assert client.get(url, query_string=qs).get_json() == {'content': 'notes'}
+
+    # Unknown task id reads as empty rather than 404.
+    assert client.get('/api/v2/tasks/999999/content',
+                      query_string=qs).get_json() == {'content': ''}

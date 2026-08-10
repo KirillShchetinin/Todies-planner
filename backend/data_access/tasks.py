@@ -151,6 +151,31 @@ def update_task(user_id, task_id, data):
     return True
 
 
+def get_task_content(task_id):
+    """Content for a task, '' when there is no row."""
+    row = get_db().execute(
+        'SELECT content FROM task_content WHERE task_id=?', (task_id,)
+    ).fetchone()
+    return row['content'] if row else ''
+
+
+def set_task_content(user_id, task_id, content):
+    """Upsert the content for a task the user owns. False if not theirs."""
+    db = get_db()
+    owns = db.execute(
+        'SELECT 1 FROM tasks WHERE user_id=? AND id=?', (user_id, task_id)
+    ).fetchone()
+    if not owns:
+        return False
+    db.execute(
+        'INSERT INTO task_content (task_id, content) VALUES (?, ?)'
+        ' ON CONFLICT(task_id) DO UPDATE SET content=excluded.content',
+        (task_id, content)
+    )
+    db.commit()
+    return True
+
+
 def delete_task(user_id, task_id):
     db = get_db()
     cur = db.execute(

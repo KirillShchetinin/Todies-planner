@@ -142,6 +142,23 @@ function taskApiUpdate(taskId, data) {
   }, 'update task');
 }
 
+// Resolves to the content, or '' when it cannot be read (no token, 404).
+function taskApiGetContent(taskId) {
+  const url = _withToken(`/api/v2/tasks/${taskId}/content`);
+  return apiFetch(url, undefined, 'get task content')
+    .then(res => res.ok ? res.json().then(d => d.content || '') : '')
+    .catch(() => '');
+}
+
+function taskApiSetContent(taskId, content) {
+  const url = _withToken(`/api/v2/tasks/${taskId}/content`);
+  return apiFetch(url, {
+    method:  'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body:    JSON.stringify({ content }),
+  }, 'set task content');
+}
+
 function taskApiDelete(taskId) {
   const url = _withToken(`/api/v2/tasks/${taskId}`);
   return apiFetch(url, { method: 'DELETE' }, 'delete task');

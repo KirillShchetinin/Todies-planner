@@ -63,6 +63,26 @@ def register(bp, require_user):
             return jsonify(error='task not found'), 404
         return '', 204
 
+    @bp.route('/api/v2/tasks/<int:task_id>/content', methods=['GET'])
+    def get_task_content(task_id):
+        _, err = require_user()
+        if err:
+            return err
+        return jsonify({'content': DA_tasks.get_task_content(task_id)})
+
+    @bp.route('/api/v2/tasks/<int:task_id>/content', methods=['PUT'])
+    def set_task_content(task_id):
+        user_id, err = require_user()
+        if err:
+            return err
+        body = request.get_json(silent=True) or {}
+        content = body.get('content')
+        if not isinstance(content, str):
+            return jsonify(error='content must be a string'), 400
+        if not DA_tasks.set_task_content(user_id, task_id, content):
+            return jsonify(error='task not found'), 404
+        return '', 204
+
     @bp.route('/api/v2/tasks/<int:task_id>', methods=['DELETE'])
     def delete_task(task_id):
         user_id, err = require_user()

@@ -26,6 +26,15 @@ async function ctxMenu(page, taskLocator, itemText) {
   await menu.locator('.ctx-item', { hasText: itemText }).first().click();
 }
 
+/** Right-click a task and pick a type from the "change type" submenu. */
+async function ctxChangeType(page, taskLocator, typeLabel) {
+  await taskLocator.click({ button: 'right' });
+  const menu = page.locator('#ctxMenu');
+  await menu.waitFor();
+  await menu.locator('.ctx-submenu-trigger').hover();
+  await menu.locator('.ctx-submenu-panel .ctx-type-item', { hasText: typeLabel }).first().click();
+}
+
 const modal = page => page.locator('#modalOverlay .modal-card');
 
 /** Add a day column through the header form (label is inferred from the date). */
@@ -40,4 +49,4 @@ async function openPanel(page, buttonId) {
   await page.locator(`#${buttonId}`).click();
 }
 
-module.exports = { col, unscheduledCol, task, addTask, ctxMenu, modal, addDay, openPanel };
+module.exports = { col, unscheduledCol, task, addTask, ctxMenu, ctxChangeType, modal, addDay, openPanel };

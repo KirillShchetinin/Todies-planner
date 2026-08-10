@@ -78,14 +78,17 @@ function openTaskCtxMenu(e, taskId) {
   sep.className = 'ctx-sep';
   ctxMenu.appendChild(sep);
 
-  const heading = document.createElement('div');
-  heading.className = 'ctx-heading';
-  heading.textContent = t('ctxChangeType');
-  ctxMenu.appendChild(heading);
+  const typeRow = document.createElement('div');
+  typeRow.className = 'ctx-submenu';
 
-  const sep2 = document.createElement('div');
-  sep2.className = 'ctx-sep';
-  ctxMenu.appendChild(sep2);
+  const typeTrigger = document.createElement('button');
+  typeTrigger.className = 'ctx-item ctx-submenu-trigger';
+  typeTrigger.textContent = t('ctxChangeType');
+  typeRow.appendChild(typeTrigger);
+
+  const typePanel = document.createElement('div');
+  typePanel.className = 'ctx-submenu-panel';
+  typeRow.appendChild(typePanel);
 
   legendOrder.filter(k => k !== 'done').forEach(key => {
     const cfg = typeConfig[key];
@@ -104,8 +107,33 @@ function openTaskCtxMenu(e, taskId) {
         () => { task.type = prev; },
       );
     };
-    ctxMenu.appendChild(btn);
+    typePanel.appendChild(btn);
   });
+
+  // Opened by class rather than :hover so the panel can be measured and
+  // flipped/shifted before the pointer reaches it.
+  const openSub = () => {
+    typeRow.classList.add('open');
+    typePanel.classList.remove('flip-left');
+    typePanel.style.transform = '';
+    let r = typePanel.getBoundingClientRect();
+    if (r.right > window.innerWidth - 8) {
+      typePanel.classList.add('flip-left');
+      r = typePanel.getBoundingClientRect();
+    }
+    const shift = Math.min(r.bottom - (window.innerHeight - 8), r.top - 8);
+    if (shift > 0) typePanel.style.transform = `translateY(${-shift}px)`;
+  };
+  const closeSub = () => typeRow.classList.remove('open');
+
+  typeRow.addEventListener('mouseenter', openSub);
+  typeRow.addEventListener('mouseleave', closeSub);
+  typeTrigger.onclick = e => {
+    e.stopPropagation();
+    typeRow.classList.contains('open') ? closeSub() : openSub();
+  };
+
+  ctxMenu.appendChild(typeRow);
 
   ctxMenu.style.display = 'block';
   const mw = ctxMenu.offsetWidth, mh = ctxMenu.offsetHeight;

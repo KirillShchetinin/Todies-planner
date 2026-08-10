@@ -2,7 +2,7 @@
 // the write reached the server rather than only the optimistic in-memory copy.
 
 const { test, expect } = require('../fixtures/test');
-const { col, task, addTask, ctxMenu, modal } = require('../fixtures/desktop');
+const { col, task, addTask, ctxMenu, ctxChangeType, modal } = require('../fixtures/desktop');
 
 test('adds a task with the chosen label', async ({ page, planner }) => {
   const thu = col(page, '03/12');
@@ -62,12 +62,30 @@ test('marks important, cancels, and changes label from the context menu', async 
   await ctxMenu(page, task(wed(), 'Buy milk'), 'cancel task');
   await expect(task(wed(), 'Buy milk')).toHaveClass(/cancelled/);
 
-  await ctxMenu(page, task(wed(), 'Buy milk'), 'Home');
+  await ctxChangeType(page, task(wed(), 'Buy milk'), 'Home');
 
   await planner.reload();
   await expect(task(wed(), 'Buy milk').locator('.task-important')).toBeVisible();
   await expect(task(wed(), 'Buy milk')).toHaveClass(/cancelled/);
   expect(await planner.task('Buy milk')).toMatchObject({ type: 't-custom-1', important: true, cancelled: true });
+});
+
+test('change type opens as a submenu beside the context menu', async ({ page, planner }) => {
+  await task(col(page, '03/11'), 'Buy milk').click({ button: 'right' });
+  const menu = page.locator('#ctxMenu');
+  await menu.waitFor();
+
+  const panel = menu.locator('.ctx-submenu-panel');
+  await expect(panel).toBeHidden();
+
+  await menu.locator('.ctx-submenu-trigger').hover();
+  await expect(panel).toBeVisible();
+
+  // The panel must sit outside the first-level menu, not expand inside it.
+  const menuBox = await menu.boundingBox();
+  const panelBox = await panel.boundingBox();
+  const besideMenu = panelBox.x >= menuBox.x + menuBox.width || panelBox.x + panelBox.width <= menuBox.x;
+  expect(besideMenu).toBe(true);
 });
 
 test('saves task details and reads them back', async ({ page, planner }) => {

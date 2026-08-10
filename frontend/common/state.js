@@ -1,3 +1,9 @@
+// state.js — the whole client model, and the three ways to change it.
+//
+// There is no store and no reactivity: the globals below ARE the model, and
+// every mutation ends in a full render(). Both renderers read from here; only
+// this file and the domain modules beside it write.
+
 let cols = [], weekUnscheduled = [], state = {}, typeCounter = 0, dragging = null, draggingCol = null;
 let typeConfig  = structuredClone(DEFAULT_TYPE_CONFIG);
 let legendOrder = [...DEFAULT_LEGEND_ORDER];
@@ -7,13 +13,6 @@ let customLoad = false;          // live setting: button label, persistence, ear
 let customLoadActive = false;    // customLoad frozen at page load — governs rendering; toggling never changes the view until refresh
 let loadedFormIds = new Set();   // forms whose tasks have been fetched (customLoad ON)
 let loadingEarlier = false;      // one in-flight guard for batch fetches
-
-const _token = new URLSearchParams(window.location.search).get('token');
-const _withToken = path => _token ? `${path}?token=${encodeURIComponent(_token)}` : path;
-
-const _metadataUrl = _withToken('/api/v2/metadata');
-const _formsUrl    = _withToken('/api/v2/forms');
-const _tasksUrl    = _withToken('/api/v2/tasks');
 
 function applyTasksData(tasksData) {
   state = {};
@@ -63,19 +62,6 @@ function optimistic(mutate, apiCall, revert) {
     .catch(() => { revert(); render(); });
 }
 
-// Resolves only when the server accepts the write; rejects on network or !ok
-// so pessimistic callers can apply the change only after it has persisted.
-function saveMetadata() {
-  return apiFetch(_metadataUrl, {
-    method:  'PUT',
-    headers: {'Content-Type':'application/json'},
-    body:    JSON.stringify({lang, uiScale, uiScaleMobile, legendOrder, typeConfig, typeCounter, collapseState: Collapse.getAll(), customLoad}),
-  }, 'save metadata').then(res => {
-    if (res && res.ok === false) throw new Error('save metadata failed');
-    return res;
-  });
-}
-
 // Pessimistic mutation: persist FIRST, and only apply to the in-memory model +
 // render once the server confirms. On failure nothing changes — the UI never
 // diverges from the server. `apiCall` must carry the intended change itself
@@ -103,63 +89,15 @@ function pessimisticMeta(mutate, revert) {
   return saveMetadata().catch(() => { revert(); render(); });
 }
 
-async function formApiCreate(data, isUnscheduled, sortOrder) {
-  const res = await apiFetch(_formsUrl, {
-    method:  'POST',
-    headers: {'Content-Type': 'application/json'},
-    body:    JSON.stringify({
-      label:          data.label || '',
-      date:           data.date  || '',
-      is_unscheduled: isUnscheduled ? 1 : 0,
-      sort_order:     sortOrder || 0,
-    }),
-  }, 'create form');
-  if (!res.ok) throw new Error('create form failed');
-  return res.json();
-}
-
-function formApiDelete(formId) {
-  const url = _withToken(`/api/v2/forms/${formId}`);
-  return apiFetch(url, { method: 'DELETE' }, 'delete form');
-}
-
-async function taskApiCreate(formId, name, metadata) {
-  const res = await apiFetch(_tasksUrl, {
-    method:  'POST',
-    headers: {'Content-Type': 'application/json'},
-    body:    JSON.stringify({ form_id: formId, name, metadata: metadata || {} }),
-  }, 'create task');
-  if (!res.ok) throw new Error('create task failed');
-  return res.json();
-}
-
-function taskApiUpdate(taskId, data) {
-  const url = _withToken(`/api/v2/tasks/${taskId}`);
-  return apiFetch(url, {
+// Resolves only when the server accepts the write; rejects on network or !ok
+// so pessimistic callers can apply the change only after it has persisted.
+function saveMetadata() {
+  return apiFetch(METADATA_URL, {
     method:  'PUT',
-    headers: {'Content-Type': 'application/json'},
-    body:    JSON.stringify(data),
-  }, 'update task');
-}
-
-// Resolves to the content, or '' when it cannot be read (no token, 404).
-function taskApiGetContent(taskId) {
-  const url = _withToken(`/api/v2/tasks/${taskId}/content`);
-  return apiFetch(url, undefined, 'get task content')
-    .then(res => res.ok ? res.json().then(d => d.content || '') : '')
-    .catch(() => '');
-}
-
-function taskApiSetContent(taskId, content) {
-  const url = _withToken(`/api/v2/tasks/${taskId}/content`);
-  return apiFetch(url, {
-    method:  'PUT',
-    headers: {'Content-Type': 'application/json'},
-    body:    JSON.stringify({ content }),
-  }, 'set task content');
-}
-
-function taskApiDelete(taskId) {
-  const url = _withToken(`/api/v2/tasks/${taskId}`);
-  return apiFetch(url, { method: 'DELETE' }, 'delete task');
+    headers: {'Content-Type':'application/json'},
+    body:    JSON.stringify({lang, uiScale, uiScaleMobile, legendOrder, typeConfig, typeCounter, collapseState: Collapse.getAll(), customLoad}),
+  }, 'save metadata').then(res => {
+    if (res && res.ok === false) throw new Error('save metadata failed');
+    return res;
+  });
 }

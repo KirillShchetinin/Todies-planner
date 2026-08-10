@@ -1,5 +1,9 @@
 # Progressive Task Loading — Implementation Design
 
+> **Note:** written before `frontend/` was split into `common/`, `desktop/` and
+> `mobile/`. The file paths below are historical; see CLAUDE.md for the
+> current layout.
+
 Target audience: the engineer implementing this feature (junior/mid level).
 Read the whole doc before writing code. Backend groundwork already exists —
 most of this work is frontend wiring plus a handful of backend bug fixes.

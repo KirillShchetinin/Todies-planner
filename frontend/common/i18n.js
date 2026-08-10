@@ -1,3 +1,10 @@
+// i18n.js — every user-visible string in the app.
+//
+// Rule: no English (or Russian) text is ever hardcoded in a .js file or in
+// index.html. Adding a frontend string means adding the key to BOTH blocks
+// below, calling t('key') at the site, and — if it lives in static markup —
+// adding a line to applyLangToStaticUI().
+
 const TRANSLATIONS = {
   en: {
     appTitle:           'weekly planner',
@@ -188,6 +195,9 @@ function translateLabel(label) {
   return label;
 }
 
+// Re-labels the static markup in index.html. That shell is only visible in the
+// desktop view, but mobile's side menu switches the same `lang`, so both views
+// call this.
 function applyLangToStaticUI() {
   const title = document.getElementById('appTitle');
   if (title) title.textContent = t('appTitle');
@@ -217,8 +227,7 @@ function applyLangToStaticUI() {
   // custom load setting
   const customLoadLabel = document.getElementById('customLoadLabel');
   if (customLoadLabel) customLoadLabel.textContent = t('customLoad');
-  const customLoadBtn = document.getElementById('customLoadBtn');
-  if (customLoadBtn) customLoadBtn.textContent = customLoad ? t('on') : t('off');
+  renderCustomLoadBtn();
   // account panel buttons
   const accountAddBtn = document.getElementById('accountAddBtn');
   if (accountAddBtn) accountAddBtn.textContent = t('accountAdd');

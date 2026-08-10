@@ -1,5 +1,12 @@
+// legend.js — the type list in the desktop Labels panel.
+//
+// Desktop-only: it is rebuilt on every desktop render, and right-clicking a
+// pill opens the label context menu. Mobile shows its own label list in the
+// side menu instead.
+
 function renderLegend() {
   const el = document.getElementById('legend');
+  if (!el) return;
   el.innerHTML = '';
 
   legendOrder.forEach(key => {

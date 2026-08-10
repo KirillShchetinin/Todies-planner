@@ -36,11 +36,10 @@ of **day columns**. Tasks live inside a column, carry a colour-coded **type**
 (label), and can be done / cancelled / important. There is no login screen: a user
 *is* a token in a URL (`/?token=…`), and the board is whatever that token owns.
 
-Two completely separate renderers draw that model — `board.js` (desktop) and
-`mobile.js` (mobile, below the 720px breakpoint) — swapped by a `matchMedia`
-listener in `app.js` that sets `document.body.dataset.view`. They share state,
-task/column helpers and i18n, but not DOM or gestures. **A frontend behaviour
-change usually has to be made in both.**
+Two completely separate renderers draw that model — `desktop/board.js` and
+`mobile/mobile.js` (below the 720px breakpoint). They share state, task/column
+helpers and i18n, but not DOM or gestures. **A frontend behaviour change usually
+has to be made in both.**
 
 ## Commands
 
@@ -64,6 +63,37 @@ npm run test:headed   # watch it
 
 No build step, no bundler, no linter. Frontend files are served straight from
 `frontend/` as Flask static files, so a code change needs only a page refresh.
+
+## Frontend layers
+
+`frontend/` is split into three directories, and that split is the main thing to
+respect when changing anything:
+
+| Layer | What lives there |
+|---|---|
+| `common/` | View-agnostic: the model and its mutations, the HTTP client, date rules, i18n, undo, the shared widgets (modals, add-label panel), the view dispatcher, boot |
+| `desktop/` | Desktop-only DOM and gestures: the week-row board, drag-and-drop, right-click menus, the left action bar, `desktop.css` |
+| `mobile/` | Mobile-only DOM and gestures: day strip, heroes, sheets, drawer, `mobile.css` |
+
+Two rules: **`common/` must never reference a symbol from `desktop/` or
+`mobile/`, and those two must never reference each other.** There is no bundler
+— `index.html` loads plain deferred scripts sharing one global scope, so the
+script order in `index.html` *is* the dependency graph, and every file's
+top-level names are effectively that file's exports.
+
+`common/view.js` is the seam. Each renderer calls `registerView(name, {render,
+teardown, scrollEl})` once at load; `render()` — the single exit point of every
+mutation — dispatches to whichever view the viewport selects, and tears the old
+one down when the breakpoint is crossed. Common code that needs a view-specific
+answer (which element scrolls, which scale applies) goes through `view.js`
+rather than naming a renderer.
+
+Both renderers are always loaded, since the viewport can cross the breakpoint at
+any moment.
+
+CSS follows the same split and must be linked in this order: `common/base.css`
+(tokens, page, task cards, modals) → `desktop/desktop.css` → `mobile/mobile.css`
+(scoped to `body[data-view="mobile"]`).
 
 ## How it runs in production
 
@@ -130,7 +160,8 @@ keys ON, one connection per request stored on Flask `g`.
 `MM/DD/YYYY` with an optional trailing `+`. Both sides must agree on how to read
 one, so the rules are duplicated deliberately and must stay in sync:
 `backend/date_utils.py` (`parse_form_date`, `is_valid_form_date`) mirrors
-`frontend/columns.js` (`parseDateToSortKey`, `isValidColDate`, `colWeekInfo`).
+`frontend/common/dates.js` (`parseDateToSortKey`, `isValidColDate`, `colWeekInfo`),
+the one place on the client that matches a date string.
 A missing year resolves to `LEGACY_DATE_YEAR = 2026` — *not* the current year —
 in both files, and a 2-digit year gets `+2000`. `normalizeColDate` pins an
 explicit year at write time so stored dates can't drift.
@@ -140,14 +171,14 @@ string; the backend never groups by week for rendering.
 
 ## Frontend flows
 
-State is a flat set of globals in `state.js`: `cols`, `weekUnscheduled`,
+State is a flat set of globals in `common/state.js`: `cols`, `weekUnscheduled`,
 `state` (form_id → task array), `typeConfig`, `legendOrder`, scales,
 `loadedFormIds`. There is no store, no reactivity — **every mutation ends in a
 full `render()`**, which rebuilds the whole board DOM from those globals.
 
 ### Load
 
-`app.js` runs three staged phases, each re-rendering as data lands:
+`common/boot.js` runs three staged phases, each re-rendering as data lands:
 
 1. `GET /api/v2/metadata` → apply lang, scale, collapse state, merge saved
    custom types over `DEFAULT_TYPE_CONFIG`, then `render()`.
@@ -165,11 +196,11 @@ only recent weeks' tasks, and **a column renders iff its id is in
 `loadedFormIds`**. "Earlier weeks" (`loadEarlierWeeks`) pulls the next 2 unloaded
 weeks by `?form_ids=`, merges, clears undo history (a pre-merge snapshot would
 delete the merged tasks) and restores scroll position. `docs/progressive-load-design.md`
-is the plan of record.
+is the plan of record (it predates the layer split, so its file paths are stale).
 
 ### Writes
 
-Three mutation wrappers in `state.js`, and choosing the right one matters:
+Three mutation wrappers in `common/state.js`, and choosing the right one matters:
 
 - `optimistic(mutate, apiCall, revert)` — mutate + render now, revert on failure.
   The default for task edits. `revert` must undo *only* what `mutate` did, since
@@ -202,7 +233,8 @@ precisely the write that has no token yet.
   weeks never re-pairs the containers.
 - **Deleting a column with tasks is refused** on both client (`deleteCol`) and
   server (409).
-- **Collapse** (`collapse.js`, per-column short/full, persisted in metadata): a
+- **Collapse** (state in `common/collapse.js`, DOM in `desktop/collapse-view.js`;
+  per-column short/full, persisted in metadata): a
   header click is a no-op unless the column has done tasks or more than 3 active
   ones. Short shows 3 active (or 2 done when nothing is active) and renders the
   rest as type-coloured dots, faded for done. `docs/collapse-flow.md` has the
@@ -218,20 +250,20 @@ Every user-visible string in the frontend **must** go through `t('key')` — nev
 hardcode English text in `.js` files or in `index.html` button/label text. When
 adding any frontend feature:
 
-1. Add the key to **both** `en` and `ru` blocks in `i18n.js`.
+1. Add the key to **both** `en` and `ru` blocks in `common/i18n.js`.
 2. Use `t('key')` at the call site.
 3. If the string lives in a static HTML element, add a line to
-   `applyLangToStaticUI()` in `i18n.js` that sets its `textContent`.
+   `applyLangToStaticUI()` in `common/i18n.js` that sets its `textContent`.
 
 ## Task types / labels
 
 8 built-ins (locked, interview, taxes, practice, async, rest, unplanned, done)
 plus user-defined `t-custom-*` types, each with `bg`/`border`/`text` colours and
-optional `dashed`/`italic`. `app.js` merges saved custom types over
-`DEFAULT_TYPE_CONFIG` on load — so adding a new built-in in `constants.js` reaches
+optional `dashed`/`italic`. `common/boot.js` merges saved custom types over
+`DEFAULT_TYPE_CONFIG` on load — so adding a new built-in in `common/constants.js` reaches
 existing users, and a custom type whose label collides with a built-in is dropped.
-Types drive card styling through `board.js:applyTaskStyle`; users reorder and
-create them in the legend panel.
+Types drive card styling through `common/types.js:applyTaskStyle`; users reorder
+and create them in the legend panel.
 
 ## Tests
 

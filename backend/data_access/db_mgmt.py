@@ -39,6 +39,8 @@ def init_db():
             done       INTEGER NOT NULL DEFAULT 0,
             sort_order INTEGER NOT NULL DEFAULT 0,
             metadata   TEXT    NOT NULL DEFAULT '{}',
+            created_at TEXT,
+            updated_at TEXT,
             UNIQUE(user_id, client_id)
         );
     ''')
@@ -100,8 +102,10 @@ def run_backup_loop(backup_dir, interval=BACKUP_INTERVAL_SECONDS):
 
 # ── removable: additive column migrations ─────────────────────────────────
 # Delete this section and the apply_migrations() call in init_db() once every
-# deployed DB has the columns below. Nothing here raises: a column that cannot
-# be added is reported and skipped, and the app runs as it did before.
+# deployed DB has the columns below -- they are already in init_db()'s CREATE
+# TABLE, so fresh databases stay correct without it. Nothing here raises: a
+# column that cannot be added is reported and skipped, and the app runs as it
+# did before.
 
 # (table, column, type) -- nullable with no default, so existing rows read NULL
 # and ALTER TABLE stays legal on a table that already has data.

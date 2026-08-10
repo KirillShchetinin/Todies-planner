@@ -65,6 +65,10 @@ CREATE TABLE IF NOT EXISTS tasks (
     created_at      TEXT,
     updated_at      TEXT
 );
+CREATE TABLE IF NOT EXISTS task_content (
+    task_id     INTEGER PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+    content     TEXT NOT NULL DEFAULT ''
+);
 """
 
 

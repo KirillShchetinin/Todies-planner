@@ -12,6 +12,33 @@ function openTaskCtxMenu(e, taskId) {
 
   ctxMenu.innerHTML = '';
 
+  const detailsBtn = document.createElement('button');
+  detailsBtn.className = 'ctx-item';
+  detailsBtn.textContent = t('ctxDetails');
+  detailsBtn.onclick = () => {
+    closeCtxMenu();
+    if (!task || task.pending) return;
+    const open = text => showTaskDetails(text, saved => {
+      const prev = task.content;
+      optimistic(
+        () => { task.content = saved; },
+        () => taskApiSetContent(taskId, saved),
+        () => { task.content = prev; },
+      );
+    });
+    // undefined means "never loaded"; '' is a real, cached empty content.
+    if (task.content === undefined) {
+      taskApiGetContent(taskId).then(text => { task.content = text; open(text); });
+    } else {
+      open(task.content);
+    }
+  };
+  ctxMenu.appendChild(detailsBtn);
+
+  const detailsSep = document.createElement('div');
+  detailsSep.className = 'ctx-sep';
+  ctxMenu.appendChild(detailsSep);
+
   const editBtn = document.createElement('button');
   editBtn.className = 'ctx-item';
   editBtn.textContent = t('ctxEditTask');

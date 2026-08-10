@@ -43,6 +43,10 @@ def init_db():
             updated_at TEXT,
             UNIQUE(user_id, client_id)
         );
+        CREATE TABLE IF NOT EXISTS task_content (
+            task_id     INTEGER PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+            content     TEXT    NOT NULL DEFAULT ''
+        );
     ''')
     conn.commit()
     

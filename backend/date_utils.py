@@ -11,6 +11,11 @@ import re
 
 _DATE_RE = re.compile(r'^(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\+?$')
 
+#: Row timestamps are recorded in UTC. The offset never shifts, so the stored
+#: strings sort lexicographically by real time; converting to a local zone for
+#: display is the frontend's job.
+UTC = datetime.timezone.utc
+
 #: Dates written before the year was recorded were all created in 2026, so
 #: legacy year-less values resolve there rather than drifting with the clock.
 LEGACY_DATE_YEAR = 2026
@@ -56,3 +61,8 @@ def is_valid_form_date(date_str):
 def week_start(d):
     """Monday of the ISO week containing ``d``."""
     return d - datetime.timedelta(days=d.weekday())
+
+
+def now_ts():
+    """Current UTC time as an ISO-8601 string, e.g. ``2026-08-09T15:04+00:00``."""
+    return datetime.datetime.now(UTC).isoformat(timespec='minutes')

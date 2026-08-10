@@ -1,7 +1,7 @@
 import datetime
 import json
 from backend.data_access.connections import get_db
-from backend.date_utils import parse_form_date
+from backend.date_utils import now_ts, parse_form_date
 
 
 _INTERNAL_META_KEYS = {'col', 'id'}
@@ -95,11 +95,13 @@ def create_task(user_id, data):
         sort_order = row['next']
 
     meta = _clean_meta(data.get('metadata') or {})
+    ts = now_ts()
     cur = db.execute(
-        'INSERT INTO tasks (user_id, form_id, client_id, name, done, sort_order, metadata)'
-        ' VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO tasks (user_id, form_id, client_id, name, done, sort_order, metadata,'
+        ' created_at, updated_at)'
+        ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         (user_id, form_id, '', data.get('name', ''),
-         1 if data.get('done') else 0, sort_order, json.dumps(meta))
+         1 if data.get('done') else 0, sort_order, json.dumps(meta), ts, ts)
     )
     task_id = cur.lastrowid
     db.execute('UPDATE tasks SET client_id=? WHERE id=?', (str(task_id), task_id))
@@ -138,6 +140,9 @@ def update_task(user_id, task_id, data):
 
     if not fields:
         return True
+
+    if (set(fields) != { 'sort_order' }):
+        fields['updated_at'] = now_ts()
 
     set_clause = ', '.join(f'{k}=?' for k in fields)
     params = list(fields.values()) + [user_id, task_id]

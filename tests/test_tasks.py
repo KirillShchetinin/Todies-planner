@@ -1,4 +1,6 @@
 import datetime
+import re
+import sqlite3
 
 
 def _form(client, token, **kw):
@@ -216,3 +218,54 @@ def test_delete_tasks_then_form_succeeds(client, token):
     tid = _task(client, token, fid, name='x')
     client.delete(f'/api/v2/tasks/{tid}', query_string=qs)
     assert client.delete(f'/api/v2/forms/{fid}', query_string=qs).status_code == 204
+
+
+# ── timestamps ────────────────────────────────────────────────────────────
+
+def _stamp(db_paths, tid, value='OLD'):
+    """Force updated_at to a sentinel; minute precision makes clock diffs useless."""
+    conn = sqlite3.connect(db_paths['new'])
+    conn.execute('UPDATE tasks SET updated_at=? WHERE id=?', (value, tid))
+    conn.commit()
+    conn.close()
+
+
+def _updated_at(db_paths, tid):
+    conn = sqlite3.connect(db_paths['new'])
+    val = conn.execute('SELECT updated_at FROM tasks WHERE id=?', (tid,)).fetchone()[0]
+    conn.close()
+    return val
+
+
+def test_create_sets_created_and_updated(client, token, db_paths):
+    fid = _form(client, token)
+    tid = _task(client, token, fid, name='x')
+    conn = sqlite3.connect(db_paths['new'])
+    created, updated = conn.execute(
+        'SELECT created_at, updated_at FROM tasks WHERE id=?', (tid,)
+    ).fetchone()
+    conn.close()
+    assert created == updated
+    assert re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}\+00:00$', created)
+
+
+def test_update_bumps_updated_at_except_pure_reorder(client, token, db_paths):
+    qs = {'token': token}
+    fid = _form(client, token)
+    other = _form(client, token, label='Tue')
+    tid = _task(client, token, fid, name='x')
+
+    # A reorder alone must not touch it.
+    _stamp(db_paths, tid)
+    client.put(f'/api/v2/tasks/{tid}', query_string=qs, json={'sort_order': 3})
+    assert _updated_at(db_paths, tid) == 'OLD'
+
+    # A real edit must.
+    client.put(f'/api/v2/tasks/{tid}', query_string=qs, json={'name': 'y'})
+    assert re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}\+00:00$', _updated_at(db_paths, tid))
+
+    # Moving to another day is a change, not a reorder, even alongside sort_order.
+    _stamp(db_paths, tid)
+    client.put(f'/api/v2/tasks/{tid}', query_string=qs,
+               json={'form_id': other, 'sort_order': 0})
+    assert _updated_at(db_paths, tid) != 'OLD'

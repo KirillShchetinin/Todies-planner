@@ -61,7 +61,9 @@ CREATE TABLE IF NOT EXISTS tasks (
     name            TEXT NOT NULL,
     done            INTEGER,
     sort_order      INTEGER,
-    metadata        TEXT NOT NULL
+    metadata        TEXT NOT NULL,
+    created_at      TEXT,
+    updated_at      TEXT
 );
 """
 

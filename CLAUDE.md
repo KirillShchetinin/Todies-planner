@@ -28,102 +28,226 @@ Define success criteria.
 Loop until verified.
 Don't tell Claude what steps to follow, tell it what success looks like and let it iterate.
 
+## What Todies is
 
-## Running the App
+A single-page weekly task planner. The board is a vertical stack of **week rows**;
+each week row is one "unscheduled" container on the left plus a 7-slot Mon–Sun grid
+of **day columns**. Tasks live inside a column, carry a colour-coded **type**
+(label), and can be done / cancelled / important. There is no login screen: a user
+*is* a token in a URL (`/?token=…`), and the board is whatever that token owns.
 
-```bash
-python server.py
-```
+Two completely separate renderers draw that model — `board.js` (desktop) and
+`mobile.js` (mobile, below the 720px breakpoint) — swapped by a `matchMedia`
+listener in `app.js` that sets `document.body.dataset.view`. They share state,
+task/column helpers and i18n, but not DOM or gestures. **A frontend behaviour
+change usually has to be made in both.**
 
-The server starts on port 5000 and auto-opens a browser tab. On Windows, `start.bat` installs Flask and launches the server.
-
-```bash
-pip install flask flask-limiter
-```
-
-There is no build step or linter configured.
-
-## Running Tests
-
-```bash
-pytest tests/
-pytest tests/test_auth.py::test_name   # single test
-```
-
-Frontend behaviour is covered by Playwright, in its own npm project:
+## Commands
 
 ```bash
-cd tests/e2e && npm test          # both suites
-npm run test:desktop              # or test:mobile
+pip install -r requirements.txt   # flask, flask-limiter
+python server.py                  # dev: port 5000, opens a browser, starts the backup thread
 ```
 
-Separate suites for the desktop and mobile renderers. See `tests/e2e/README.md`.
+```bash
+pytest tests/                          # backend
+pytest tests/test_tasks.py::test_name  # one test
+```
 
-## Architecture
+```bash
+cd tests/e2e && npm install && npx playwright install chromium   # first time
+npm test              # both suites
+npm run test:desktop  # 1440x900 only
+npm run test:mobile   # Pixel 5 only
+npm run test:headed   # watch it
+```
 
-**Todies** is a weekly task planner. The backend is a minimal Flask app; the frontend is vanilla JavaScript with no framework or bundler.
+No build step, no bundler, no linter. Frontend files are served straight from
+`frontend/` as Flask static files, so a code change needs only a page refresh.
 
-### Backend
+## How it runs in production
 
-`server.py` is the entrypoint — backs up the DB, calls `init_db()`, and starts Flask on port 5000.
+Azure VM (`openclaw-vm`, user `azureuser`), gunicorn `--bind 0.0.0.0:5000
+--workers 1 server:app`, out of `/home/azureuser/Todoies/Todies-planner` with a
+venv alongside. Deploy = `git pull` + `kill -HUP <gunicorn master pid>`, which
+re-imports `server:app` in a fresh worker with no downtime. `docs/operations-runbook.md`
+has the full procedure and the gotchas (notably: `pkill -f server.py` matches
+nothing — the process is named `gunicorn`).
 
-Backend logic lives in `backend/`:
-- **`auth.py`** — `resolve_user_id()`: validates the token query param and returns the user ID.
-- **`controllers/controller.py`** — Flask app instance, rate limiter (Flask-Limiter), blueprint registration, and account routes (`POST /api/account`, `POST /api/account/token`, `DELETE /api/account`). Account creation requires the `X-Create-Secret` header matching the `CREATE_SECRET` env var.
-- **`controllers/forms.py`** — `GET/POST/DELETE /api/v2/forms`
-- **`controllers/tasks.py`** — `GET/POST/PUT/DELETE /api/v2/tasks`
-- **`controllers/metadata.py`** — `GET/PUT /api/v2/metadata`
-- **`data_access/connections.py`** — `get_db`, `init_db`, `backup`. SQLite with WAL mode and foreign keys ON.
-- **`data_access/metadata.py`** — user/token CRUD, metadata read/write.
-- **`data_access/forms.py`** — form CRUD queries.
-- **`data_access/tasks.py`** — task CRUD; `_clean_meta()` strips internal keys before storage.
+Two consequences of the gunicorn path that bite:
 
-Token-based auth: token passed as `?token=<token>` query param on every request; validated by `resolve_user_id()`.
+- **`server.py`'s `if __name__ == '__main__'` block never runs.** The browser
+  auto-open *and* the periodic `run_backup_loop` thread are dev-only. Under
+  gunicorn the only backup is the module-level `backup()` call at import — i.e.
+  one per worker boot. Since `_prune_old_backups` drops anything older than 3
+  days, a long-lived worker means backups silently stop and then age out.
+- `init_db()` also runs at import, so schema creation and the additive column
+  migrations (`db_mgmt.apply_migrations`) happen on every worker boot. Migrations
+  never raise — a column that can't be added is printed and skipped.
 
-### Database (`planner_db.db`)
+## Request / auth flow
 
-Normalized SQLite schema:
-- **`users`** — token auth + JSON `metadata` (lang, uiScale, uiScaleMobile, counters, typeConfig, legendOrder, collapseState)
-- **`forms`** — one row per day column or unscheduled container; has `label`, `date`, `is_unscheduled`, `sort_order`
-- **`tasks`** — one row per task; linked to a form via `form_id`; extra fields (type, locked, cancelled, important) in JSON `metadata`
+Every data request carries `?token=<token>`. `auth.resolve_user_id()` turns it
+into a user id; `controller._require_user()` wraps that and returns 401 when it
+fails, and every blueprint route starts with it. There is no session, cookie or
+CSRF layer — the token in the query string is the whole auth model, and every
+query in `data_access/` is scoped by `user_id`.
 
-`internal/` contains migration scripts (`migrate_to_planner_db.py`, `verify_planner_db.py`) used for the one-time move from the legacy single-blob schema (`planner.db`) to the normalized `planner_db.db`.
+Routes:
 
-### Frontend (`frontend/`)
+| Route | Notes |
+|---|---|
+| `GET/POST /api/v2/forms`, `DELETE /api/v2/forms/<id>` | delete returns **409** if the form still has tasks |
+| `GET/POST /api/v2/tasks`, `PUT/DELETE /api/v2/tasks/<id>` | |
+| `GET/PUT /api/v2/tasks/<id>/content` | long-form task body, separate `task_content` table, fetched lazily |
+| `GET/PUT /api/v2/metadata` | one JSON blob of all UI settings |
+| `POST /api/account` | needs header `X-Create-Secret` == `CREATE_SECRET` env var; rate-limited 3/min |
+| `POST /api/account/token` | rotate token |
+| `DELETE /api/account` | |
 
-Script load order (all deferred, defined in `index.html`):
-`sidebar.js` → `collapse.js` → `constants.js` → `api.js` → `i18n.js` → `state.js` → `undo.js` → `modal.js` → `labels.js` → `tasks.js` → `columns.js` → `scale.js` → `add-label-panel.js` → `context-menu.js` → `legend.js` → `mobile.js` → `board.js` → `showcase.js` → `app.js`
+`GET /api/v2/forms` and `GET /api/v2/tasks` accept the range params that
+progressive load is built on: `?latest=N`, `?mark_recent=1` (annotates each col
+with `recent`, window = 14 days), `?form_ids=1,2,3`, `?from=&to=` (ISO). Bad
+input must return 400, never 500 — several past bugs were exactly that
+(`--5` passing `lstrip('-')` validation, >64-bit ids overflowing the sqlite
+bind); `tests/test_ranges.py` guards them.
 
-Key modules:
-- **`state.js`** — global state (`cols`, `weekUnscheduled`, `state` keyed by form_id, counters, `typeConfig`, `uiScale`/`uiScaleMobile`) and `loadState`/`saveState`. `saveMetadata()` batches UI settings; forms/tasks have per-item endpoints.
-- **`app.js`** — orchestrates initial load: fetches metadata, forms, and tasks in parallel; merges `typeConfig` with defaults; applies lang/scale/collapse.
-- **`api.js`** — `apiFetch` wrapper and account management helpers (deleteAccount, refreshToken, addAccount).
-- **`board.js`** — `render()` rebuilds the entire DOM from state. Handles drag-and-drop for tasks (within/between columns) and columns. Used for the desktop layout.
-- **`mobile.js`** / **`mobile.css`** — separate mobile rendering path (`renderMobile()`), with its own day-strip header, quick-add, and move-to-day overlay; reuses state/task/column helpers from the desktop modules rather than duplicating them.
-- **`tasks.js`** — task CRUD: `addTask`, `deleteTask`, `toggleDone`, `toggleCancelled`.
-- **`columns.js`** — column CRUD and date utilities: `addCol`, `deleteCol`, `sortColsByDate`, `colWeekInfo`. Date format is `MM/DD` or `MM/DD/YYYY`.
-- **`undo.js`** — snapshots full state before every mutation (max 10 snapshots). Restored via Ctrl+Z.
-- **`constants.js`** — default columns (Mon–Sun), 8 built-in task types with color schemes, and the 5 UI scale levels (0.75–1.25).
-- **`collapse.js`** — per-column short/full toggle. Shows up to 3 active or 2 done tasks; dots represent overflow.
-- **`i18n.js`** — EN/RU translations.
+## Data model
 
-### Translation rule
+`planner_db.db` (override with `TODIES_DB_PATH`), SQLite in WAL mode, foreign
+keys ON, one connection per request stored on Flask `g`.
 
-Every user-visible string in the frontend **must** go through `t('key')` — never hardcode English text in `.js` files or in `index.html` button/label text. When adding any frontend feature, always:
+- **`users`** — token + a JSON `metadata` blob: `lang`, `uiScale`,
+  `uiScaleMobile`, `typeConfig`, `legendOrder`, `typeCounter`, `collapseState`,
+  `customLoad`.
+- **`forms`** — a day column *or* an unscheduled container (`is_unscheduled`),
+  with `label`, `date`, `sort_order`.
+- **`tasks`** — `name`, `done`, `sort_order`, `form_id`, plus a JSON `metadata`
+  holding `type`, `locked`, `cancelled`, `important`.
+- **`task_content`** — 1:1 with a task, the details body.
+
+**Dates are display strings, not dates.** A form's `date` is `MM/DD` or
+`MM/DD/YYYY` with an optional trailing `+`. Both sides must agree on how to read
+one, so the rules are duplicated deliberately and must stay in sync:
+`backend/date_utils.py` (`parse_form_date`, `is_valid_form_date`) mirrors
+`frontend/columns.js` (`parseDateToSortKey`, `isValidColDate`, `colWeekInfo`).
+A missing year resolves to `LEGACY_DATE_YEAR = 2026` — *not* the current year —
+in both files, and a 2-digit year gets `+2000`. `normalizeColDate` pins an
+explicit year at write time so stored dates can't drift.
+
+Week grouping is ISO (Monday-first) and is computed on the client from the date
+string; the backend never groups by week for rendering.
+
+## Frontend flows
+
+State is a flat set of globals in `state.js`: `cols`, `weekUnscheduled`,
+`state` (form_id → task array), `typeConfig`, `legendOrder`, scales,
+`loadedFormIds`. There is no store, no reactivity — **every mutation ends in a
+full `render()`**, which rebuilds the whole board DOM from those globals.
+
+### Load
+
+`app.js` runs three staged phases, each re-rendering as data lands:
+
+1. `GET /api/v2/metadata` → apply lang, scale, collapse state, merge saved
+   custom types over `DEFAULT_TYPE_CONFIG`, then `render()`.
+   **If this fetch fails, `loadShowcase()` paints a fake demo board** — that's
+   what an anonymous visitor to `/` (no token) sees.
+2. `loadBoard()` — forms and tasks. Cannot start earlier because it branches on
+   `customLoad`, which lives in metadata.
+3. `ensureTodayCol()` and `ensureUnscheduledForWeeks()` create any missing
+   today-column / per-week unscheduled container, then a final `render()`.
+
+`customLoad` (progressive load) is **frozen at page load** into
+`customLoadActive`; toggling the setting changes persistence and the button, but
+never the current view. When active: all forms are fetched (they're tiny) but
+only recent weeks' tasks, and **a column renders iff its id is in
+`loadedFormIds`**. "Earlier weeks" (`loadEarlierWeeks`) pulls the next 2 unloaded
+weeks by `?form_ids=`, merges, clears undo history (a pre-merge snapshot would
+delete the merged tasks) and restores scroll position. `docs/progressive-load-design.md`
+is the plan of record.
+
+### Writes
+
+Three mutation wrappers in `state.js`, and choosing the right one matters:
+
+- `optimistic(mutate, apiCall, revert)` — mutate + render now, revert on failure.
+  The default for task edits. `revert` must undo *only* what `mutate` did, since
+  other writes may be in flight.
+- `pessimistic(apiCall, apply)` — server first, apply after. Used when the change
+  depends on a server-assigned id, or when a revert would be messy.
+- `pessimisticMeta(mutate, revert)` — for metadata-blob writes, where
+  `saveMetadata()` serialises the live globals so the change *is* the payload.
+
+`addTask` is a hand-rolled optimistic create: it inserts a card with a negative
+temp id and `pending: true`, then swaps in the real id. **Every mutation guards
+on `task.pending`** — you cannot delete, toggle or retype a task whose server id
+isn't known yet.
+
+`apiFetch` has one special case: with no token, non-GET calls to `/api/v2/*`
+short-circuit to a synthetic `{ ok: true }` with a temp id, so the showcase board
+is interactive without persisting. GETs are left alone so the initial load can
+fail and trigger the showcase. `/api/account*` is excluded — account creation is
+precisely the write that has no token yet.
+
+`UndoHistory` (Ctrl+Z, max 10) snapshots the entire state before each mutation.
+
+### Column / task behaviours worth knowing
+
+- **Ghost slots.** An empty day in a rendered week draws a `.col-ghost`;
+  double-click (desktop) or tap (mobile) creates that exact date's column via
+  `addDayAtSlot`.
+- **Unscheduled pairing.** Each week row pairs with `weekUnscheduled[week.order]`,
+  where `order` is the *absolute* week index over all weeks — so hiding unloaded
+  weeks never re-pairs the containers.
+- **Deleting a column with tasks is refused** on both client (`deleteCol`) and
+  server (409).
+- **Collapse** (`collapse.js`, per-column short/full, persisted in metadata): a
+  header click is a no-op unless the column has done tasks or more than 3 active
+  ones. Short shows 3 active (or 2 done when nothing is active) and renders the
+  rest as type-coloured dots, faded for done. `docs/collapse-flow.md` has the
+  decision tree.
+- **Mobile-specific:** day strip header, expandable day heroes, a quick-add bar,
+  a long-press action sheet with a "move to day" grid (2 unscheduled + ±3 nearby
+  days), a side menu and an unscheduled drawer. Drag-and-drop is desktop only;
+  mobile moves tasks through the sheet.
+
+## Translation rule
+
+Every user-visible string in the frontend **must** go through `t('key')` — never
+hardcode English text in `.js` files or in `index.html` button/label text. When
+adding any frontend feature:
+
 1. Add the key to **both** `en` and `ru` blocks in `i18n.js`.
 2. Use `t('key')` at the call site.
-3. If the string appears in a static HTML element, add a line to `applyLangToStaticUI()` in `i18n.js` that sets its `textContent`.
+3. If the string lives in a static HTML element, add a line to
+   `applyLangToStaticUI()` in `i18n.js` that sets its `textContent`.
 
-### State Model
+## Task types / labels
 
-All in-memory state is a flat set of globals in `state.js`. On load, `loadState()` fetches metadata, forms, and tasks, then repopulates all globals, merging saved `typeConfig` with defaults to handle new built-in types. Mutations call `saveMetadata()` for UI settings or the relevant form/task endpoint directly.
+8 built-ins (locked, interview, taxes, practice, async, rest, unplanned, done)
+plus user-defined `t-custom-*` types, each with `bg`/`border`/`text` colours and
+optional `dashed`/`italic`. `app.js` merges saved custom types over
+`DEFAULT_TYPE_CONFIG` on load — so adding a new built-in in `constants.js` reaches
+existing users, and a custom type whose label collides with a built-in is dropped.
+Types drive card styling through `board.js:applyTaskStyle`; users reorder and
+create them in the legend panel.
 
-### Task Types / Labels
+## Tests
 
-8 built-in types (locked, interview, taxes, practice, async, rest, unplanned, done) plus user-defined custom types. Each type has `bg`, `border`, `text` colors and optional `dashed`/`italic` flags. Types drive card styling in `board.js:applyTaskStyle`. Users can reorder and create types via the legend panel.
+Backend: `tests/conftest.py` monkeypatches `connections.DB_PATH` to a temp file
+per test, and the `seed` fixture gives `.user()`, `.form()`, `.task()`. It also
+keeps the legacy single-blob schema around for the migration tests.
 
-### Tests
+E2E: Playwright boots `tests/e2e/server.py` itself (same app, `TODIES_DB_PATH`
+pointed at a throwaway db). Every test seeds **its own user** so the suite runs
+fully parallel, pins the clock to Wed 11 Mar 2026 in UTC, and starts from a
+board where **Sunday is deliberately missing** so ghost-slot paths are covered by
+default. Two conventions that keep it non-flaky: **assert after
+`planner.reload()`** (writes are optimistic, so an in-page assertion proves
+nothing about persistence), and **address columns by date, not label** (`03/11`
+survives i18n; `Wed` becomes `Ср`). See `tests/e2e/README.md`, including what it
+deliberately does not cover (visual regression, account endpoints, `customLoad`).
 
-`tests/conftest.py` provides an isolated temp DB per test via the `db_paths` fixture, monkeypatching `DB_PATH`. The `seed` fixture exposes `.user()`, `.form()`, `.task()` helpers for quick test setup.
-
-**Do not overwrite or delete existing test files without first warning the user explicitly and receiving their confirmation.**
+**Do not overwrite or delete existing test files without first warning the user
+explicitly and receiving their confirmation.**

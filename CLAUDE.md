@@ -50,6 +50,15 @@ pytest tests/
 pytest tests/test_auth.py::test_name   # single test
 ```
 
+Frontend behaviour is covered by Playwright, in its own npm project:
+
+```bash
+cd tests/e2e && npm test          # both suites
+npm run test:desktop              # or test:mobile
+```
+
+Separate suites for the desktop and mobile renderers. See `tests/e2e/README.md`.
+
 ## Architecture
 
 **Todies** is a weekly task planner. The backend is a minimal Flask app; the frontend is vanilla JavaScript with no framework or bundler.

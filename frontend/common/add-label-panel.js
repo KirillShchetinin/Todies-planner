@@ -1,3 +1,8 @@
+// add-label-panel.js — the "new label" popover.
+//
+// Common, not desktop: the legend opens it on desktop, and mobile opens it
+// from both the side menu and the add-task sheet.
+
 const addPanel = document.createElement('div');
 addPanel.id = 'addLabelPanel';
 addPanel.innerHTML = `
@@ -13,6 +18,8 @@ document.body.appendChild(addPanel);
 
 let selectedPreset = COLOR_PRESETS[4];
 
+// `triggerEl` anchors the panel beside whatever opened it; mobile passes null
+// and lets the CSS default position stand.
 function openAddPanel(triggerEl) {
   const grid = addPanel.querySelector('#addPanelColors');
   grid.innerHTML = '';
@@ -50,3 +57,5 @@ addPanel.querySelector('#newLabelName').addEventListener('keydown', e => {
   if (e.key === 'Enter')  addPanel.querySelector('#newLabelConfirm').click();
   if (e.key === 'Escape') closeAddPanel();
 });
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAddPanel(); });

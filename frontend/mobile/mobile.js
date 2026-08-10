@@ -1,6 +1,11 @@
-// mobile.js — mobile view renderer
-// Depends on globals: state.js, board.js (applyTaskStyle), tasks.js, columns.js,
-//                     i18n.js, labels.js, context-menu.js, undo.js, api.js, scale.js
+// mobile.js — the mobile renderer.
+//
+// Below the 720px breakpoint this replaces the desktop board entirely: a day
+// strip, expandable day heroes, a quick-add bar, and sheets/drawers in place of
+// right-click menus and drag-and-drop. It builds its own DOM inside #board and
+// #main; nothing desktop-only is reachable from here.
+//
+// Depends only on the common layer — see frontend/common/.
 
 let expandedDays = new Set();
 let overlay = null;
@@ -10,10 +15,16 @@ let _didStripScroll = false;
 let _lastTapTaskId = null;
 let _lastTapTime = 0;
 
+registerView('mobile', {
+  render:   renderMobile,
+  teardown: teardownMobile,
+  // #board is the only scroller on mobile; the document itself is locked.
+  scrollEl: () => document.getElementById('board'),
+});
+
 // ── Entry point ────────────────────────────────────────────────────────────────
 
 function renderMobile() {
-  renderLegend();
   _initMobileState();
   _renderMobileHeader();
   _renderMobileBoard();
@@ -34,7 +45,9 @@ function _scrollToToday() {
   });
 }
 
-function _cleanupMobileDOM() {
+// Called by view.js when the viewport crosses back over the breakpoint: the
+// desktop board renders into #board, but these live outside it.
+function teardownMobile() {
   document.getElementById('mobile-header')?.remove();
   document.getElementById('mob-quick-add')?.remove();
   document.getElementById('mob-overlay')?.remove();
@@ -51,81 +64,13 @@ function _initMobileState() {
     if (!allColIds.has(id)) expandedDays.delete(id);
   }
   if (expandedDays.size === 0) {
-    const todayCol = _getTodayCol();
-    if (todayCol) expandedDays.add(todayCol.id);
+    const today = todayCol();
+    if (today) expandedDays.add(today.id);
   }
-}
-
-function _todayDateStr() {
-  const now = new Date();
-  const mm  = String(now.getMonth() + 1).padStart(2, '0');
-  const dd  = String(now.getDate()).padStart(2, '0');
-  return `${mm}/${dd}/${now.getFullYear()}`;
-}
-
-function _colForDate(dateStr) {
-  const key = parseDateToSortKey(dateStr);
-  if (key === Infinity) return null;
-  return cols.find(c => parseDateToSortKey(c.date) === key) || null;
-}
-
-function _getTodayCol() {
-  return _colForDate(_todayDateStr());
-}
-
-// MM/DD/YYYY ⇄ YYYY-MM-DD (the value format of <input type="date">).
-function _dateStrToIso(dateStr) {
-  const m = (dateStr || '').replace(/\+$/, '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-  if (!m) return '';
-  return `${resolveYear(m[3])}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`;
-}
-
-function _isoToDateStr(iso) {
-  const m = (iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return m ? `${m[2]}/${m[3]}/${m[1]}` : '';
-}
-
-function _isToday(col) {
-  if (!col.date) return false;
-  const now = new Date();
-  const m   = col.date.match(/^(\d{1,2})\/(\d{1,2})/);
-  if (!m) return false;
-  return parseInt(m[1]) === now.getMonth() + 1 && parseInt(m[2]) === now.getDate();
 }
 
 function _remainingCount(colId) {
   return (state[colId] || []).filter(t => !t.done && !t.cancelled).length;
-}
-
-function _getCurrentWeekKey() {
-  const now = new Date();
-  const mm  = String(now.getMonth() + 1).padStart(2, '0');
-  const dd  = String(now.getDate()).padStart(2, '0');
-  const todayStr = `${mm}/${dd}`;
-  const todayKey = parseDateToSortKey(todayStr);
-
-  for (const col of cols) {
-    const info = colWeekInfo(col);
-    if (info && parseDateToSortKey(col.date) === todayKey) return info.key;
-  }
-  const info = colWeekInfo({ date: todayStr });
-  if (info) return info.key;
-  if (cols.length > 0) {
-    const fi = colWeekInfo(cols[0]);
-    if (fi) return fi.key;
-  }
-  return null;
-}
-
-function _weekMonday(isoKey) {
-  const m = isoKey.match(/^(\d{4})-W(\d{2})$/);
-  if (!m) return null;
-  const year = parseInt(m[1]), week = parseInt(m[2]);
-  const jan4  = new Date(year, 0, 4);
-  const dow   = (jan4.getDay() + 6) % 7;
-  const monday = new Date(jan4);
-  monday.setDate(jan4.getDate() - dow + (week - 1) * 7);
-  return monday;
 }
 
 // ── Header ─────────────────────────────────────────────────────────────────────
@@ -217,7 +162,7 @@ function _buildDayStrip(container) {
   let todayChip = null;
 
   visibleWeekKeys.forEach((weekKey, wi) => {
-    const monday = _weekMonday(weekKey);
+    const monday = weekKeyToMonday(weekKey);
     if (!monday) return;
 
     // Add a week-separator gap between weeks (except before the first)
@@ -365,7 +310,7 @@ function _buildUnschedChip(col) {
   const dots = document.createElement('div');
   dots.className = 'mob-unsched-dots';
   tasks.slice(0, 20).forEach(task => {
-    const cfg = typeConfig[task.type] || typeConfig['Random'] || { border: '#d8d8d4' };
+    const cfg = typeStyle(task.type);
     const dot = document.createElement('span');
     dot.className = 'mob-unsched-dot';
     dot.style.background = cfg.border;
@@ -395,7 +340,7 @@ function _buildUnschedChip(col) {
 // ── DayRow (collapsed) ─────────────────────────────────────────────────────────
 
 function _buildDayRow(col) {
-  const isToday = _isToday(col);
+  const isToday = isTodayDate(col.date);
   const tasks   = state[col.id] || [];
 
   const btn = document.createElement('button');
@@ -411,10 +356,10 @@ function _buildDayRow(col) {
   dateBlock.appendChild(dayLabel);
 
   if (col.date) {
-    const m = col.date.match(/\/(\d+)/);
+    const d = parseColDate(col.date);
     const dayNum = document.createElement('span');
     dayNum.className = 'mob-row-daynum';
-    dayNum.textContent = m ? parseInt(m[1]) : '';
+    dayNum.textContent = d ? d.getDate() : '';
     dateBlock.appendChild(dayNum);
   }
 
@@ -435,7 +380,7 @@ function _buildDayRow(col) {
     dotRow.appendChild(empty);
   } else {
     tasks.forEach(task => {
-      const cfg = typeConfig[task.type] || typeConfig['Random'] || { border: '#d8d8d4' };
+      const cfg = typeStyle(task.type);
       const dot = document.createElement('span');
       dot.className = 'mob-dot';
       dot.style.background = cfg.border;
@@ -473,7 +418,7 @@ function _buildDayRow(col) {
 // ── DayHero (expanded) ─────────────────────────────────────────────────────────
 
 function _buildDayHero(col) {
-  const isToday = _isToday(col);
+  const isToday = isTodayDate(col.date);
   const tasks   = state[col.id] || [];
   const done    = tasks.filter(t => t.done || t.cancelled).length;
 
@@ -492,15 +437,12 @@ function _buildDayHero(col) {
   dayName.textContent = translateLabel(col.label);
   left.appendChild(dayName);
 
-  if (col.date) {
-    const m = col.date.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-    if (m) {
-      const d  = new Date(resolveYear(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
-      const dateSpan = document.createElement('span');
-      dateSpan.className = 'mob-hero-date';
-      dateSpan.textContent = d.toLocaleDateString(t('dayLocale'), { month: 'short', day: 'numeric' });
-      left.appendChild(dateSpan);
-    }
+  const heroDate = parseColDate(col.date);
+  if (heroDate) {
+    const dateSpan = document.createElement('span');
+    dateSpan.className = 'mob-hero-date';
+    dateSpan.textContent = heroDate.toLocaleDateString(t('dayLocale'), { month: 'short', day: 'numeric' });
+    left.appendChild(dateSpan);
   }
 
   if (isToday) {
@@ -628,10 +570,10 @@ function _renderQuickAdd() {
   // Opens the add sheet aimed at today. Today's form may not exist yet — the
   // sheet resolves the date to a form (creating it) only once a task is added.
   const openAdd = pickDate => {
-    const today = _todayDateStr();
+    const today = todayDateStr();
     overlay = {
       kind: 'add', step: 1,
-      dayId: _getTodayCol()?.id || null,
+      dayId: todayCol()?.id || null,
       targetDate: today,
       pickDate,
       selectedType: null, typedText: '',
@@ -750,18 +692,8 @@ function _buildActionSheet(container) {
   // Action rows — use captured taskId, not overlay.taskId
   [
     { icon: '✓', label: t('mobMarkDone'), cls: '', action: () => { overlay = null; toggleDone(taskId); } },
-    { icon: '!',  label: t('mobMarkImportant'), cls: 'mob-action-important', action: () => {
-        overlay = null;
-        const t2 = findTask(taskId);
-        if (!t2 || t2.pending) { render(); return; }
-        const prev = t2.important;
-        optimistic(
-          () => { t2.important = !prev; },
-          () => taskApiUpdate(taskId, { metadata: { important: !!t2.important } }),
-          () => { t2.important = prev; },
-        );
-      }
-    },
+    { icon: '!',  label: t('mobMarkImportant'), cls: 'mob-action-important',
+      action: () => { overlay = null; toggleImportant(taskId); render(); } },
     { icon: '✕', label: t('mobCancelTask'), cls: 'mob-action-cancel', action: () => { overlay = null; toggleCancelled(taskId); } },
     { icon: '🗑', label: t('mobDelete'), cls: 'mob-action-delete', action: () => { overlay = null; deleteTask(taskId); } },
   ].forEach(({ icon, label, cls, action }) => {
@@ -793,26 +725,14 @@ function _dayGridBtn(label, isSource, onclick) {
   return btn;
 }
 
+// Closes the sheet and hands the move to the common mutation. A pending task
+// keeps the sheet open — there is nothing to move yet.
 function _moveTaskToCol(taskId, targetColId) {
-  let sourceColId = null;
-  allCols().forEach(c => { if ((state[c.id] || []).some(t => t.id === taskId)) sourceColId = c.id; });
-  const task = sourceColId != null ? state[sourceColId].find(t => t.id === taskId) : null;
+  const task = findTask(taskId);
   if (!task || task.pending) return;
-  if (sourceColId === targetColId) { overlay = null; render(); return; }
-  if (!state[targetColId]) state[targetColId] = [];
-
-  // Revert is scoped to the two columns this move touches.
-  const prevSource = [...state[sourceColId]];
-  const prevTarget = [...state[targetColId]];
   overlay = null;
-  optimistic(
-    () => {
-      state[sourceColId] = state[sourceColId].filter(t => t.id !== taskId);
-      state[targetColId].push(task);
-    },
-    () => taskApiUpdate(taskId, { form_id: targetColId }),
-    () => { state[sourceColId] = prevSource; state[targetColId] = prevTarget; },
-  );
+  if (findTaskCol(taskId) === targetColId) { render(); return; }
+  moveTaskToCol(taskId, targetColId);
 }
 
 // ── Add-task sheet ─────────────────────────────────────────────────────────────
@@ -841,7 +761,7 @@ function _buildAddSheet(container) {
     const pills = document.createElement('div');
     pills.className = 'mob-label-pills';
 
-    legendOrder.filter(k => k !== 't-locked' && k !== 'done').forEach(k => {
+    selectableTypeKeys().forEach(k => {
       const cfg  = typeConfig[k] || {};
       const pill = document.createElement('button');
       pill.className = 'mob-label-pill';
@@ -909,9 +829,8 @@ function _buildAddSheet(container) {
 }
 
 function _targetLabel(dateStr) {
-  const m = (dateStr || '').replace(/\+$/, '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-  if (!m) return t('mobUnscheduled');
-  const d = new Date(resolveYear(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
+  const d = parseColDate(dateStr);
+  if (!d) return t('mobUnscheduled');
   return d.toLocaleDateString(t('dayLocale'), { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
@@ -943,12 +862,12 @@ function _buildTargetRow() {
   const inp = document.createElement('input');
   inp.type      = 'date';
   inp.className = 'mob-target-input';
-  inp.value     = _dateStrToIso(overlay.targetDate);
+  inp.value     = dateStrToIso(overlay.targetDate);
   inp.setAttribute('aria-label', t('mobPickDay'));
   // Re-rendering here would tear down the open native picker mid-scroll (iOS
   // fires change on every wheel settle), so the chip text is patched in place.
   inp.addEventListener('change', () => {
-    const picked = _isoToDateStr(inp.value);
+    const picked = isoToDateStr(inp.value);
     if (!picked || !overlay) return;
     overlay.targetDate = picked;
     overlay.dayId      = null;   // a picked date outranks the form we came from
@@ -971,12 +890,11 @@ async function _resolveAddDayId(dayId, targetDate) {
   if (dayId) { _expandDay(dayId); return dayId; }
   if (!targetDate) return null;
 
-  const existing = _colForDate(targetDate);
+  const existing = colForDate(targetDate);
   if (existing) { _expandDay(existing.id); return existing.id; }
 
-  const m = targetDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (!m) return null;
-  const d  = new Date(parseInt(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
+  const d = parseColDate(targetDate);
+  if (!d) return null;
   const id = await addCol(d.toLocaleDateString('en-US', { weekday: 'short' }), targetDate);
   if (id) _expandDay(id);
   return id;
@@ -1015,7 +933,7 @@ function _buildSideMenu(container) {
   _menuSection(panel, t('mobSignedIn'), () => {
     const info = document.createElement('span');
     info.className   = 'mob-menu-info';
-    info.textContent = _token ? t('mobUser') : t('mobAnonymous');
+    info.textContent = TOKEN ? t('mobUser') : t('mobAnonymous');
     return [info];
   });
 
@@ -1037,7 +955,7 @@ function _buildSideMenu(container) {
     refreshBtn.textContent = t('accountRefreshToken');
     refreshBtn.onclick = () => {
       showConfirm(t('accountRefreshConfirm'), () => {
-        refreshToken(_token)
+        refreshToken(TOKEN)
           .then(token => { overlay = null; render(); showTokenModal(token); })
           .catch(() => showAlert(t('accountRefreshFailed')));
       });
@@ -1048,7 +966,7 @@ function _buildSideMenu(container) {
     delBtn.textContent = t('accountDelete');
     delBtn.onclick = () => {
       showConfirm(t('accountDeleteConfirm'), () => {
-        deleteAccount(_token).then(res => {
+        deleteAccount(TOKEN).then(res => {
           if (res.ok) window.location.href = '/';
           else showAlert(t('accountDeleteFailed'));
         });
@@ -1121,29 +1039,17 @@ function _buildSideMenu(container) {
     const scaleRow = document.createElement('div');
     scaleRow.className = 'mob-settings-row';
 
-    const scaleIdx = UI_SCALES.indexOf(currentScale());
-
     const minus = document.createElement('button');
     minus.className   = 'mob-settings-pill';
     minus.textContent = '− ' + t('scaleSmaller');
-    minus.disabled    = scaleIdx <= 0;
-    minus.onclick = () => {
-      const idx = UI_SCALES.indexOf(currentScale());
-      if (idx <= 0) return;
-      const prev = currentScale();
-      pessimisticMeta(() => applyScale(UI_SCALES[idx - 1]), () => applyScale(prev));
-    };
+    minus.disabled    = !canStepScale(-1);
+    minus.onclick     = () => stepScale(-1);
 
     const plus = document.createElement('button');
     plus.className   = 'mob-settings-pill';
     plus.textContent = t('scaleLarger') + ' +';
-    plus.disabled    = scaleIdx >= UI_SCALES.length - 1;
-    plus.onclick = () => {
-      const idx = UI_SCALES.indexOf(currentScale());
-      if (idx >= UI_SCALES.length - 1) return;
-      const prev = currentScale();
-      pessimisticMeta(() => applyScale(UI_SCALES[idx + 1]), () => applyScale(prev));
-    };
+    plus.disabled    = !canStepScale(1);
+    plus.onclick     = () => stepScale(1);
 
     scaleRow.appendChild(minus);
     scaleRow.appendChild(plus);
@@ -1161,13 +1067,7 @@ function _buildSideMenu(container) {
     loadBtn.className   = 'mob-settings-pill' + (customLoad ? ' active' : '');
     loadBtn.textContent = customLoad ? t('on') : t('off');
     loadBtn.setAttribute('aria-pressed', customLoad ? 'true' : 'false');
-    loadBtn.onclick = () => {
-      const prev = customLoad;
-      pessimisticMeta(
-        () => { customLoad = !customLoad; renderCustomLoadBtn(); },
-        () => { customLoad = prev; renderCustomLoadBtn(); },
-      );
-    };
+    loadBtn.onclick = toggleCustomLoad;
     loadRow.appendChild(loadBtn);
 
     return [langRow, scaleRow, loadRow];

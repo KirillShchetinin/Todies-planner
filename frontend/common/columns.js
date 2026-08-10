@@ -1,79 +1,24 @@
-// Dates written before the year was recorded were all created in 2026, so
-// legacy year-less values resolve there rather than drifting with the clock.
-const LEGACY_DATE_YEAR = 2026;
-
-function resolveYear(rawYear) {
-  if (!rawYear) return LEGACY_DATE_YEAR;
-  const yr = parseInt(rawYear);
-  return yr < 100 ? yr + 2000 : yr;
-}
-
-function parseDateToSortKey(dateStr) {
-  if (!dateStr) return Infinity;
-  const base = dateStr.replace(/\+$/, '');
-  const m = base.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-  if (!m) return Infinity;
-  return resolveYear(m[3]) * 10000 + parseInt(m[1]) * 100 + parseInt(m[2]);
-}
-
-// Empty is allowed (dateless column); otherwise MM/DD[/YYYY] must name a real
-// calendar day — rejects 13/01, 07/45, 02/29 in a non-leap year, 01/2/02/02.
-function isValidColDate(dateStr) {
-  const raw = (dateStr || '').trim();
-  if (!raw) return true;
-  const m = raw.replace(/\+$/, '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-  if (!m) return false;
-  const mo = parseInt(m[1]), day = parseInt(m[2]);
-  if (mo < 1 || mo > 12 || day < 1) return false;
-  const d = new Date(resolveYear(m[3]), mo - 1, day);
-  return d.getMonth() === mo - 1 && d.getDate() === day;
-}
-
-// Pins an explicit year at write time so a stored date can't re-anchor to a
-// later "current year". Leaves unparseable input alone.
-function normalizeColDate(dateStr) {
-  const raw  = (dateStr || '').trim();
-  const plus = raw.endsWith('+') ? '+' : '';
-  const m    = raw.replace(/\+$/, '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-  if (!m) return raw;
-  let yr = m[3] ? parseInt(m[3]) : new Date().getFullYear();
-  if (yr < 100) yr += 2000;
-  return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}/${yr}${plus}`;
-}
-
-// Column headers stay MM/DD — the stored year is not shown.
-function formatColDate(dateStr) {
-  const raw  = (dateStr || '').trim();
-  const plus = raw.endsWith('+') ? '+' : '';
-  const m    = raw.replace(/\+$/, '').match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-  if (!m) return raw;
-  return `${m[1].padStart(2,'0')}/${m[2].padStart(2,'0')}${plus}`;
-}
+// columns.js — creating, deleting and progressively loading columns.
+//
+// A "column" is a form: either a day column (has a date) or a week's
+// unscheduled container (is_unscheduled). Both views render the same columns;
+// nothing here touches view DOM.
 
 function sortColsByDate() {
   cols.sort((a, b) => parseDateToSortKey(a.date) - parseDateToSortKey(b.date));
 }
 
-function inferDay(dateStr) {
-  const m = dateStr.trim().match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-  if (!m) return '';
-  const d  = new Date(resolveYear(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
-  return isNaN(d) ? '' : d.toLocaleDateString('en-US', {weekday:'short'});
+function allCols() { return [...cols, ...weekUnscheduled]; }
+
+// The day column for a date string, or null. Matched on the sort key, so
+// 03/11 and 03/11/2026 name the same column.
+function colForDate(dateStr) {
+  const key = parseDateToSortKey(dateStr);
+  if (key === Infinity) return null;
+  return cols.find(c => parseDateToSortKey(c.date) === key) || null;
 }
 
-// Returns ISO week key "YYYY-Www" and day-of-week index (0=Mon…6=Sun) for a col.
-function colWeekInfo(col) {
-  const base = (col.date || '').replace(/\+$/, '');
-  const m = base.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-  if (!m) return null;
-  const d  = new Date(resolveYear(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
-  if (isNaN(d)) return null;
-  const day = (d.getDay() + 6) % 7; // 0=Mon…6=Sun
-  const thu  = new Date(d); thu.setDate(d.getDate() + (3 - day));
-  const jan4 = new Date(thu.getFullYear(), 0, 4);
-  const week = 1 + Math.round((thu - jan4) / 604800000);
-  return { key: `${thu.getFullYear()}-W${String(week).padStart(2,'0')}`, day };
-}
+function todayCol() { return colForDate(todayDateStr()); }
 
 // Returns the new form's id, or null if it wasn't created.
 async function addCol(label, date) {
@@ -97,11 +42,8 @@ function addNextDay() {
   const dayCols = cols.filter(c => c.date);
   let label = '', date = '';
   if (dayCols.length > 0) {
-    const last = dayCols[dayCols.length - 1];
-    const baseDate = last.date.replace(/\+$/, '');
-    const m = baseDate.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
-    if (m) {
-      const d  = new Date(resolveYear(m[3]), parseInt(m[1]) - 1, parseInt(m[2]));
+    const d = parseColDate(dayCols[dayCols.length - 1].date);
+    if (d) {
       d.setDate(d.getDate() + 1);
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
@@ -110,18 +52,6 @@ function addNextDay() {
     }
   }
   addCol(label || t('dayFallback'), date);
-}
-
-// Monday (day 0) of the ISO week identified by "YYYY-Www".
-function weekKeyToMonday(key) {
-  const m = key.match(/^(\d{4})-W(\d{2})$/);
-  if (!m) return null;
-  const year = parseInt(m[1]), week = parseInt(m[2]);
-  const jan4 = new Date(year, 0, 4);
-  const dow  = (jan4.getDay() + 6) % 7;
-  const monday = new Date(jan4);
-  monday.setDate(jan4.getDate() - dow + (week - 1) * 7);
-  return monday;
 }
 
 // Creates the day form for one empty slot in an already-rendered week
@@ -146,6 +76,8 @@ async function addUnscheduledCol() {
   } catch(e) {}
 }
 
+// Refused client-side as well as server-side (the DELETE returns 409), so the
+// user gets an explanation instead of a silent failure.
 function deleteCol(colId) {
   const tasks = state[colId] || [];
   if (tasks.length > 0) { showAlert(t('deleteColHasTasks')); return; }
@@ -168,13 +100,9 @@ function uniqueWeekKeys() {
 }
 
 async function ensureTodayCol() {
-  const now = new Date();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  const todayStr = `${mm}/${dd}/${now.getFullYear()}`;
-  const todayKey = parseDateToSortKey(todayStr);
-  if (cols.some(c => parseDateToSortKey(c.date) === todayKey)) return;
-  const label = now.toLocaleDateString('en-US', { weekday: 'short' });
+  const todayStr = todayDateStr();
+  if (colForDate(todayStr)) return;
+  const label = new Date().toLocaleDateString('en-US', { weekday: 'short' });
   try {
     const { id } = await formApiCreate({ label, date: todayStr }, false, cols.length);
     cols.push({ id, label, date: todayStr });
@@ -195,21 +123,14 @@ async function ensureUnscheduledForWeeks() {
   }
 }
 
+// ── progressive load ──────────────────────────────────────────────────────
+
 // True when at least one scheduled form's tasks have not been fetched yet.
 // Gated on the session-frozen flag (a session that started with full load has
 // nothing unloaded); the control's presence must not change when customLoad is
 // toggled mid-session.
 function hasUnloadedWeeks() {
   return customLoadActive && cols.some(c => !loadedFormIds.has(c.id));
-}
-
-// The vertical scroll container differs per view: the document scrolls on
-// desktop, #board scrolls on mobile. Prepending week rows must not shift the
-// viewport, so anchor whichever element actually scrolls.
-function _boardScrollEl() {
-  return document.body.dataset.view === 'mobile'
-    ? document.getElementById('board')
-    : document.scrollingElement;
 }
 
 // Reveal older unloaded weeks. Shared by desktop button + mobile chip. Fetches
@@ -245,13 +166,12 @@ async function loadEarlierWeeks() {
   loadingEarlier = true;
   render();  // re-render so the control shows its loading label
 
-  const scroller = _boardScrollEl();
+  const scroller = viewScrollEl();
   const prevTop    = scroller ? scroller.scrollTop    : 0;
   const prevHeight = scroller ? scroller.scrollHeight : 0;
 
   try {
-    const url  = _tasksUrl + (_token ? '&' : '?') + `form_ids=${ids.join(',')}`;
-    const res  = await apiFetch(url, undefined, 'load earlier tasks');
+    const res  = await apiFetch(withParam(TASKS_URL, `form_ids=${ids.join(',')}`), undefined, 'load earlier tasks');
     if (!res.ok) throw new Error('load earlier tasks failed');
     const data = await res.json();
     mergeTasksData(data, ids);
@@ -259,7 +179,7 @@ async function loadEarlierWeeks() {
     loadingEarlier = false;
     render();
     // Keep the viewport anchored: prepended rows grow scrollHeight from the top.
-    const s = _boardScrollEl();
+    const s = viewScrollEl();
     if (s) s.scrollTop = prevTop + (s.scrollHeight - prevHeight);
   } catch (e) {
     loadingEarlier = false;   // loaded data untouched — retry = click again

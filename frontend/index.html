@@ -8,8 +8,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap"></noscript>
-<link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="mobile.css">
+<!-- base → desktop → mobile: each layer may override the one before it. -->
+<link rel="stylesheet" href="common/base.css">
+<link rel="stylesheet" href="desktop/desktop.css">
+<link rel="stylesheet" href="mobile/mobile.css">
 </head>
 <body>
 
@@ -68,24 +70,44 @@
   <div class="board" id="board"></div>
 </div>
 
-<script defer src="sidebar.js"></script>
-<script defer src="collapse.js"></script>
-<script defer src="constants.js"></script>
-<script defer src="api.js"></script>
-<script defer src="i18n.js"></script>
-<script defer src="state.js"></script>
-<script defer src="undo.js"></script>
-<script defer src="modal.js"></script>
-<script defer src="labels.js"></script>
-<script defer src="tasks.js"></script>
-<script defer src="columns.js"></script>
-<script defer src="scale.js"></script>
-<script defer src="add-label-panel.js"></script>
-<script defer src="context-menu.js"></script>
-<script defer src="legend.js"></script>
-<script defer src="mobile.js"></script>
-<script defer src="board.js"></script>
-<script defer src="showcase.js"></script>
-<script defer src="app.js"></script>
+<!--
+  Three layers, loaded in dependency order. There is no bundler: these are
+  plain deferred scripts sharing one global scope, so the order below IS the
+  dependency graph.
+
+    common/   view-agnostic — model, API, dates, i18n, shared widgets
+    desktop/  desktop-only DOM and gestures
+    mobile/   mobile-only DOM and gestures
+
+  Both renderers are always loaded (the viewport can cross the breakpoint at
+  any time) but only the one view.js selects ever renders. common/ must never
+  reference a symbol from desktop/ or mobile/, and those two must never
+  reference each other.
+-->
+<script defer src="common/constants.js"></script>
+<script defer src="common/i18n.js"></script>
+<script defer src="common/api.js"></script>
+<script defer src="common/undo.js"></script>
+<script defer src="common/collapse.js"></script>
+<script defer src="common/state.js"></script>
+<script defer src="common/dates.js"></script>
+<script defer src="common/columns.js"></script>
+<script defer src="common/tasks.js"></script>
+<script defer src="common/types.js"></script>
+<script defer src="common/settings.js"></script>
+<script defer src="common/modal.js"></script>
+<script defer src="common/add-label-panel.js"></script>
+<script defer src="common/view.js"></script>
+<script defer src="common/showcase.js"></script>
+
+<script defer src="desktop/collapse-view.js"></script>
+<script defer src="desktop/legend.js"></script>
+<script defer src="desktop/context-menu.js"></script>
+<script defer src="desktop/board.js"></script>
+<script defer src="desktop/chrome.js"></script>
+
+<script defer src="mobile/mobile.js"></script>
+
+<script defer src="common/boot.js"></script>
 </body>
 </html>

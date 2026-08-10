@@ -1,5 +1,9 @@
 # Frontend Performance: Analysis & Work Log
 
+> **Note:** written before `frontend/` was split into `common/`, `desktop/` and
+> `mobile/`. The file paths below are historical; see CLAUDE.md for the
+> current layout.
+
 ## Problem
 
 Page refresh takes 500ms+ before content is visible. The app is blank until the full load/render cycle completes.

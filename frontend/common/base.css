@@ -1,0 +1,220 @@
+/* base.css — the app shell: design tokens, the page itself, and every widget
+   both views share (task cards, modals, the add-label panel).
+
+   Load order is base → desktop → mobile: desktop.css layers the board and the
+   left action bar on top, and mobile.css overrides both under
+   body[data-view="mobile"]. */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:           #dcc8a0;
+  --surface:      #f0eeea;
+  --surface2:     #e6e3de;
+  --border:       rgba(0,0,0,0.08);
+  --border-hover: rgba(0,0,0,0.18);
+  --text:         #1a1a1a;
+  --text-muted:   #666;
+  --text-dim:     #aaa;
+  --accent:       #2a2a2a;
+  --mono:         'DM Mono', 'Consolas', 'Courier New', monospace;
+  --sans:         'DM Sans', system-ui, -apple-system, sans-serif;
+  --ui-scale:     1;
+
+  /* mobile tokens */
+  --today-ring:    rgba(220,100,20,0.55);
+  --today-text:    #c25400;
+  --sky-from:      #b8ddf0;
+  --sky-mid:       #cce8f5;
+  --sky-to:        #ddf0f8;
+  --sky-border:    rgba(80,150,200,0.30);
+  --sky-text:      #3a6a8a;
+  --sky-text-dark: #1a4a6a;
+  --scrim:         rgba(0,0,0,0.36);
+  --sheet-radius:  18px;
+  --mobile-bp:     720px;
+}
+
+body {
+  background-color: #dcc8a0;
+  background-image:
+    /* scratched edges vignette */
+    radial-gradient(ellipse 120% 100% at 50% 50%, transparent 55%, rgba(0,0,0,0.30) 100%),
+    /* corner darkening */
+    radial-gradient(ellipse 40% 40% at 0% 0%,   rgba(0,0,0,0.16) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 100% 0%,  rgba(0,0,0,0.14) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 0% 100%,  rgba(0,0,0,0.18) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 100% 100%,rgba(0,0,0,0.16) 0%, transparent 70%),
+    /* scratch lines */
+    repeating-linear-gradient(
+      174deg,
+      transparent 0px, transparent 18px,
+      rgba(0,0,0,0.04) 18px, rgba(0,0,0,0.04) 19px,
+      transparent 19px, transparent 34px,
+      rgba(255,255,255,0.05) 34px, rgba(255,255,255,0.05) 35px
+    ),
+    repeating-linear-gradient(
+      178deg,
+      transparent 0px, transparent 7px,
+      rgba(0,0,0,0.025) 7px, rgba(0,0,0,0.025) 8px
+    ),
+    /* wide plank variation */
+    repeating-linear-gradient(
+      180deg,
+      transparent 0px, transparent 60px,
+      rgba(0,0,0,0.035) 60px, rgba(0,0,0,0.035) 62px,
+      transparent 62px, transparent 130px,
+      rgba(255,255,255,0.04) 130px, rgba(255,255,255,0.04) 132px
+    ),
+    /* base — light beige wood */
+    linear-gradient(168deg, #e2cfa8 0%, #d8c298 30%, #d0ba90 55%, #dac49c 80%, #e0cca6 100%);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  padding: calc(24px * var(--ui-scale));
+  padding-left: calc(24px * var(--ui-scale) + 64px);
+}
+
+/* ── today flame (both views) ── */
+.today-flames { display: inline-flex; align-items: center; gap: 1px; line-height: 1; pointer-events: none; }
+.today-flames span { font-size: 14px; display: inline-block; animation: flame-flicker 1.3s ease-in-out infinite alternate; filter: drop-shadow(0 0 3px rgba(255,100,0,0.7)); }
+.today-flames span:nth-child(1) { animation-delay: 0s;    animation-duration: 1.1s; }
+.today-flames span:nth-child(2) { animation-delay: 0.25s; animation-duration: 1.4s; font-size: 16px; }
+.today-flames span:nth-child(3) { animation-delay: 0.1s;  animation-duration: 1.2s; }
+@keyframes flame-flicker {
+  0%   { transform: scaleY(1)    scaleX(1)    rotate(-3deg); opacity: 0.8; }
+  25%  { transform: scaleY(1.12) scaleX(0.92) rotate(2deg);  opacity: 1;   }
+  55%  { transform: scaleY(0.93) scaleX(1.06) rotate(-2deg); opacity: 0.9; }
+  80%  { transform: scaleY(1.08) scaleX(0.95) rotate(3deg);  opacity: 1;   }
+  100% { transform: scaleY(0.97) scaleX(1.02) rotate(-1deg); opacity: 0.85;}
+}
+
+/* ── tasks (shared card; desktop adds its own hover actions) ── */
+.task { font-size: calc(12px * var(--ui-scale)); font-family: var(--sans); padding: calc(5px * var(--ui-scale)) calc(8px * var(--ui-scale)); border-radius: 6px; border: 1px solid; cursor: grab; user-select: none; line-height: 1.4; display: flex; align-items: flex-start; justify-content: space-between; gap: calc(5px * var(--ui-scale)); transition: opacity 0.15s, transform 0.1s; }
+.task:active { cursor: grabbing; opacity: 0.5; transform: scale(0.97); }
+.task-text { flex: 1; word-break: break-word; }
+.task-inline-edit { flex: 1; font-size: inherit; font-family: inherit; color: inherit; background: transparent; border: none; border-bottom: 1px solid currentColor; outline: none; padding: 0; margin: 0; width: 100%; min-width: 0; }
+
+/* a task whose create POST is still in flight */
+.task.pending { opacity: 0.6; }
+.task-important { flex-shrink: 0; color: #e8130d; font-weight: 700; font-size: calc(16px * var(--ui-scale)); line-height: 1; margin-right: calc(2px * var(--ui-scale)); align-self: center; }
+
+/* ── cancelled task overlay ── */
+.task.cancelled {
+  position: relative;
+  overflow: hidden;
+}
+.task.cancelled::before,
+.task.cancelled::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.task.cancelled::before {
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 0.6px),
+    rgba(180,30,30,0.55) calc(50% - 0.6px),
+    rgba(180,30,30,0.55) calc(50% + 0.6px),
+    transparent calc(50% + 0.6px)
+  );
+}
+.task.cancelled::after {
+  background: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 0.6px),
+    rgba(180,30,30,0.55) calc(50% - 0.6px),
+    rgba(180,30,30,0.55) calc(50% + 0.6px),
+    transparent calc(50% + 0.6px)
+  );
+}
+
+
+/* ── add-task button (desktop column footer, mobile day hero) ── */
+.add-btn { font-size: calc(11px * var(--ui-scale)); font-family: var(--mono); color: var(--text-dim); background: none; border: 1px dashed var(--border); border-radius: 6px; padding: calc(4px * var(--ui-scale)) calc(8px * var(--ui-scale)); cursor: pointer; width: 100%; text-align: left; transition: border-color 0.15s, color 0.15s; margin-top: 1px; }
+.add-btn:hover { border-color: var(--border-hover); color: var(--text-muted); }
+.add-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── colour swatch grid (context menu + add-label panel) ── */
+.ctx-colors { display: flex; flex-wrap: wrap; gap: calc(5px * var(--ui-scale)); padding: calc(6px * var(--ui-scale)) calc(8px * var(--ui-scale)); }
+.ctx-swatch {
+  width: calc(20px * var(--ui-scale)); height: calc(20px * var(--ui-scale)); border-radius: 4px; border: 1.5px solid;
+  cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; padding: 0;
+}
+.ctx-swatch:hover   { transform: scale(1.2); }
+.ctx-swatch.selected { box-shadow: 0 0 0 2px var(--accent); transform: scale(1.1); }
+.ctx-swatch:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── add label panel ── */
+#addLabelPanel {
+  display: none; position: fixed; top: calc(56px * var(--ui-scale)); right: calc(24px * var(--ui-scale)); z-index: 200;
+  background: var(--surface); border: 1px solid var(--border-hover);
+  border-radius: 10px; padding: calc(14px * var(--ui-scale)) calc(16px * var(--ui-scale)); width: calc(220px * var(--ui-scale));
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+}
+.add-panel-title {
+  font-family: var(--mono); font-size: calc(11px * var(--ui-scale)); font-weight: 500;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.07em;
+  margin-bottom: calc(9px * var(--ui-scale));
+}
+#addLabelPanel input {
+  width: 100%; font-size: calc(12px * var(--ui-scale)); font-family: var(--sans);
+  background: var(--surface2); border: 1px solid var(--border-hover);
+  border-radius: 6px; padding: calc(5px * var(--ui-scale)) calc(8px * var(--ui-scale)); color: var(--text); outline: none;
+  margin-bottom: calc(8px * var(--ui-scale));
+}
+#addLabelPanel input:focus { border-color: rgba(0,0,0,0.3); }
+
+/* ── modal ── */
+#modalOverlay {
+  display: none; position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.32);
+  align-items: center; justify-content: center;
+}
+.modal-card {
+  background: var(--surface); border: 1px solid var(--border-hover);
+  border-radius: 10px; padding: 20px 22px;
+  max-width: 300px; width: calc(100% - 48px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  display: flex; flex-direction: column; gap: 16px;
+}
+.modal-message {
+  font-family: var(--mono); font-size: 12px;
+  color: var(--text); line-height: 1.55;
+}
+.modal-btns { display: flex; gap: 7px; justify-content: flex-end; }
+.modal-btn {
+  font-size: 11px; font-family: var(--mono);
+  padding: 5px 14px; border-radius: 6px;
+  border: 1px solid var(--border-hover);
+  cursor: pointer; background: var(--surface2); color: var(--text-muted);
+  transition: background 0.12s, color 0.12s;
+}
+.modal-btn:hover { background: var(--surface); color: var(--text); }
+.modal-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.modal-btn-danger { background: #fdecea; border-color: #f5bdb8; color: #8a2020; }
+.modal-btn-danger:hover { background: #f9d8d5; color: #6a1010; }
+.modal-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.modal-btn-primary:hover { opacity: 0.85; }
+.modal-card-wide { max-width: 420px; }
+.modal-textarea {
+  width: 100%; box-sizing: border-box; min-height: 140px; resize: vertical;
+  font-family: var(--mono); font-size: 12px; color: var(--text); line-height: 1.55;
+  background: var(--surface2); border: 1px solid var(--border-hover);
+  border-radius: 6px; padding: 8px 10px;
+}
+.modal-textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.modal-token-row { display: flex; gap: 6px; align-items: center; }
+.modal-token-input {
+  flex: 1; min-width: 0;
+  font-family: var(--mono); font-size: 11px; color: var(--text);
+  background: var(--surface2); border: 1px solid var(--border-hover);
+  border-radius: 6px; padding: 5px 8px;
+}
+
+/* ── scrollbar ── */
+::-webkit-scrollbar { height: 4px; width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 4px; }
+

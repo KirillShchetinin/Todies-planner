@@ -1,28 +1,17 @@
-const DEFAULT_COLS = [
-  {id:'mon', label:'Mon', date:'04/27'},
-  {id:'tue', label:'Tue', date:''},
-  {id:'wed', label:'Wed', date:''},
-  {id:'thu', label:'Thu', date:''},
-  {id:'fri', label:'Fri', date:''},
-  {id:'sat', label:'Sat', date:''},
-  {id:'sun', label:'Sun', date:''},
-];
+// constants.js — values with no behaviour, shared by every layer.
 
-const DEFAULT_WEEK_UNSCHEDULED = [
-  {id:'unscheduled', label:'Unscheduled'},
-  {id:'unscheduled_w1', label:'Unscheduled'},
-];
-
-const INIT_TASKS = [
-  {id:'t1', text:'Task A', type:'Random', col:'mon'},
-  {id:'t2', text:'Task B', type:'Random', col:'wed'},
-];
+// The one place the desktop/mobile split is defined. mobile.css keys its
+// `body[data-view="mobile"]` rules to the same width.
+const MOBILE_BREAKPOINT = 720;
 
 const DEFAULT_TYPE_CONFIG = {
   'Random': { label:'Random', bg:'#f2f2f0', border:'#d8d8d4', text:'#444444' },
 };
 
 const DEFAULT_LEGEND_ORDER = ['Random'];
+
+// Used when a type key is missing from typeConfig entirely.
+const FALLBACK_TYPE_STYLE = { bg:'#f2f2f0', border:'#d8d8d4', text:'#444' };
 
 const COLOR_PRESETS = [
   { bg:'#e8f0fa', border:'#b5cff0', text:'#1a4a8a' },

@@ -34,17 +34,13 @@ test('scroll-to-today scrolls #board, never the document', async ({ page, planne
     _didInitialScroll = false;
     _scrollToToday();
   });
-  await page.waitForTimeout(100);
 
-  const m = await page.evaluate(() => ({
-    docScrollTop: document.scrollingElement.scrollTop,
-    headerTop:    document.getElementById('mobile-header').getBoundingClientRect().top,
-    boardScrolled: document.getElementById('board').scrollTop > 0,
-  }));
-
-  expect(m.docScrollTop).toBe(0);
-  expect(m.headerTop).toBe(0);
-  expect(m.boardScrolled).toBe(true);
+  // The scroll lands in a rAF callback, so poll rather than sleep on it.
+  await expect.poll(() => page.evaluate(
+    () => document.getElementById('board').scrollTop > 0)).toBe(true);
+  expect(await page.evaluate(() => document.scrollingElement.scrollTop)).toBe(0);
+  expect(await page.evaluate(
+    () => document.getElementById('mobile-header').getBoundingClientRect().top)).toBe(0);
 });
 
 test('a document scroll from anywhere is snapped back', async ({ page, planner }) => {
@@ -53,15 +49,12 @@ test('a document scroll from anywhere is snapped back', async ({ page, planner }
   await page.addStyleTag({ content: 'body[data-view="mobile"] { min-height: calc(100vh + 120px); }' });
 
   await page.evaluate(() => { document.scrollingElement.scrollTop = 120; });
-  await page.waitForTimeout(100);
 
-  const m = await page.evaluate(() => ({
-    docScrollTop: document.scrollingElement.scrollTop,
-    headerTop:    document.getElementById('mobile-header').getBoundingClientRect().top,
-  }));
-
-  expect(m.docScrollTop).toBe(0);
-  expect(m.headerTop).toBe(0);
+  // The snap-back runs on the scroll event, which fires asynchronously.
+  await expect.poll(() => page.evaluate(
+    () => document.scrollingElement.scrollTop)).toBe(0);
+  expect(await page.evaluate(
+    () => document.getElementById('mobile-header').getBoundingClientRect().top)).toBe(0);
 });
 
 test('the quick-add floats over the board instead of sitting on a strip of its own', async ({ page, planner }) => {

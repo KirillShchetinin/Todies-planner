@@ -268,8 +268,15 @@ and create them in the legend panel.
 ## Tests
 
 Backend: `tests/conftest.py` monkeypatches `connections.DB_PATH` to a temp file
-per test, and the `seed` fixture gives `.user()`, `.form()`, `.task()`. It also
-keeps the legacy single-blob schema around for the migration tests.
+per test and builds it with the app's own `init_db()`, so tests run against the
+production schema. Three fixtures cover the ways a test reaches the data: `seed`
+(`.user()`, `.form()`, `.task()`) inserts rows directly, `api` (`.form()`,
+`.task()`, `.tasks()`, `.forms()`) builds a board through the HTTP endpoints,
+and `db` (`.exec()`, `.one()`) reads back what landed.
+
+`tests/test_layering.py` enforces the frontend layer split — common/ must not
+reference a desktop/ or mobile/ symbol, and neither renderer may reference the
+other. Nothing at runtime enforces it (one global scope), so it is checked here.
 
 E2E: Playwright boots `tests/e2e/server.py` itself (same app, `TODIES_DB_PATH`
 pointed at a throwaway db). Every test seeds **its own user** so the suite runs

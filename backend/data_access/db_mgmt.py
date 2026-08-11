@@ -12,7 +12,6 @@ from backend.data_access import connections
 BACKUP_INTERVAL_SECONDS = 4 * 60 * 60
 SIMULATE_RESTART_INTERVAL_SECONDS = 24 * 60 * 60
 
-
 def init_db(interval = SIMULATE_RESTART_INTERVAL_SECONDS):
     conn = connections._connect()
     conn.executescript('''
@@ -50,9 +49,27 @@ def init_db(interval = SIMULATE_RESTART_INTERVAL_SECONDS):
         );
     ''')
     conn.commit()
-    
+
     apply_migrations(conn)
+
+    # Adding one more table to the sql lite. Currently not active since functionality not ready.
+    # init_user_feedback_db_table(conn)
     conn.close()
+
+
+# Currently not called by design.
+def init_user_feedback_db_table(conn):
+    conn.executescript('''
+        CREATE TABLE IF NOT EXISTS user_feedback (
+            id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id  INTEGER NOT NULL REFERENCES users(id),
+            type     TEXT    NOT NULL DEFAULT '',
+            feedback TEXT    NOT NULL DEFAULT '',
+            metadata TEXT    NOT NULL DEFAULT '{}',
+            status   TEXT    NOT NULL DEFAULT ''
+        );
+    ''')
+    conn.commit()
 
 
 def backup(backup_dir):

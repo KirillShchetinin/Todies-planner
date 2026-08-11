@@ -41,7 +41,10 @@ function _scrollToToday() {
     const todayEl = document.querySelector('.mob-day-hero.is-today');
     if (!todayEl) return;
     _didInitialScroll = true;
-    todayEl.scrollIntoView({ block: 'start', behavior: 'auto' });
+    // Scroll #board itself: scrollIntoView also scrolls every ancestor, and the
+    // document must never move on mobile — it can't be scrolled back.
+    const board = document.getElementById('board');
+    board.scrollTop += todayEl.getBoundingClientRect().top - board.getBoundingClientRect().top;
   });
 }
 

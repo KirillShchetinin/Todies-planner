@@ -8,6 +8,11 @@ body[data-view="mobile"] {
   overflow: hidden;
   height: 100vh;
   height: 100dvh;
+  /* base.css sets min-height: 100vh, which on iOS resolves taller than the
+     visible viewport and wins over the height above — so the document
+     overflows anyway. overflow: hidden only stops the *user* scrolling it,
+     not scrollIntoView, which would then strand the header off screen. */
+  min-height: 0;
 }
 body[data-view="mobile"] #actbar  { display: none; }
 body[data-view="mobile"] #main > header { display: none; }

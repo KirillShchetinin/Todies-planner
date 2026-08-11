@@ -6,6 +6,9 @@ Strategy:
     in `backend.data_access.connections`. We monkeypatch that constant to point
     at a temporary file for each test, giving full isolation without touching
     the real planner_db.db.
+  - The schema is built by the app's own `init_db()`, so tests run against the
+    production schema (constraints and defaults included) rather than a copy
+    that can drift from it.
   - The Flask `app` is constructed once at import time in
     `backend.controllers.controller` and is reused; we put it into TESTING mode
     and rely on per-test DB swap plus `g`-scoped connections to keep tests isolated.
@@ -14,6 +17,7 @@ import json
 import os
 import sqlite3
 import sys
+from contextlib import closing
 
 import pytest
 
@@ -22,91 +26,49 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from backend.controllers import controller  # noqa: E402
-from backend.data_access import connections  # noqa: E402
-
-
-# ── DB schemas ────────────────────────────────────────────────────────────
-
-LEGACY_SCHEMA = """
-CREATE TABLE IF NOT EXISTS users (
-    id    INTEGER PRIMARY KEY AUTOINCREMENT,
-    token TEXT    NOT NULL UNIQUE
-);
-CREATE TABLE IF NOT EXISTS planner_state (
-    user_id INTEGER UNIQUE REFERENCES users(id),
-    data    TEXT    NOT NULL
-);
-"""
-
-NORMALIZED_SCHEMA = """
-CREATE TABLE IF NOT EXISTS users (
-    id       INTEGER PRIMARY KEY AUTOINCREMENT,
-    token    TEXT NOT NULL UNIQUE,
-    metadata TEXT NOT NULL
-);
-CREATE TABLE IF NOT EXISTS forms (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id         INTEGER NOT NULL REFERENCES users(id),
-    client_id       TEXT NOT NULL,
-    label           TEXT NOT NULL,
-    date            TEXT,
-    is_unscheduled  INTEGER,
-    sort_order      INTEGER
-);
-CREATE TABLE IF NOT EXISTS tasks (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id         INTEGER NOT NULL REFERENCES users(id),
-    form_id         INTEGER NOT NULL REFERENCES forms(id),
-    client_id       TEXT NOT NULL,
-    name            TEXT NOT NULL,
-    done            INTEGER,
-    sort_order      INTEGER,
-    metadata        TEXT NOT NULL,
-    created_at      TEXT,
-    updated_at      TEXT
-);
-CREATE TABLE IF NOT EXISTS task_content (
-    task_id     INTEGER PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
-    content     TEXT NOT NULL DEFAULT ''
-);
-"""
-
-
-def _create_normalized_db(path):
-    conn = sqlite3.connect(path)
-    try:
-        conn.executescript(NORMALIZED_SCHEMA)
-        conn.commit()
-    finally:
-        conn.close()
+from backend.data_access import connections, db_mgmt  # noqa: E402
 
 
 # ── fixtures ──────────────────────────────────────────────────────────────
 
 @pytest.fixture
-def db_paths(tmp_path, monkeypatch):
-    """
-    Redirect data_access to use a fresh temp DB file for this test.
-
-    Yields a dict with the path. The DB starts with the schema applied
-    but no rows.
-    """
-    new_path = tmp_path / "planner_db.db"
-    _create_normalized_db(str(new_path))
-
-    monkeypatch.setattr(connections, "DB_PATH", str(new_path))
-
-    yield {"new": str(new_path)}
+def db_path(tmp_path, monkeypatch):
+    """Redirect data_access at a fresh temp DB: real schema, no rows."""
+    path = str(tmp_path / "planner_db.db")
+    monkeypatch.setattr(connections, "DB_PATH", path)
+    db_mgmt.init_db()
+    return path
 
 
 @pytest.fixture
-def app(db_paths):
+def db(db_path):
+    """Direct SQL against the test DB, for setup and for asserting what landed."""
+    class _Db:
+        @staticmethod
+        def exec(sql, *params):
+            """Run a write. Returns the new row id."""
+            with closing(sqlite3.connect(db_path)) as conn:
+                row_id = conn.execute(sql, params).lastrowid
+                conn.commit()
+                return row_id
+
+        @staticmethod
+        def one(sql, *params):
+            """First row, or None."""
+            with closing(sqlite3.connect(db_path)) as conn:
+                return conn.execute(sql, params).fetchone()
+
+    return _Db
+
+
+@pytest.fixture
+def app(db_path):
     """
     Flask app in TESTING mode, with DB path pointed at a temp file.
 
     The app object itself is the module-level singleton from
     `backend.controllers.controller`; we just toggle config and lean on the
-    `db_paths` fixture for isolation.
+    `db_path` fixture for isolation.
     """
     flask_app = controller.app
     prev_testing = flask_app.config.get("TESTING")
@@ -131,54 +93,10 @@ def app_ctx(app):
 
 # ── seeding helpers ───────────────────────────────────────────────────────
 
-def _seed_user(new_path, token, metadata=None):
-    conn = sqlite3.connect(new_path)
-    try:
-        cur = conn.execute(
-            "INSERT INTO users (token, metadata) VALUES (?, ?)",
-            (token, json.dumps(metadata or {})),
-        )
-        conn.commit()
-        return cur.lastrowid
-    finally:
-        conn.close()
-
-
-def _seed_form(new_path, user_id, client_id, label,
-               date=None, is_unscheduled=0, sort_order=0):
-    conn = sqlite3.connect(new_path)
-    try:
-        cur = conn.execute(
-            "INSERT INTO forms (user_id, client_id, label, date, is_unscheduled, sort_order)"
-            " VALUES (?, ?, ?, ?, ?, ?)",
-            (user_id, client_id, label, date, is_unscheduled, sort_order),
-        )
-        conn.commit()
-        return cur.lastrowid
-    finally:
-        conn.close()
-
-
-def _seed_task(new_path, user_id, form_id, client_id, name,
-               done=0, sort_order=0, metadata=None):
-    conn = sqlite3.connect(new_path)
-    try:
-        cur = conn.execute(
-            "INSERT INTO tasks (user_id, form_id, client_id, name, done, sort_order, metadata)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (user_id, form_id, client_id, name, done, sort_order,
-             json.dumps(metadata or {})),
-        )
-        conn.commit()
-        return cur.lastrowid
-    finally:
-        conn.close()
-
-
 @pytest.fixture
-def seed(db_paths):
+def seed(db):
     """
-    Bundled seeding helpers bound to the current test's temp DB path.
+    Rows inserted straight into the test DB, bypassing the API.
 
     Usage:
         def test_x(seed, app_ctx):
@@ -186,20 +104,26 @@ def seed(db_paths):
             fid = seed.form(uid, "col1", "Mon", date="01/15", sort_order=0)
             seed.task(uid, fid, "task1", "Buy milk")
     """
-    new_path = db_paths["new"]
-
     class _Seed:
         @staticmethod
         def user(token, metadata=None):
-            return _seed_user(new_path, token, metadata)
+            return db.exec("INSERT INTO users (token, metadata) VALUES (?, ?)",
+                           token, json.dumps(metadata or {}))
 
         @staticmethod
-        def form(user_id, client_id, label, **kw):
-            return _seed_form(new_path, user_id, client_id, label, **kw)
+        def form(user_id, client_id, label, date='', is_unscheduled=0, sort_order=0):
+            return db.exec(
+                "INSERT INTO forms (user_id, client_id, label, date, is_unscheduled, sort_order)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
+                user_id, client_id, label, date, is_unscheduled, sort_order)
 
         @staticmethod
-        def task(user_id, form_id, client_id, name, **kw):
-            return _seed_task(new_path, user_id, form_id, client_id, name, **kw)
+        def task(user_id, form_id, client_id, name, done=0, sort_order=0, metadata=None):
+            return db.exec(
+                "INSERT INTO tasks (user_id, form_id, client_id, name, done, sort_order, metadata)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                user_id, form_id, client_id, name, done, sort_order,
+                json.dumps(metadata or {}))
 
     return _Seed
 
@@ -228,3 +152,48 @@ def two_tokens(seed):
     seed.user(_TOKEN_A, _DEFAULT_META)
     seed.user(_TOKEN_B, _DEFAULT_META)
     return _TOKEN_A, _TOKEN_B
+
+
+@pytest.fixture
+def api(client):
+    """Requests to the app, with the token folded in."""
+    class _Api:
+        # Raw requests with the token folded into the query string. Query
+        # params for GET/DELETE, JSON body for POST/PUT.
+        @staticmethod
+        def get(token, path, **params):
+            return client.get(path, query_string={'token': token, **params})
+
+        @staticmethod
+        def post(token, path, **body):
+            return client.post(path, query_string={'token': token}, json=body)
+
+        @staticmethod
+        def put(token, path, **body):
+            return client.put(path, query_string={'token': token}, json=body)
+
+        @staticmethod
+        def delete(token, path):
+            return client.delete(path, query_string={'token': token})
+
+        # Board building for tests whose subject is something else. These
+        # assert nothing — a failed create surfaces as a KeyError on the body.
+        @staticmethod
+        def form(token, **kw):
+            return _Api.post(token, '/api/v2/forms',
+                             **{'label': 'Mon', **kw}).get_json()['id']
+
+        @staticmethod
+        def task(token, form_id, **kw):
+            return _Api.post(token, '/api/v2/tasks',
+                             **{'form_id': form_id, **kw}).get_json()['id']
+
+        @staticmethod
+        def tasks(token):
+            return _Api.get(token, '/api/v2/tasks').get_json()['tasks']
+
+        @staticmethod
+        def forms(token):
+            return _Api.get(token, '/api/v2/forms').get_json()
+
+    return _Api

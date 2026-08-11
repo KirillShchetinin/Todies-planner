@@ -5,6 +5,8 @@ These call the data_access layer directly (rather than HTTP) so a fixed
 """
 import datetime
 
+import pytest
+
 from backend.data_access import forms as DA_forms
 from backend.data_access import tasks as DA_tasks
 
@@ -12,10 +14,15 @@ from backend.data_access import tasks as DA_tasks
 TODAY = datetime.date(2026, 6, 22)  # Monday
 
 
+@pytest.fixture
+def uid(seed):
+    """The user every test here seeds its forms under."""
+    return seed.user('tok')
+
+
 # ── get_recent_forms ──────────────────────────────────────────────────────
 
-def test_recent_forms_keeps_previous_week_and_drops_older(seed, app_ctx):
-    uid = seed.user('tok')
+def test_recent_forms_keeps_previous_week_and_drops_older(seed, app_ctx, uid):
     # Latest form 06/22 -> -14d = 06/08 -> week start 06/08. prev_week_start
     # = 06/15. lower = min(06/15, 06/08) = 06/08. So 06/10 is in, 06/01 is out.
     seed.form(uid, 'a', 'Latest', date='06/22', sort_order=0)
@@ -29,8 +36,7 @@ def test_recent_forms_keeps_previous_week_and_drops_older(seed, app_ctx):
     assert unscheduled == []
 
 
-def test_recent_forms_includes_unscheduled(seed, app_ctx):
-    uid = seed.user('tok')
+def test_recent_forms_includes_unscheduled(seed, app_ctx, uid):
     seed.form(uid, 'a', 'Backlog', is_unscheduled=1, sort_order=0)
     seed.form(uid, 'b', 'Recent', date='06/20', sort_order=1)
 
@@ -39,14 +45,13 @@ def test_recent_forms_includes_unscheduled(seed, app_ctx):
     assert [c['label'] for c in cols] == ['Recent']
 
 
-def test_recent_forms_extends_back_for_far_future_latest(seed, app_ctx):
+def test_recent_forms_extends_back_for_far_future_latest(seed, app_ctx, uid):
     """When the latest form is well past today, the window widens backward.
 
     Latest = 07/20 -> latest-14d = 07/06 -> its week start = 07/06 (Monday).
     prev_week_start = 06/15. Lower bound = min(06/15, 07/06) = 06/15, so a
     form on 06/16 is still included even though it predates the future cluster.
     """
-    uid = seed.user('tok')
     seed.form(uid, 'a', 'Future', date='07/20', sort_order=0)
     seed.form(uid, 'b', 'Mid', date='06/16', sort_order=1)
     seed.form(uid, 'c', 'Old', date='06/01', sort_order=2)
@@ -56,10 +61,9 @@ def test_recent_forms_extends_back_for_far_future_latest(seed, app_ctx):
     assert labels == {'Future', 'Mid'}
 
 
-def test_recent_forms_lower_bound_uses_earlier_of_two(seed, app_ctx):
+def test_recent_forms_lower_bound_uses_earlier_of_two(seed, app_ctx, uid):
     """If the latest form is far in the future, latest-based bound wins only
     when it is earlier than the previous-week bound."""
-    uid = seed.user('tok')
     # Latest 09/30 -> -14d = 09/16 -> week start 09/14. prev_week_start 06/15.
     # min = 06/15, so 06/16 included, 06/08 excluded.
     seed.form(uid, 'a', 'Far', date='09/30', sort_order=0)
@@ -72,8 +76,7 @@ def test_recent_forms_lower_bound_uses_earlier_of_two(seed, app_ctx):
     assert 'Edge out' not in labels
 
 
-def test_recent_forms_preserves_sort_order(seed, app_ctx):
-    uid = seed.user('tok')
+def test_recent_forms_preserves_sort_order(seed, app_ctx, uid):
     seed.form(uid, 'a', 'Second', date='06/18', sort_order=5)
     seed.form(uid, 'b', 'First', date='06/16', sort_order=2)
 
@@ -81,14 +84,13 @@ def test_recent_forms_preserves_sort_order(seed, app_ctx):
     assert [c['label'] for c in cols] == ['First', 'Second']
 
 
-def test_recent_forms_days_widens_latest_extension(seed, app_ctx):
+def test_recent_forms_days_widens_latest_extension(seed, app_ctx, uid):
     """A larger ``days`` pushes the latest-based bound further back.
 
     Latest 07/20. With days=14 -> -14d=07/06 -> week start 07/06; the prev-week
     bound 06/15 wins, so 05/25 is excluded. With days=60 -> -60d=05/21 -> week
     start 05/18, which is earlier, so 05/25 becomes reachable.
     """
-    uid = seed.user('tok')
     seed.form(uid, 'a', 'Future', date='07/20', sort_order=0)
     seed.form(uid, 'b', 'Late May', date='05/25', sort_order=1)
 
@@ -101,8 +103,7 @@ def test_recent_forms_days_widens_latest_extension(seed, app_ctx):
 
 # ── get_tasks_in_range ────────────────────────────────────────────────────
 
-def test_tasks_in_range_inclusive_bounds(seed, app_ctx):
-    uid = seed.user('tok')
+def test_tasks_in_range_inclusive_bounds(seed, app_ctx, uid):
     f_lo = seed.form(uid, 'lo', 'Lo', date='06/10')
     f_mid = seed.form(uid, 'mid', 'Mid', date='06/15')
     f_hi = seed.form(uid, 'hi', 'Hi', date='06/20')
@@ -118,8 +119,7 @@ def test_tasks_in_range_inclusive_bounds(seed, app_ctx):
     assert names == {'Lo task', 'Mid task', 'Hi task'}
 
 
-def test_tasks_in_range_excludes_unscheduled(seed, app_ctx):
-    uid = seed.user('tok')
+def test_tasks_in_range_excludes_unscheduled(seed, app_ctx, uid):
     f_sched = seed.form(uid, 's', 'Sched', date='06/15')
     f_uns = seed.form(uid, 'u', 'Backlog', is_unscheduled=1)
     seed.task(uid, f_sched, 't1', 'Scheduled')
@@ -132,8 +132,7 @@ def test_tasks_in_range_excludes_unscheduled(seed, app_ctx):
 
 # ── get_tasks_for_forms ───────────────────────────────────────────────────
 
-def test_tasks_for_forms_filters_by_id(seed, app_ctx):
-    uid = seed.user('tok')
+def test_tasks_for_forms_filters_by_id(seed, app_ctx, uid):
     f1 = seed.form(uid, 'f1', 'F1', date='06/15')
     f2 = seed.form(uid, 'f2', 'F2', date='06/16')
     f3 = seed.form(uid, 'f3', 'F3', date='06/17')
@@ -145,8 +144,7 @@ def test_tasks_for_forms_filters_by_id(seed, app_ctx):
     assert {t['name'] for t in tasks} == {'One', 'Three'}
 
 
-def test_tasks_for_forms_empty_list(seed, app_ctx):
-    uid = seed.user('tok')
+def test_tasks_for_forms_empty_list(seed, app_ctx, uid):
     f1 = seed.form(uid, 'f1', 'F1', date='06/15')
     seed.task(uid, f1, 't1', 'One')
     assert DA_tasks.get_tasks_for_forms(uid, []) == []

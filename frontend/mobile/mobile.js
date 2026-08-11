@@ -113,27 +113,19 @@ function _renderMobileHeader() {
   hdr.innerHTML = '';
 
   // Title row
-  const titleRow = document.createElement('div');
-  titleRow.className = 'mob-title-row';
+  const titleRow = mkEl('div', 'mob-title-row');
 
-  const title = document.createElement('span');
-  title.className = 'mob-title';
-  title.textContent = t('appTitle');
+  const title = mkEl('span', 'mob-title', t('appTitle'));
   titleRow.appendChild(title);
 
-  const btns = document.createElement('div');
-  btns.className = 'mob-title-btns';
+  const btns = mkEl('div', 'mob-title-btns');
 
-  const labelsBtn = document.createElement('button');
-  labelsBtn.className = 'mob-icon-btn';
-  labelsBtn.textContent = '◆';
+  const labelsBtn = mkEl('button', 'mob-icon-btn', '◆');
   labelsBtn.title = t('actLabels');
   labelsBtn.onclick = () => { overlay = { kind: 'menu', tab: 'labels' }; render(); };
   btns.appendChild(labelsBtn);
 
-  const menuBtn = document.createElement('button');
-  menuBtn.className = 'mob-icon-btn';
-  menuBtn.textContent = '≡';
+  const menuBtn = mkEl('button', 'mob-icon-btn', '≡');
   menuBtn.title = t('actSettings');
   menuBtn.onclick = () => { overlay = { kind: 'menu' }; render(); };
   btns.appendChild(menuBtn);
@@ -142,8 +134,7 @@ function _renderMobileHeader() {
   hdr.appendChild(titleRow);
 
   // Day strip
-  const strip = document.createElement('div');
-  strip.className = 'mob-day-strip';
+  const strip = mkEl('div', 'mob-day-strip');
   _buildDayStrip(strip);
   hdr.appendChild(strip);
   if (prevScroll) strip.scrollLeft = prevScroll;
@@ -152,16 +143,7 @@ function _renderMobileHeader() {
 function _buildDayStrip(container) {
   if (cols.length === 0) return;
 
-  // Collect all unique week keys in order
-  const weekKeys = [];
-  const weekSeen = new Set();
-  cols.forEach(col => {
-    const info = colWeekInfo(col);
-    if (info && !weekSeen.has(info.key)) {
-      weekSeen.add(info.key);
-      weekKeys.push(info.key);
-    }
-  });
+  const weekKeys = weekBuckets().map(w => w.key).filter(k => k !== NODATE_WEEK);
 
   // customLoad ON: strip only lists loaded weeks; older weeks are revealed
   // via the "earlier weeks" chip prepended below. Frozen at load — toggling
@@ -172,9 +154,7 @@ function _buildDayStrip(container) {
   const visibleWeekKeys = _loadedKeys ? weekKeys.filter(k => _loadedKeys.has(k)) : weekKeys;
 
   if (hasUnloadedWeeks()) {
-    const chip = document.createElement('button');
-    chip.className = 'mob-earlier-chip';
-    chip.textContent = loadingEarlier ? '…' : t('earlierWeeks');
+    const chip = mkEl('button', 'mob-earlier-chip', loadingEarlier ? '…' : t('earlierWeeks'));
     chip.disabled = loadingEarlier;
     chip.onclick = loadEarlierWeeks;
     container.appendChild(chip);
@@ -190,8 +170,7 @@ function _buildDayStrip(container) {
 
     // Add a week-separator gap between weeks (except before the first)
     if (wi > 0) {
-      const sep = document.createElement('div');
-      sep.className = 'mob-strip-week-sep';
+      const sep = mkEl('div', 'mob-strip-week-sep');
       container.appendChild(sep);
     }
 
@@ -209,24 +188,18 @@ function _buildDayStrip(container) {
                        chipDate.getMonth()    === now.getMonth() &&
                        chipDate.getFullYear() === now.getFullYear();
 
-      const chip = document.createElement('div');
-      chip.className = 'mob-day-chip';
+      const chip = mkEl('div', 'mob-day-chip');
       if (col && expandedDays.has(col.id)) chip.classList.add('expanded');
       if (isToday) chip.classList.add('today');
       if (!col)    chip.classList.add('no-col');
 
-      const letter = document.createElement('span');
-      letter.className = 'mob-chip-letter';
-      letter.textContent = initial;
+      const letter = mkEl('span', 'mob-chip-letter', initial);
       chip.appendChild(letter);
 
-      const dateEl = document.createElement('span');
-      dateEl.className = 'mob-chip-date' + (isToday ? ' today' : '');
-      dateEl.textContent = chipDate.getDate();
+      const dateEl = mkEl('span', 'mob-chip-date' + (isToday ? ' today' : ''), chipDate.getDate());
       chip.appendChild(dateEl);
 
-      const remEl = document.createElement('span');
-      remEl.className = 'mob-chip-rem';
+      const remEl = mkEl('span', 'mob-chip-rem');
       if (col) {
         const rem = _remainingCount(col.id);
         remEl.textContent = rem === 0 ? '✓' : rem;
@@ -263,21 +236,7 @@ function _renderMobileBoard() {
   const board = document.getElementById('board');
   board.innerHTML = '';
 
-  const weekMap = new Map();
-  let weekOrder = 0;
-
-  cols.forEach(col => {
-    const info = colWeekInfo(col);
-    const key  = info ? info.key : '__nodate__';
-    if (!weekMap.has(key)) {
-      weekMap.set(key, { key, order: weekOrder++, slots: info ? new Array(7).fill(null) : [], hasDate: !!info });
-    }
-    const bucket = weekMap.get(key);
-    if (info) bucket.slots[info.day] = col;
-    else      bucket.slots.push(col);
-  });
-
-  const allWeeks = [...weekMap.values()].sort((a, b) => a.order - b.order);
+  const allWeeks = weekBuckets();
 
   // customLoad ON: render only weeks with a loaded col; week.order stays the
   // ABSOLUTE index so unscheduled pairing never re-pairs (see board.js).
@@ -286,8 +245,7 @@ function _renderMobileBoard() {
     ? allWeeks.filter(w => w.slots.some(c => c && _colLoaded(c)))
     : allWeeks;
 
-  const area = document.createElement('div');
-  area.className = 'mob-scroll-area';
+  const area = mkEl('div', 'mob-scroll-area');
 
   if (weeks.length === 0 && weekUnscheduled.length > 0) {
     area.appendChild(_buildUnschedChip(weekUnscheduled[0]));
@@ -297,8 +255,7 @@ function _renderMobileBoard() {
     const unschedCol = weekUnscheduled[week.order] || weekUnscheduled[weekUnscheduled.length - 1];
     if (unschedCol) area.appendChild(_buildUnschedChip(unschedCol));
 
-    const dayList = document.createElement('div');
-    dayList.className = 'mob-day-list';
+    const dayList = mkEl('div', 'mob-day-list');
 
     let collapsed = 0;
     week.slots.forEach(col => {
@@ -322,27 +279,20 @@ function _renderMobileBoard() {
 function _buildUnschedChip(col) {
   const tasks = state[col.id] || [];
 
-  const chip = document.createElement('div');
-  chip.className = 'mob-unsched-chip';
+  const chip = mkEl('div', 'mob-unsched-chip');
 
-  const label = document.createElement('span');
-  label.className = 'mob-unsched-label';
-  label.textContent = `${t('mobUnscheduled')} · ${tasks.length}`;
+  const label = mkEl('span', 'mob-unsched-label', `${t('mobUnscheduled')} · ${tasks.length}`);
   chip.appendChild(label);
 
-  const dots = document.createElement('div');
-  dots.className = 'mob-unsched-dots';
+  const dots = mkEl('div', 'mob-unsched-dots');
   tasks.slice(0, 20).forEach(task => {
     const cfg = typeStyle(task.type);
-    const dot = document.createElement('span');
-    dot.className = 'mob-unsched-dot';
+    const dot = mkEl('span', 'mob-unsched-dot');
     dot.style.background = cfg.border;
     dots.appendChild(dot);
   });
   if (tasks.length > 20) {
-    const overflow = document.createElement('span');
-    overflow.className = 'mob-unsched-overflow';
-    overflow.textContent = `+${tasks.length - 20}`;
+    const overflow = mkEl('span', 'mob-unsched-overflow', `+${tasks.length - 20}`);
     dots.appendChild(overflow);
   }
   chip.appendChild(dots);
@@ -351,9 +301,7 @@ function _buildUnschedChip(col) {
   spacer.style.flex = '1';
   chip.appendChild(spacer);
 
-  const arrow = document.createElement('span');
-  arrow.className = 'mob-unsched-arrow';
-  arrow.textContent = '›';
+  const arrow = mkEl('span', 'mob-unsched-arrow', '›');
   chip.appendChild(arrow);
 
   chip.onclick = () => { overlay = { kind: 'unsched', colId: col.id }; render(); };
@@ -366,46 +314,35 @@ function _buildDayRow(col) {
   const isToday = isTodayDate(col.date);
   const tasks   = state[col.id] || [];
 
-  const btn = document.createElement('button');
-  btn.className = 'mob-day-row';
+  const btn = mkEl('button', 'mob-day-row');
 
   // Date block
-  const dateBlock = document.createElement('div');
-  dateBlock.className = 'mob-row-date';
+  const dateBlock = mkEl('div', 'mob-row-date');
 
-  const dayLabel = document.createElement('span');
-  dayLabel.className = 'mob-row-daylabel' + (isToday ? ' today' : '');
-  dayLabel.textContent = (col.label || '').slice(0, 3).toUpperCase();
+  const dayLabel = mkEl('span', 'mob-row-daylabel' + (isToday ? ' today' : ''), (col.label || '').slice(0, 3).toUpperCase());
   dateBlock.appendChild(dayLabel);
 
   if (col.date) {
     const d = parseColDate(col.date);
-    const dayNum = document.createElement('span');
-    dayNum.className = 'mob-row-daynum';
-    dayNum.textContent = d ? d.getDate() : '';
+    const dayNum = mkEl('span', 'mob-row-daynum', d ? d.getDate() : '');
     dateBlock.appendChild(dayNum);
   }
 
   btn.appendChild(dateBlock);
 
   // Separator
-  const sep = document.createElement('div');
-  sep.className = 'mob-row-sep';
+  const sep = mkEl('div', 'mob-row-sep');
   btn.appendChild(sep);
 
   // Dot row
-  const dotRow = document.createElement('div');
-  dotRow.className = 'mob-dot-row';
+  const dotRow = mkEl('div', 'mob-dot-row');
   if (tasks.length === 0) {
-    const empty = document.createElement('span');
-    empty.className = 'mob-row-empty';
-    empty.textContent = t('mobEmpty');
+    const empty = mkEl('span', 'mob-row-empty', t('mobEmpty'));
     dotRow.appendChild(empty);
   } else {
     tasks.forEach(task => {
       const cfg = typeStyle(task.type);
-      const dot = document.createElement('span');
-      dot.className = 'mob-dot';
+      const dot = mkEl('span', 'mob-dot');
       dot.style.background = cfg.border;
       if (task.done || task.cancelled) dot.style.opacity = '0.3';
       dotRow.appendChild(dot);
@@ -415,23 +352,17 @@ function _buildDayRow(col) {
 
   // Important indicator
   if (tasks.some(t => t.important && !t.done && !t.cancelled)) {
-    const imp = document.createElement('span');
-    imp.className = 'mob-row-imp';
-    imp.textContent = '!';
+    const imp = mkEl('span', 'mob-row-imp', '!');
     btn.appendChild(imp);
   }
 
   // Remaining count
   const rem = _remainingCount(col.id);
-  const remEl = document.createElement('span');
-  remEl.className = 'mob-row-rem';
-  remEl.textContent = rem === 0 ? '✓' : rem;
+  const remEl = mkEl('span', 'mob-row-rem', rem === 0 ? '✓' : rem);
   btn.appendChild(remEl);
 
   // Chevron
-  const chev = document.createElement('span');
-  chev.className = 'mob-row-chev';
-  chev.textContent = '›';
+  const chev = mkEl('span', 'mob-row-chev', '›');
   btn.appendChild(chev);
 
   btn.onclick = () => { expandedDays.add(col.id); render(); };
@@ -445,49 +376,36 @@ function _buildDayHero(col) {
   const tasks   = state[col.id] || [];
   const done    = tasks.filter(t => t.done || t.cancelled).length;
 
-  const hero = document.createElement('div');
-  hero.className = 'mob-day-hero' + (isToday ? ' is-today' : '');
+  const hero = mkEl('div', 'mob-day-hero' + (isToday ? ' is-today' : ''));
 
   // Header row
-  const hdr = document.createElement('div');
-  hdr.className = 'mob-hero-hdr';
+  const hdr = mkEl('div', 'mob-hero-hdr');
 
-  const left = document.createElement('div');
-  left.className = 'mob-hero-left';
+  const left = mkEl('div', 'mob-hero-left');
 
-  const dayName = document.createElement('span');
-  dayName.className = 'mob-hero-dayname';
-  dayName.textContent = translateLabel(col.label);
+  const dayName = mkEl('span', 'mob-hero-dayname', translateLabel(col.label));
   left.appendChild(dayName);
 
   const heroDate = parseColDate(col.date);
   if (heroDate) {
-    const dateSpan = document.createElement('span');
-    dateSpan.className = 'mob-hero-date';
-    dateSpan.textContent = heroDate.toLocaleDateString(t('dayLocale'), { month: 'short', day: 'numeric' });
+    const dateSpan = mkEl('span', 'mob-hero-date', heroDate.toLocaleDateString(t('dayLocale'), { month: 'short', day: 'numeric' }));
     left.appendChild(dateSpan);
   }
 
   if (isToday) {
-    const flames = document.createElement('span');
-    flames.className = 'today-flames';
+    const flames = mkEl('span', 'today-flames');
     flames.innerHTML = '<span>🔥</span><span>🔥</span><span>🔥</span>';
     left.appendChild(flames);
   }
 
   hdr.appendChild(left);
 
-  const right = document.createElement('div');
-  right.className = 'mob-hero-right';
+  const right = mkEl('div', 'mob-hero-right');
 
-  const count = document.createElement('span');
-  count.className = 'mob-hero-count';
-  count.textContent = `${done}done / ${tasks.length}total`;
+  const count = mkEl('span', 'mob-hero-count', `${done}done / ${tasks.length}total`);
   right.appendChild(count);
 
-  const chev = document.createElement('span');
-  chev.className = 'mob-hero-chev';
-  chev.textContent = '▾';
+  const chev = mkEl('span', 'mob-hero-chev', '▾');
   right.appendChild(chev);
 
   hdr.appendChild(right);
@@ -495,20 +413,16 @@ function _buildDayHero(col) {
   hero.appendChild(hdr);
 
   // Divider
-  const divider = document.createElement('div');
-  divider.className = 'mob-hero-divider';
+  const divider = mkEl('div', 'mob-hero-divider');
   hero.appendChild(divider);
 
   // Task list
-  const taskList = document.createElement('div');
-  taskList.className = 'mob-task-list';
+  const taskList = mkEl('div', 'mob-task-list');
   tasks.forEach(task => taskList.appendChild(_buildMobileTaskEl(task, col.id)));
   hero.appendChild(taskList);
 
   // Add task button
-  const addBtn = document.createElement('button');
-  addBtn.className = 'add-btn';
-  addBtn.textContent = t('addTask');
+  const addBtn = mkEl('button', 'add-btn', t('addTask'));
   addBtn.onclick = () => {
     overlay = { kind: 'add', step: 1, dayId: col.id, targetDate: col.date || null, selectedType: null, typedText: '' };
     render();
@@ -521,22 +435,17 @@ function _buildDayHero(col) {
 // ── Mobile task element ────────────────────────────────────────────────────────
 
 function _buildMobileTaskEl(task, fromColId) {
-  const el = document.createElement('div');
-  el.className = 'task' + (task.done ? ' done' : '') + (task.cancelled ? ' cancelled' : '');
+  const el = mkEl('div', 'task' + (task.done ? ' done' : '') + (task.cancelled ? ' cancelled' : ''));
   el.dataset.id = task.id;
   el.title = task.text;
   applyTaskStyle(el, task.type, task.done, task.cancelled);
 
   if (task.important) {
-    const imp = document.createElement('span');
-    imp.className = 'task-important';
-    imp.textContent = '!';
+    const imp = mkEl('span', 'task-important', '!');
     el.appendChild(imp);
   }
 
-  const txt = document.createElement('span');
-  txt.className = 'task-text';
-  txt.textContent = task.text;
+  const txt = mkEl('span', 'task-text', task.text);
   el.appendChild(txt);
 
   // Long-press → action sheet (350ms)
@@ -587,8 +496,7 @@ function _renderQuickAdd() {
   }
   qa.innerHTML = '';
 
-  const row = document.createElement('div');
-  row.className = 'mob-quick-add-btn';
+  const row = mkEl('div', 'mob-quick-add-btn');
 
   // Opens the add sheet aimed at today. Today's form may not exist yet — the
   // sheet resolves the date to a form (creating it) only once a task is added.
@@ -604,25 +512,18 @@ function _renderQuickAdd() {
     render();
   };
 
-  const btn = document.createElement('button');
-  btn.className = 'mob-qa-main';
+  const btn = mkEl('button', 'mob-qa-main');
 
-  const plus = document.createElement('span');
-  plus.className = 'mob-qa-plus';
-  plus.textContent = '+';
+  const plus = mkEl('span', 'mob-qa-plus', '+');
   btn.appendChild(plus);
 
-  const lbl = document.createElement('span');
-  lbl.className = 'mob-qa-label';
-  lbl.textContent = t('mobQuickAdd');
+  const lbl = mkEl('span', 'mob-qa-label', t('mobQuickAdd'));
   btn.appendChild(lbl);
 
   btn.onclick = () => openAdd(false);
   row.appendChild(btn);
 
-  const todayBtn = document.createElement('button');
-  todayBtn.className   = 'mob-qa-today';
-  todayBtn.textContent = t('mobToday') + ' ▾';
+  const todayBtn = mkEl('button', 'mob-qa-today', t('mobToday') + ' ▾');
   todayBtn.title       = t('mobPickDay');
   todayBtn.onclick     = () => openAdd(true);
   row.appendChild(todayBtn);
@@ -654,36 +555,27 @@ function _buildActionSheet(container) {
   const task = findTask(overlay.taskId);
   if (!task) { overlay = null; return; }
 
-  const scrim = document.createElement('div');
-  scrim.className = 'mob-scrim';
+  const scrim = mkEl('div', 'mob-scrim');
   scrim.onclick = () => { overlay = null; render(); };
   container.appendChild(scrim);
 
-  const card = document.createElement('div');
-  card.className = 'mob-sheet';
+  const card = mkEl('div', 'mob-sheet');
 
-  const handle = document.createElement('div');
-  handle.className = 'mob-grab-handle';
+  const handle = mkEl('div', 'mob-grab-handle');
   card.appendChild(handle);
 
   // Task preview
-  const preview = document.createElement('div');
-  preview.className = 'task';
+  const preview = mkEl('div', 'task');
   applyTaskStyle(preview, task.type, task.done, task.cancelled);
-  const previewTxt = document.createElement('span');
-  previewTxt.className = 'task-text';
-  previewTxt.textContent = task.text;
+  const previewTxt = mkEl('span', 'task-text', task.text);
   preview.appendChild(previewTxt);
   card.appendChild(preview);
 
   // MOVE TO section
-  const moveLabel = document.createElement('div');
-  moveLabel.className = 'mob-sheet-section-label';
-  moveLabel.textContent = t('mobMoveTo');
+  const moveLabel = mkEl('div', 'mob-sheet-section-label', t('mobMoveTo'));
   card.appendChild(moveLabel);
 
-  const grid = document.createElement('div');
-  grid.className = 'mob-day-grid';
+  const grid = mkEl('div', 'mob-day-grid');
 
   const fromColId = overlay.fromColId;
   const taskId    = overlay.taskId;  // capture before overlay can be nulled
@@ -708,8 +600,7 @@ function _buildActionSheet(container) {
 
   card.appendChild(grid);
 
-  const sep = document.createElement('div');
-  sep.className = 'mob-sheet-sep';
+  const sep = mkEl('div', 'mob-sheet-sep');
   card.appendChild(sep);
 
   // Action rows — use captured taskId, not overlay.taskId
@@ -720,11 +611,8 @@ function _buildActionSheet(container) {
     { icon: '✕', label: t('mobCancelTask'), cls: 'mob-action-cancel', action: () => { overlay = null; toggleCancelled(taskId); } },
     { icon: '🗑', label: t('mobDelete'), cls: 'mob-action-delete', action: () => { overlay = null; deleteTask(taskId); } },
   ].forEach(({ icon, label, cls, action }) => {
-    const row = document.createElement('button');
-    row.className = 'mob-action-row' + (cls ? ' ' + cls : '');
-    const iconEl = document.createElement('span');
-    iconEl.className = 'mob-action-icon';
-    iconEl.textContent = icon;
+    const row = mkEl('button', 'mob-action-row' + (cls ? ' ' + cls : ''));
+    const iconEl = mkEl('span', 'mob-action-icon', icon);
     row.appendChild(iconEl);
     const lblEl = document.createElement('span');
     lblEl.textContent = label;
@@ -737,9 +625,7 @@ function _buildActionSheet(container) {
 }
 
 function _dayGridBtn(label, isSource, onclick) {
-  const btn = document.createElement('button');
-  btn.className = 'mob-day-grid-btn';
-  btn.textContent = label;
+  const btn = mkEl('button', 'mob-day-grid-btn', label);
   if (isSource) {
     btn.disabled = true;
   } else {
@@ -761,34 +647,26 @@ function _moveTaskToCol(taskId, targetColId) {
 // ── Add-task sheet ─────────────────────────────────────────────────────────────
 
 function _buildAddSheet(container) {
-  const scrim = document.createElement('div');
-  scrim.className = 'mob-scrim';
+  const scrim = mkEl('div', 'mob-scrim');
   scrim.onclick = () => { overlay = null; render(); };
   container.appendChild(scrim);
 
-  const sheet = document.createElement('div');
-  sheet.className = 'mob-sheet';
+  const sheet = mkEl('div', 'mob-sheet');
 
-  const handle = document.createElement('div');
-  handle.className = 'mob-grab-handle';
+  const handle = mkEl('div', 'mob-grab-handle');
   sheet.appendChild(handle);
 
   sheet.appendChild(_buildTargetRow());
 
   if (overlay.step === 1) {
-    const stepLbl = document.createElement('div');
-    stepLbl.className = 'mob-sheet-section-label';
-    stepLbl.textContent = t('mobStep1');
+    const stepLbl = mkEl('div', 'mob-sheet-section-label', t('mobStep1'));
     sheet.appendChild(stepLbl);
 
-    const pills = document.createElement('div');
-    pills.className = 'mob-label-pills';
+    const pills = mkEl('div', 'mob-label-pills');
 
     selectableTypeKeys().forEach(k => {
       const cfg  = typeConfig[k] || {};
-      const pill = document.createElement('button');
-      pill.className = 'mob-label-pill';
-      pill.textContent = cfg.label || k;
+      const pill = mkEl('button', 'mob-label-pill', cfg.label || k);
       pill.style.background   = cfg.bg;
       pill.style.borderColor  = cfg.border;
       pill.style.color        = cfg.text;
@@ -797,23 +675,18 @@ function _buildAddSheet(container) {
       pills.appendChild(pill);
     });
 
-    const newPill = document.createElement('button');
-    newPill.className = 'mob-label-pill mob-label-new';
-    newPill.textContent = '+ ' + t('addLabel').replace(/^\+\s*/, '');
+    const newPill = mkEl('button', 'mob-label-pill mob-label-new', '+ ' + t('addLabel').replace(/^\+\s*/, ''));
     newPill.onclick = () => { overlay = null; render(); openAddPanel(null); };
     pills.appendChild(newPill);
 
     sheet.appendChild(pills);
   } else {
-    const stepLbl = document.createElement('div');
-    stepLbl.className = 'mob-sheet-section-label';
-    stepLbl.textContent = t('mobStep2');
+    const stepLbl = mkEl('div', 'mob-sheet-section-label', t('mobStep2'));
     sheet.appendChild(stepLbl);
 
     const cfg = typeConfig[overlay.selectedType] || {};
 
-    const inputRow = document.createElement('div');
-    inputRow.className = 'mob-name-input-row';
+    const inputRow = mkEl('div', 'mob-name-input-row');
     inputRow.style.background   = cfg.bg   || '';
     inputRow.style.borderColor  = cfg.border || '';
     inputRow.style.color        = cfg.text  || '';
@@ -826,9 +699,7 @@ function _buildAddSheet(container) {
     inp.value       = overlay.typedText || '';
     inp.addEventListener('input', () => { overlay.typedText = inp.value; });
 
-    const addBtn = document.createElement('button');
-    addBtn.className   = 'mob-name-add-btn';
-    addBtn.textContent = t('addDayConfirm');
+    const addBtn = mkEl('button', 'mob-name-add-btn', t('addDayConfirm'));
 
     inp.addEventListener('keydown', e => {
       if (e.key === 'Enter') {
@@ -860,26 +731,18 @@ function _targetLabel(dateStr) {
 // The day the task will land on. Tapping it opens the native date picker, so
 // any day is reachable — including one that has no form yet.
 function _buildTargetRow() {
-  const row = document.createElement('div');
-  row.className = 'mob-add-target';
+  const row = mkEl('div', 'mob-add-target');
 
-  const lbl = document.createElement('span');
-  lbl.className   = 'mob-sheet-section-label';
-  lbl.textContent = t('mobAddFor');
+  const lbl = mkEl('span', 'mob-sheet-section-label', t('mobAddFor'));
   row.appendChild(lbl);
 
-  const chip = document.createElement('span');
-  chip.className = 'mob-target-chip';
+  const chip = mkEl('span', 'mob-target-chip');
   chip.title     = t('mobPickDay');
 
-  const txt = document.createElement('span');
-  txt.className   = 'mob-target-text';
-  txt.textContent = _targetLabel(overlay.targetDate);
+  const txt = mkEl('span', 'mob-target-text', _targetLabel(overlay.targetDate));
   chip.appendChild(txt);
 
-  const caret = document.createElement('span');
-  caret.className   = 'mob-target-caret';
-  caret.textContent = '▾';
+  const caret = mkEl('span', 'mob-target-caret', '▾');
   chip.appendChild(caret);
 
   const inp = document.createElement('input');
@@ -944,27 +807,21 @@ function _submitAddSheet(text, keepOpen) {
 // ── Side menu ──────────────────────────────────────────────────────────────────
 
 function _buildSideMenu(container) {
-  const scrim = document.createElement('div');
-  scrim.className = 'mob-scrim';
+  const scrim = mkEl('div', 'mob-scrim');
   scrim.onclick = () => { overlay = null; render(); };
   container.appendChild(scrim);
 
-  const panel = document.createElement('div');
-  panel.className = 'mob-side-menu';
+  const panel = mkEl('div', 'mob-side-menu');
 
   // Signed in
   _menuSection(panel, t('mobSignedIn'), () => {
-    const info = document.createElement('span');
-    info.className   = 'mob-menu-info';
-    info.textContent = TOKEN ? t('mobUser') : t('mobAnonymous');
+    const info = mkEl('span', 'mob-menu-info', TOKEN ? t('mobUser') : t('mobAnonymous'));
     return [info];
   });
 
   // Account
   _menuSection(panel, t('mobAccount'), () => {
-    const addBtn = document.createElement('button');
-    addBtn.className   = 'mob-menu-btn';
-    addBtn.textContent = t('accountAdd');
+    const addBtn = mkEl('button', 'mob-menu-btn', t('accountAdd'));
     addBtn.onclick = function() {
       this.disabled = true;
       addAccount()
@@ -973,9 +830,7 @@ function _buildSideMenu(container) {
         .finally(() => { this.disabled = false; });
     };
 
-    const refreshBtn = document.createElement('button');
-    refreshBtn.className   = 'mob-menu-btn';
-    refreshBtn.textContent = t('accountRefreshToken');
+    const refreshBtn = mkEl('button', 'mob-menu-btn', t('accountRefreshToken'));
     refreshBtn.onclick = () => {
       showConfirm(t('accountRefreshConfirm'), () => {
         refreshToken(TOKEN)
@@ -984,9 +839,7 @@ function _buildSideMenu(container) {
       });
     };
 
-    const delBtn = document.createElement('button');
-    delBtn.className   = 'mob-menu-btn';
-    delBtn.textContent = t('accountDelete');
+    const delBtn = mkEl('button', 'mob-menu-btn', t('accountDelete'));
     delBtn.onclick = () => {
       showConfirm(t('accountDeleteConfirm'), () => {
         deleteAccount(TOKEN).then(res => {
@@ -1001,39 +854,30 @@ function _buildSideMenu(container) {
 
   // Labels
   _menuSection(panel, t('actLabels'), () => {
-    const list = document.createElement('div');
-    list.className = 'mob-menu-labels';
+    const list = mkEl('div', 'mob-menu-labels');
 
     legendOrder.forEach(key => {
       const cfg = typeConfig[key];
       if (!cfg) return;
 
-      const row = document.createElement('div');
-      row.className = 'mob-menu-label-row';
+      const row = mkEl('div', 'mob-menu-label-row');
 
-      const swatch = document.createElement('span');
-      swatch.className = 'mob-menu-swatch';
+      const swatch = mkEl('span', 'mob-menu-swatch');
       swatch.style.background  = cfg.bg;
       swatch.style.borderColor = cfg.border;
       row.appendChild(swatch);
 
-      const name = document.createElement('span');
-      name.className   = 'mob-menu-label-name';
-      name.textContent = cfg.label;
+      const name = mkEl('span', 'mob-menu-label-name', cfg.label);
       row.appendChild(name);
 
-      const del = document.createElement('button');
-      del.className   = 'mob-menu-label-del';
-      del.textContent = '×';
+      const del = mkEl('button', 'mob-menu-label-del', '×');
       del.onclick = () => { overlay = null; render(); deleteLabel(key); };
       row.appendChild(del);
 
       list.appendChild(row);
     });
 
-    const addRow = document.createElement('button');
-    addRow.className   = 'mob-menu-label-add';
-    addRow.textContent = t('addLabel');
+    const addRow = mkEl('button', 'mob-menu-label-add', t('addLabel'));
     addRow.onclick = () => { overlay = null; render(); openAddPanel(null); };
     list.appendChild(addRow);
 
@@ -1042,13 +886,10 @@ function _buildSideMenu(container) {
 
   // Settings
   _menuSection(panel, t('actSettings'), () => {
-    const langRow = document.createElement('div');
-    langRow.className = 'mob-settings-row';
+    const langRow = mkEl('div', 'mob-settings-row');
 
     ['en', 'ru'].forEach(l => {
-      const btn = document.createElement('button');
-      btn.className   = 'mob-settings-pill' + (lang === l ? ' active' : '');
-      btn.textContent = l.toUpperCase();
+      const btn = mkEl('button', 'mob-settings-pill' + (lang === l ? ' active' : ''), l.toUpperCase());
       btn.onclick = () => {
         const prev = lang;
         pessimisticMeta(
@@ -1059,36 +900,27 @@ function _buildSideMenu(container) {
       langRow.appendChild(btn);
     });
 
-    const scaleRow = document.createElement('div');
-    scaleRow.className = 'mob-settings-row';
+    const scaleRow = mkEl('div', 'mob-settings-row');
 
-    const minus = document.createElement('button');
-    minus.className   = 'mob-settings-pill';
-    minus.textContent = '− ' + t('scaleSmaller');
+    const minus = mkEl('button', 'mob-settings-pill', '− ' + t('scaleSmaller'));
     minus.disabled    = !canStepScale(-1);
     minus.onclick     = () => stepScale(-1);
 
-    const plus = document.createElement('button');
-    plus.className   = 'mob-settings-pill';
-    plus.textContent = t('scaleLarger') + ' +';
+    const plus = mkEl('button', 'mob-settings-pill', t('scaleLarger') + ' +');
     plus.disabled    = !canStepScale(1);
     plus.onclick     = () => stepScale(1);
 
     scaleRow.appendChild(minus);
     scaleRow.appendChild(plus);
 
-    const loadRow = document.createElement('div');
-    loadRow.className = 'mob-settings-row';
+    const loadRow = mkEl('div', 'mob-settings-row');
 
-    const loadLbl = document.createElement('span');
-    loadLbl.className    = 'mob-menu-info';
+    const loadLbl = mkEl('span', 'mob-menu-info');
     loadLbl.style.alignSelf = 'center';
     loadLbl.textContent = t('customLoad');
     loadRow.appendChild(loadLbl);
 
-    const loadBtn = document.createElement('button');
-    loadBtn.className   = 'mob-settings-pill' + (customLoad ? ' active' : '');
-    loadBtn.textContent = customLoad ? t('on') : t('off');
+    const loadBtn = mkEl('button', 'mob-settings-pill' + (customLoad ? ' active' : ''), customLoad ? t('on') : t('off'));
     loadBtn.setAttribute('aria-pressed', customLoad ? 'true' : 'false');
     loadBtn.onclick = toggleCustomLoad;
     loadRow.appendChild(loadBtn);
@@ -1098,9 +930,7 @@ function _buildSideMenu(container) {
 
   // Help
   _menuSection(panel, t('actInstructions'), () => {
-    const info = document.createElement('span');
-    info.className   = 'mob-menu-info';
-    info.textContent = t('hint');
+    const info = mkEl('span', 'mob-menu-info', t('hint'));
     return [info];
   });
 
@@ -1108,12 +938,9 @@ function _buildSideMenu(container) {
 }
 
 function _menuSection(parent, label, buildFn) {
-  const section = document.createElement('div');
-  section.className = 'mob-menu-section';
+  const section = mkEl('div', 'mob-menu-section');
 
-  const heading = document.createElement('div');
-  heading.className   = 'mob-menu-section-label';
-  heading.textContent = label;
+  const heading = mkEl('div', 'mob-menu-section-label', label);
   section.appendChild(heading);
 
   buildFn().forEach(el => section.appendChild(el));
@@ -1126,35 +953,25 @@ function _buildUnschedDrawer(container) {
   const colId = overlay.colId;
   const tasks = state[colId] || [];
 
-  const scrim = document.createElement('div');
-  scrim.className = 'mob-scrim';
+  const scrim = mkEl('div', 'mob-scrim');
   scrim.onclick = () => { overlay = null; render(); };
   container.appendChild(scrim);
 
-  const drawer = document.createElement('div');
-  drawer.className = 'mob-unsched-drawer';
+  const drawer = mkEl('div', 'mob-unsched-drawer');
 
-  const handle = document.createElement('div');
-  handle.className = 'mob-grab-handle mob-grab-handle--sky';
+  const handle = mkEl('div', 'mob-grab-handle mob-grab-handle--sky');
   drawer.appendChild(handle);
 
   // Header
-  const hdrBlock = document.createElement('div');
-  hdrBlock.className = 'mob-unsched-drawer-header';
+  const hdrBlock = mkEl('div', 'mob-unsched-drawer-header');
 
-  const lbl = document.createElement('span');
-  lbl.className   = 'mob-unsched-drawer-label';
-  lbl.textContent = t('mobUnscheduled').toUpperCase();
+  const lbl = mkEl('span', 'mob-unsched-drawer-label', t('mobUnscheduled').toUpperCase());
   hdrBlock.appendChild(lbl);
 
-  const countEl = document.createElement('span');
-  countEl.className   = 'mob-unsched-drawer-count';
-  countEl.textContent = `${tasks.length} ${t('mobTasksWaiting')}`;
+  const countEl = mkEl('span', 'mob-unsched-drawer-count', `${tasks.length} ${t('mobTasksWaiting')}`);
   hdrBlock.appendChild(countEl);
 
-  const addBtn = document.createElement('button');
-  addBtn.className   = 'mob-unsched-add-btn';
-  addBtn.textContent = '+ ' + t('addTask').replace(/^\+\s*/, '');
+  const addBtn = mkEl('button', 'mob-unsched-add-btn', '+ ' + t('addTask').replace(/^\+\s*/, ''));
   addBtn.onclick = () => {
     overlay = { kind: 'add', step: 1, dayId: colId, targetDate: null, selectedType: null, typedText: '' };
     render();
@@ -1163,19 +980,15 @@ function _buildUnschedDrawer(container) {
   drawer.appendChild(hdrBlock);
 
   // Task list
-  const taskList = document.createElement('div');
-  taskList.className = 'mob-unsched-task-list';
+  const taskList = mkEl('div', 'mob-unsched-task-list');
 
   tasks.forEach(task => {
-    const row = document.createElement('div');
-    row.className = 'mob-unsched-task-row';
+    const row = mkEl('div', 'mob-unsched-task-row');
 
     const taskEl = _buildMobileTaskEl(task, colId);
     row.appendChild(taskEl);
 
-    const schedBtn = document.createElement('button');
-    schedBtn.className   = 'mob-sched-btn';
-    schedBtn.textContent = t('mobSchedule') + ' ›';
+    const schedBtn = mkEl('button', 'mob-sched-btn', t('mobSchedule') + ' ›');
     schedBtn.onclick = e => {
       e.stopPropagation();
       overlay = { kind: 'action', taskId: task.id, fromColId: colId };
@@ -1188,9 +1001,7 @@ function _buildUnschedDrawer(container) {
 
   drawer.appendChild(taskList);
 
-  const hint = document.createElement('div');
-  hint.className   = 'mob-unsched-hint';
-  hint.textContent = t('mobUnschedHint');
+  const hint = mkEl('div', 'mob-unsched-hint', t('mobUnschedHint'));
   drawer.appendChild(hint);
 
   container.appendChild(drawer);

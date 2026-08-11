@@ -24,8 +24,7 @@ function openAddPanel(triggerEl) {
   const grid = addPanel.querySelector('#addPanelColors');
   grid.innerHTML = '';
   COLOR_PRESETS.forEach(preset => {
-    const sw = document.createElement('button');
-    sw.className = 'ctx-swatch' + (preset === selectedPreset ? ' selected' : '');
+    const sw = mkEl('button', 'ctx-swatch' + (preset === selectedPreset ? ' selected' : ''));
     sw.style.cssText = `background:${preset.bg};border-color:${preset.border}`;
     sw.onclick = () => {
       selectedPreset = preset;

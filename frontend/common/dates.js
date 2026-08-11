@@ -49,7 +49,8 @@ function isValidColDate(dateStr) {
   const m = matchColDate(raw);
   if (!m) return false;
   const mo = parseInt(m[1]), day = parseInt(m[2]);
-  if (mo < 1 || mo > 12 || day < 1) return false;
+  // The round-trip covers the ranges too: getMonth() only ever returns 0–11 and
+  // getDate() 1–31, so a rolled-over 13/01 or 07/45 fails to match itself.
   const d = new Date(resolveYear(m[3]), mo - 1, day);
   return d.getMonth() === mo - 1 && d.getDate() === day;
 }
@@ -87,13 +88,15 @@ function isoToDateStr(iso) {
   return m ? `${m[2]}/${m[3]}/${m[1]}` : '';
 }
 
-// Today, in the canonical stored form.
-function todayDateStr() {
-  const now = new Date();
-  const mm  = String(now.getMonth() + 1).padStart(2, '0');
-  const dd  = String(now.getDate()).padStart(2, '0');
-  return `${mm}/${dd}/${now.getFullYear()}`;
+// A calendar day in the canonical stored form, MM/DD/YYYY.
+function colDateStr(d) {
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${mm}/${dd}/${d.getFullYear()}`;
 }
+
+// Today, in the canonical stored form.
+function todayDateStr() { return colDateStr(new Date()); }
 
 // Month/day only, matching how both views highlight "today" — a column dated
 // 03/11 is today's column whichever year it carries.

@@ -5,6 +5,8 @@ Tests for `backend.auth.resolve_user_id`.
 normalized DB. We exercise it under a real Flask test request context so it
 behaves exactly like in production.
 """
+import pytest
+
 from backend import auth
 
 
@@ -20,22 +22,14 @@ def test_invalid_token_returns_401(client):
 
 # ── resolve_user_id unit tests ────────────────────────────────────────────
 
-def test_resolve_user_id_none_when_no_token(app, seed):
+@pytest.mark.parametrize('query', [
+    '',                 # no token param at all
+    '?token=',          # empty string is falsy → returns None without hitting the DB
+    '?token=mystery',   # a token no user owns
+])
+def test_resolve_user_id_none(app, seed, query):
     seed.user("real-token")
-    with app.test_request_context("/api/state"):
-        assert auth.resolve_user_id() is None
-
-
-def test_resolve_user_id_none_when_empty_token(app, seed):
-    seed.user("real-token")
-    # Empty string is falsy → branch returns None without hitting the DB.
-    with app.test_request_context("/api/state?token="):
-        assert auth.resolve_user_id() is None
-
-
-def test_resolve_user_id_none_for_unknown_token(app, seed):
-    seed.user("real-token")
-    with app.test_request_context("/api/state?token=mystery"):
+    with app.test_request_context("/api/state" + query):
         assert auth.resolve_user_id() is None
 
 

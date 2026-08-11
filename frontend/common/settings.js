@@ -51,15 +51,11 @@ function renderScaleBtns() {
   if (!container) return;
   container.innerHTML = '';
 
-  const minus = document.createElement('button');
-  minus.className = 'scale-btn';
-  minus.textContent = '−';
+  const minus = mkEl('button', 'scale-btn', '−');
   minus.title = t('scaleSmaller');
   minus.onclick = () => stepScale(-1);
 
-  const plus = document.createElement('button');
-  plus.className = 'scale-btn';
-  plus.textContent = '+';
+  const plus = mkEl('button', 'scale-btn', '+');
   plus.title = t('scaleLarger');
   plus.onclick = () => stepScale(1);
 

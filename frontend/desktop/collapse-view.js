@@ -32,12 +32,10 @@ function renderCollapsedCol(colEl, zone, tasks) {
 
   if (!dotItems.length) return;
 
-  const row = document.createElement('div');
-  row.className = 'col-dots';
+  const row = mkEl('div', 'col-dots');
   dotItems.forEach(({ task, faded }) => {
     const cfg = typeStyle(task.type);
-    const dot = document.createElement('span');
-    dot.className = 'col-dot' + (faded ? ' col-dot--done' : '');
+    const dot = mkEl('span', 'col-dot' + (faded ? ' col-dot--done' : ''));
     dot.style.background = faded ? cfg.border : cfg.text;
     row.appendChild(dot);
   });

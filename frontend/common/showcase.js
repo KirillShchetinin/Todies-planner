@@ -4,20 +4,18 @@ function loadShowcase() {
   const mon = new Date(today);
   mon.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
 
-  const fmt = d => `${String(d.getMonth() + 1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
-
   const labels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   const ids    = [901, 902, 903, 904, 905, 906, 907];
 
   cols = labels.map((label, i) => {
     const d = new Date(mon);
     d.setDate(mon.getDate() + i);
-    return { id: ids[i], label, date: fmt(d) };
+    return { id: ids[i], label, date: colDateStr(d) };
   });
 
   const nextMon = new Date(mon);
   nextMon.setDate(mon.getDate() + 7);
-  cols.push({ id: 910, label: 'Mon', date: fmt(nextMon) });
+  cols.push({ id: 910, label: 'Mon', date: colDateStr(nextMon) });
 
   weekUnscheduled = [{ id: 900, label: 'Unscheduled' }, { id: 909, label: 'Unscheduled' }];
 

@@ -14,9 +14,8 @@ registerView('desktop', {
 });
 
 function buildColEl(col) {
-    const isUnscheduled = col.id === 'unscheduled' || col.unscheduled || weekUnscheduled.some(u => u.id === col.id);
-    const colEl = document.createElement('div');
-    colEl.className = 'col' + (isUnscheduled ? ' unscheduled' : '');
+    const isUnscheduled = weekUnscheduled.some(u => u.id === col.id);
+    const colEl = mkEl('div', 'col' + (isUnscheduled ? ' unscheduled' : ''));
     colEl.draggable = !isUnscheduled;
     colEl.addEventListener('dragstart', e => {
       if (e.target.closest('.task,.add-btn,.add-form')) return;
@@ -47,16 +46,14 @@ function buildColEl(col) {
     const isToday = !isUnscheduled && isTodayDate(col.date);
     if (isToday) colEl.classList.add('today');
 
-    const hdr  = document.createElement('div');
-    hdr.className = 'col-header';
-    const left = document.createElement('div');
-    left.className = 'col-header-left';
+    const hdr = mkEl('div', 'col-header');
+    const left = mkEl('div', 'col-header-left');
     const flames = isToday ? '<span class="today-flames"><span>🔥</span><span>🔥</span><span>🔥</span></span>' : '';
     left.innerHTML = `<span class="col-header-text"><span>${translateLabel(col.label)}</span>` + (col.date ? `<span class="date">${formatColDate(col.date)}</span>` : '') + `</span>` + flames;
     hdr.appendChild(left);
     {
-      const dc = document.createElement('button');
-      dc.className = 'del-col'; dc.textContent = '×'; dc.title = t('removeColTitle');
+      const dc = mkEl('button', 'del-col', '×');
+      dc.title = t('removeColTitle');
       dc.setAttribute('aria-label', t('removeColTitle'));
       dc.onclick = () => deleteCol(col.id);
       hdr.appendChild(dc);
@@ -77,8 +74,7 @@ function buildColEl(col) {
 
     colEl.appendChild(hdr);
 
-    const zone = document.createElement('div');
-    zone.className = 'drop-zone';
+    const zone = mkEl('div', 'drop-zone');
     zone.dataset.col = col.id;
 
     (state[col.id]||[]).forEach(task => zone.appendChild(buildTaskEl(task, zone)));
@@ -108,36 +104,27 @@ function buildColEl(col) {
 // ── task card ─────────────────────────────────────────────────────────────
 
 function buildTaskEl(task, zone) {
-  const el = document.createElement('div');
-  el.className = 'task' + (task.done ? ' done' : '') + (task.cancelled ? ' cancelled' : '') + (task.pending ? ' pending' : '');
+  const el = mkEl('div', 'task' + (task.done ? ' done' : '') + (task.cancelled ? ' cancelled' : '') + (task.pending ? ' pending' : ''));
   el.dataset.id = task.id;
   el.title = task.text;
   applyTaskStyle(el, task.type, task.done, task.cancelled);
 
   if (task.important) {
-    const imp = document.createElement('span');
-    imp.className = 'task-important';
-    imp.textContent = '!';
+    const imp = mkEl('span', 'task-important', '!');
     el.appendChild(imp);
   }
 
-  const txt = document.createElement('span');
-  txt.className = 'task-text';
-  txt.textContent = task.text;
+  const txt = mkEl('span', 'task-text', task.text);
   el.appendChild(txt);
 
-  const actions = document.createElement('div');
-  actions.className = 'task-actions';
+  const actions = mkEl('div', 'task-actions');
 
-  const chk = document.createElement('button');
-  chk.className   = 'check';
-  chk.textContent = task.done ? '✓' : '○';
+  const chk = mkEl('button', 'check', task.done ? '✓' : '○');
   chk.setAttribute('aria-label', task.done ? 'Mark incomplete' : 'Mark complete');
   chk.onclick = e => { e.stopPropagation(); toggleDone(task.id); };
   actions.appendChild(chk);
 
-  const del = document.createElement('button');
-  del.className = 'del'; del.textContent = '×';
+  const del = mkEl('button', 'del', '×');
   del.setAttribute('aria-label', 'Delete task');
   del.onclick = e => { e.stopPropagation(); deleteTask(task.id); };
   actions.appendChild(del);
@@ -200,7 +187,6 @@ function onZoneDrop(e, zone) {
 
   UndoHistory.push();
   state[sourceColId] = state[sourceColId].filter(t => t.id !== draggedId);
-  if (sourceColId !== tc && !state[tc]) state[tc] = [];
 
   if (targetEl && Number(targetEl.dataset.id) !== task.id) {
     const rect     = targetEl.getBoundingClientRect();
@@ -232,28 +218,21 @@ function onZoneDrop(e, zone) {
 
 // Two steps in place of mobile's sheet: pick a type pill, then type a name.
 function buildAddForm(col, isUnscheduled) {
-  const addBtn = document.createElement('button');
-  addBtn.className   = 'add-btn';
-  addBtn.textContent = isUnscheduled ? '+' : t('addTask');
+  const addBtn = mkEl('button', 'add-btn', isUnscheduled ? '+' : t('addTask'));
 
-  const form = document.createElement('div');
-  form.className = 'add-form';
+  const form = mkEl('div', 'add-form');
 
-  const typePicker = document.createElement('div');
-  typePicker.className = 'add-type-picker';
+  const typePicker = mkEl('div', 'add-type-picker');
   selectableTypeKeys().forEach(k => {
     const cfg = typeConfig[k] || {};
-    const pill = document.createElement('button');
-    pill.className = 'add-type-pill';
-    pill.textContent = cfg.label || k;
+    const pill = mkEl('button', 'add-type-pill', cfg.label || k);
     pill.style.cssText = `background:${cfg.bg};border-color:${cfg.border};color:${cfg.text};`;
     if (cfg.dashed) pill.style.borderStyle = 'dashed';
     pill.dataset.type = k;
     typePicker.appendChild(pill);
   });
 
-  const nameRow = document.createElement('div');
-  nameRow.className = 'add-name-row';
+  const nameRow = mkEl('div', 'add-name-row');
   nameRow.innerHTML = `<input type="text" placeholder="${t('addTaskPh')}" maxlength="60"/>`;
   nameRow.style.display = 'none';
 
@@ -312,40 +291,12 @@ function buildAddForm(col, isUnscheduled) {
 // ── board ─────────────────────────────────────────────────────────────────
 
 function _buildEarlierWeeksRow() {
-  const row = document.createElement('div');
-  row.className = 'earlier-weeks-row';
-  const btn = document.createElement('button');
-  btn.className = 'earlier-weeks-btn';
-  btn.textContent = loadingEarlier ? '…' : t('earlierWeeks');
+  const row = mkEl('div', 'earlier-weeks-row');
+  const btn = mkEl('button', 'earlier-weeks-btn', loadingEarlier ? '…' : t('earlierWeeks'));
   btn.disabled = loadingEarlier;
   btn.onclick = loadEarlierWeeks;
   row.appendChild(btn);
   return row;
-}
-
-// Buckets the columns into ISO weeks, each a 7-slot Mon–Sun array. Columns
-// with no usable date fall into one trailing "__nodate__" bucket. `order` is
-// the ABSOLUTE index over all weeks — it pairs a week with its unscheduled
-// container, so hiding unloaded weeks must never renumber it.
-function _weekBuckets() {
-  const weekMap = new Map();
-  let noDateBucket = null;
-  let weekOrder = 0;
-
-  cols.forEach(col => {
-    const info = colWeekInfo(col);
-    if (!info) {
-      if (!noDateBucket) { noDateBucket = { key: '__nodate__', slots: [], order: weekOrder++ }; weekMap.set('__nodate__', noDateBucket); }
-      noDateBucket.slots.push({ col, day: noDateBucket.slots.length });
-      return;
-    }
-    if (!weekMap.has(info.key)) {
-      weekMap.set(info.key, { key: info.key, slots: new Array(7).fill(null), order: weekOrder++ });
-    }
-    weekMap.get(info.key).slots[info.day] = col;
-  });
-
-  return [...weekMap.values()].sort((a, b) => a.order - b.order);
 }
 
 function renderDesktop() {
@@ -354,16 +305,14 @@ function renderDesktop() {
   const board = document.getElementById('board');
   board.innerHTML = '';
 
-  const allWeeks = _weekBuckets();
+  const allWeeks = weekBuckets();
 
   // customLoad ON: render a week only if at least one of its cols is loaded
   // (unloaded weeks are revealed via "earlier weeks"). Uses the session-frozen
   // flag: toggling customLoad never changes the view until refresh.
   const _colLoaded = col => !customLoadActive || loadedFormIds.has(col.id);
   const weeks = customLoadActive
-    ? allWeeks.filter(w => (w.key === '__nodate__'
-        ? w.slots.some(s => _colLoaded(s.col))
-        : w.slots.some(c => c && _colLoaded(c))))
+    ? allWeeks.filter(w => w.slots.some(c => c && _colLoaded(c)))
     : allWeeks;
 
   // Desktop "earlier weeks" control — one full-width row above the first week.
@@ -373,38 +322,27 @@ function renderDesktop() {
     const unschedCol = weekUnscheduled[week.order] || weekUnscheduled[weekUnscheduled.length - 1];
     if (!unschedCol) return;
 
-    const weekRow = document.createElement('div');
-    weekRow.className = 'week-row';
+    const weekRow = mkEl('div', 'week-row');
 
-    const bar = document.createElement('div');
-    bar.className = 'unscheduled-bar';
+    const bar = mkEl('div', 'unscheduled-bar');
     const unschedTasks = state[unschedCol.id] || [];
     if (unschedTasks.length > 0) bar.classList.add('has-tasks');
     bar.appendChild(buildColEl(unschedCol));
     weekRow.appendChild(bar);
 
-    const daysGrid = document.createElement('div');
-    daysGrid.className = 'week-days';
-
-    const slots = week.key === '__nodate__'
-      ? week.slots.map(s => s.col)
-      : week.slots;
+    const daysGrid = mkEl('div', 'week-days');
 
     for (let di = 0; di < 7; di++) {
-      const rawEntry = week.key === '__nodate__' ? (slots[di] || null) : slots[di];
-      let entry = rawEntry;
-      if (entry && !_colLoaded(entry)) entry = null;   // hide unloaded day within a partially-loaded week
-      if (entry) {
+      const entry = week.slots[di] || null;           // the undated bucket may hold fewer than 7
+      if (entry && _colLoaded(entry)) {               // an unloaded day draws as a spacer, not a ghost
         daysGrid.appendChild(buildColEl(entry));
-      } else if (!rawEntry && week.key !== '__nodate__') {
-        const ghost = document.createElement('div');
-        ghost.className = 'col-ghost';
+      } else if (!entry && week.key !== NODATE_WEEK) {
+        const ghost = mkEl('div', 'col-ghost');
         ghost.title = t('ghostTitle');
         ghost.addEventListener('dblclick', e => { e.stopPropagation(); addDayAtSlot(week.key, di); });
         daysGrid.appendChild(ghost);
       } else {
-        const spacer = document.createElement('div');
-        spacer.className = 'col-spacer';
+        const spacer = mkEl('div', 'col-spacer');
         daysGrid.appendChild(spacer);
       }
     }
@@ -427,10 +365,8 @@ function renderDesktop() {
 // A board with no columns at all still shows one week row, so there is
 // somewhere to double-click.
 function _buildEmptyWeekRow() {
-  const weekRow = document.createElement('div');
-  weekRow.className = 'week-row';
-  const bar = document.createElement('div');
-  bar.className = 'unscheduled-bar';
+  const weekRow = mkEl('div', 'week-row');
+  const bar = mkEl('div', 'unscheduled-bar');
   const emptyUnsched = weekUnscheduled[0];
   if (emptyUnsched) {
     const emptyTasks = state[emptyUnsched.id] || [];
@@ -438,14 +374,12 @@ function _buildEmptyWeekRow() {
     bar.appendChild(buildColEl(emptyUnsched));
   }
   weekRow.appendChild(bar);
-  const daysGrid = document.createElement('div');
-  daysGrid.className = 'week-days';
-  const ghost = document.createElement('div');
-  ghost.className = 'col-ghost';
+  const daysGrid = mkEl('div', 'week-days');
+  const ghost = mkEl('div', 'col-ghost');
   ghost.title = 'Double-click to add next day';
   ghost.addEventListener('dblclick', e => { e.stopPropagation(); addNextDay(); });
   daysGrid.appendChild(ghost);
-  for (let i = 1; i < 7; i++) { const sp = document.createElement('div'); sp.className = 'col-spacer'; daysGrid.appendChild(sp); }
+  for (let i = 1; i < 7; i++) daysGrid.appendChild(mkEl('div', 'col-spacer'));
   weekRow.appendChild(daysGrid);
   return weekRow;
 }

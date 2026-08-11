@@ -10,9 +10,10 @@ import datetime, os, sqlite3, time
 from backend.data_access import connections
 
 BACKUP_INTERVAL_SECONDS = 4 * 60 * 60
+SIMULATE_RESTART_INTERVAL_SECONDS = 24 * 60 * 60
 
 
-def init_db():
+def init_db(interval = SIMULATE_RESTART_INTERVAL_SECONDS):
     conn = connections._connect()
     conn.executescript('''
         CREATE TABLE IF NOT EXISTS users (

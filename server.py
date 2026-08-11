@@ -4,7 +4,6 @@ from backend.controllers.controller import app
 
 backup_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
 backup(backup_dir)
-init_db()
 
 if __name__ == '__main__':
     def _open():
@@ -12,6 +11,7 @@ if __name__ == '__main__':
         webbrowser.open('http://localhost:5000')
     threading.Thread(target=_open, daemon=True).start()
 
+    threading.Thread(target=init_db, args = (), daemon=True).start()
     threading.Thread(target=run_backup_loop, args=(backup_dir,), daemon=True).start()
 
     print('  planner  ->  http://localhost:5000')

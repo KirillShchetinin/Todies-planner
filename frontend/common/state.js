@@ -14,14 +14,10 @@ let customLoadActive = false;    // customLoad frozen at page load — governs r
 let loadedFormIds = new Set();   // forms whose tasks have been fetched (customLoad ON)
 let loadingEarlier = false;      // one in-flight guard for batch fetches
 
+// Replaces the whole board: every form's tasks come from this one response.
 function applyTasksData(tasksData) {
   state = {};
-  for (const t of (tasksData.tasks || [])) {
-    const formId = t.form_id;
-    if (!state[formId]) state[formId] = [];
-    const meta = t.metadata || {};
-    state[formId].push({ id: t.id, text: t.name, done: !!t.done, ...meta });
-  }
+  mergeTasksData(tasksData, []);
 }
 
 // Merge variant of applyTasksData for progressive loading: replaces (never

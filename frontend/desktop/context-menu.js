@@ -20,17 +20,13 @@ function _placeCtxMenu(e) {
 }
 
 function _ctxItem(label, className, onClick) {
-  const btn = document.createElement('button');
-  btn.className = 'ctx-item' + (className ? ' ' + className : '');
-  btn.textContent = label;
+  const btn = mkEl('button', 'ctx-item' + (className ? ' ' + className : ''), label);
   btn.onclick = onClick;
   return btn;
 }
 
 function _ctxSep() {
-  const sep = document.createElement('div');
-  sep.className = 'ctx-sep';
-  return sep;
+  return mkEl('div', 'ctx-sep');
 }
 
 // ── task menu ─────────────────────────────────────────────────────────────
@@ -76,16 +72,12 @@ function openTaskCtxMenu(e, taskId) {
 }
 
 function _buildTypeSubmenu(taskId) {
-  const typeRow = document.createElement('div');
-  typeRow.className = 'ctx-submenu';
+  const typeRow = mkEl('div', 'ctx-submenu');
 
-  const typeTrigger = document.createElement('button');
-  typeTrigger.className = 'ctx-item ctx-submenu-trigger';
-  typeTrigger.textContent = t('ctxChangeType');
+  const typeTrigger = mkEl('button', 'ctx-item ctx-submenu-trigger', t('ctxChangeType'));
   typeRow.appendChild(typeTrigger);
 
-  const typePanel = document.createElement('div');
-  typePanel.className = 'ctx-submenu-panel';
+  const typePanel = mkEl('div', 'ctx-submenu-panel');
   typeRow.appendChild(typePanel);
 
   legendOrder.filter(k => k !== 'done').forEach(key => {
@@ -149,8 +141,7 @@ function openCtxMenu(e, key) {
 
   const grid = ctxMenu.querySelector('#ctxColors');
   COLOR_PRESETS.forEach(preset => {
-    const sw = document.createElement('button');
-    sw.className = 'ctx-swatch';
+    const sw = mkEl('button', 'ctx-swatch');
     sw.style.cssText = `background:${preset.bg};border-color:${preset.border}`;
     sw.onclick = () => { recolorLabel(ctxKey, preset); closeCtxMenu(); };
     grid.appendChild(sw);

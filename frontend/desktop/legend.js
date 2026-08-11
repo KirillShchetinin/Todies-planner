@@ -13,17 +13,14 @@ function renderLegend() {
     const cfg = typeConfig[key];
     if (!cfg) return;
 
-    const pill = document.createElement('span');
-    pill.className = 'leg';
+    const pill = mkEl('span', 'leg');
     pill.style.cssText = `background:${cfg.bg};border-color:${cfg.border};color:${cfg.text}`;
 
     const name = document.createElement('span');
     name.textContent = cfg.label;
     pill.appendChild(name);
 
-    const x = document.createElement('button');
-    x.className = 'leg-del';
-    x.textContent = '×';
+    const x = mkEl('button', 'leg-del', '×');
     x.setAttribute('aria-label', 'Remove label ' + cfg.label);
     x.onclick = ev => { ev.stopPropagation(); deleteLabel(key); };
     pill.appendChild(x);
@@ -32,9 +29,7 @@ function renderLegend() {
     el.appendChild(pill);
   });
 
-  const addBtn = document.createElement('button');
-  addBtn.className   = 'leg-add';
-  addBtn.textContent = t('addLabel');
+  const addBtn = mkEl('button', 'leg-add', t('addLabel'));
   addBtn.onclick     = ev => { ev.stopPropagation(); openAddPanel(ev.currentTarget); };
   el.appendChild(addBtn);
 }

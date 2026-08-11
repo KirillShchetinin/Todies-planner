@@ -6,26 +6,16 @@ function _openModal({ message, buttons }) {
   _modalOverlay.innerHTML = '';
   _modalOverlay.style.display = 'flex';
 
-  const card = document.createElement('div');
-  card.className = 'modal-card';
+  const card = mkEl('div', 'modal-card');
 
-  const msg = document.createElement('p');
-  msg.className = 'modal-message';
-  msg.textContent = message;
+  const msg = mkEl('p', 'modal-message', message);
   card.appendChild(msg);
 
-  const row = document.createElement('div');
-  row.className = 'modal-btns';
-
-  const handlers = [];
+  const row = mkEl('div', 'modal-btns');
 
   buttons.forEach(({ label, className, onClick }) => {
-    const btn = document.createElement('button');
-    btn.className = 'modal-btn ' + (className || '');
-    btn.textContent = label;
-    const handler = () => { _closeModal(); onClick?.(); };
-    btn.addEventListener('click', handler);
-    handlers.push(handler);
+    const btn = mkEl('button', 'modal-btn ' + (className || ''), label);
+    btn.addEventListener('click', () => { _closeModal(); onClick?.(); });
     row.appendChild(btn);
   });
 
@@ -64,26 +54,19 @@ function showTokenModal(token) {
   _modalOverlay.innerHTML = '';
   _modalOverlay.style.display = 'flex';
 
-  const card = document.createElement('div');
-  card.className = 'modal-card';
+  const card = mkEl('div', 'modal-card');
 
-  const msg = document.createElement('p');
-  msg.className = 'modal-message';
-  msg.textContent = t('tokenModalMsg');
+  const msg = mkEl('p', 'modal-message', t('tokenModalMsg'));
   card.appendChild(msg);
 
-  const tokenRow = document.createElement('div');
-  tokenRow.className = 'modal-token-row';
+  const tokenRow = mkEl('div', 'modal-token-row');
 
-  const input = document.createElement('input');
-  input.className = 'modal-token-input';
+  const input = mkEl('input', 'modal-token-input');
   input.readOnly = true;
   input.value = token;
   tokenRow.appendChild(input);
 
-  const copyBtn = document.createElement('button');
-  copyBtn.className = 'modal-btn';
-  copyBtn.textContent = t('tokenCopy');
+  const copyBtn = mkEl('button', 'modal-btn', t('tokenCopy'));
   copyBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(token).then(() => {
       copyBtn.textContent = t('tokenCopied');
@@ -93,11 +76,8 @@ function showTokenModal(token) {
   tokenRow.appendChild(copyBtn);
   card.appendChild(tokenRow);
 
-  const row = document.createElement('div');
-  row.className = 'modal-btns';
-  const doneBtn = document.createElement('button');
-  doneBtn.className = 'modal-btn modal-btn-primary';
-  doneBtn.textContent = t('tokenDone');
+  const row = mkEl('div', 'modal-btns');
+  const doneBtn = mkEl('button', 'modal-btn modal-btn-primary', t('tokenDone'));
   doneBtn.addEventListener('click', () => { _closeModal(); window.location.href = `/?token=${encodeURIComponent(token)}`; });
   row.appendChild(doneBtn);
   card.appendChild(row);
@@ -116,32 +96,23 @@ function showTaskDetails(initialText, onSave) {
   _modalOverlay.innerHTML = '';
   _modalOverlay.style.display = 'flex';
 
-  const card = document.createElement('div');
-  card.className = 'modal-card modal-card-wide';
+  const card = mkEl('div', 'modal-card modal-card-wide');
 
-  const msg = document.createElement('p');
-  msg.className = 'modal-message';
-  msg.textContent = t('detailsTitle');
+  const msg = mkEl('p', 'modal-message', t('detailsTitle'));
   card.appendChild(msg);
 
-  const area = document.createElement('textarea');
-  area.className = 'modal-textarea';
+  const area = mkEl('textarea', 'modal-textarea');
   area.placeholder = t('detailsPh');
   area.value = initialText || '';
   card.appendChild(area);
 
-  const row = document.createElement('div');
-  row.className = 'modal-btns';
+  const row = mkEl('div', 'modal-btns');
 
-  const cancelBtn = document.createElement('button');
-  cancelBtn.className = 'modal-btn modal-btn-cancel';
-  cancelBtn.textContent = t('modalCancel');
+  const cancelBtn = mkEl('button', 'modal-btn modal-btn-cancel', t('modalCancel'));
   cancelBtn.addEventListener('click', () => _closeModal());
   row.appendChild(cancelBtn);
 
-  const saveBtn = document.createElement('button');
-  saveBtn.className = 'modal-btn modal-btn-primary';
-  saveBtn.textContent = t('modalSave');
+  const saveBtn = mkEl('button', 'modal-btn modal-btn-primary', t('modalSave'));
   saveBtn.addEventListener('click', () => { const v = area.value; _closeModal(); onSave?.(v); });
   row.appendChild(saveBtn);
 

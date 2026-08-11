@@ -45,9 +45,7 @@ function addNextDay() {
     const d = parseColDate(dayCols[dayCols.length - 1].date);
     if (d) {
       d.setDate(d.getDate() + 1);
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      date  = `${mm}/${dd}/${d.getFullYear()}`;
+      date  = colDateStr(d);
       label = d.toLocaleDateString('en-US', {weekday: 'short'});
     }
   }
@@ -61,9 +59,7 @@ function addDayAtSlot(weekKey, dayIndex) {
   if (!monday) return;
   const d = new Date(monday);
   d.setDate(monday.getDate() + dayIndex);
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  addCol(d.toLocaleDateString('en-US', {weekday: 'short'}), `${mm}/${dd}/${d.getFullYear()}`);
+  addCol(d.toLocaleDateString('en-US', {weekday: 'short'}), colDateStr(d));
 }
 
 async function addUnscheduledCol() {
@@ -86,6 +82,30 @@ function deleteCol(colId) {
     () => formApiDelete(colId),
     () => { delete state[colId]; cols = cols.filter(c => c.id !== colId); },
   );
+}
+
+// The one bucket columns with no usable date fall into, after every real week.
+const NODATE_WEEK = '__nodate__';
+
+// Buckets `cols` into ISO weeks — the shape both renderers draw from.
+// Each bucket is { key, order, slots }: a dated week's `slots` is a 7-long
+// Mon–Sun array (null where that day has no column), the NODATE_WEEK bucket's
+// is a plain list. `order` is the ABSOLUTE index over all buckets, since both
+// views pair a week with weekUnscheduled[order] — hiding unloaded weeks must
+// never renumber it. Buckets come back in first-appearance (= order) order.
+function weekBuckets() {
+  const buckets = new Map();
+  cols.forEach(col => {
+    const info = colWeekInfo(col);
+    const key  = info ? info.key : NODATE_WEEK;
+    if (!buckets.has(key)) {
+      buckets.set(key, { key, order: buckets.size, slots: info ? new Array(7).fill(null) : [] });
+    }
+    const bucket = buckets.get(key);
+    if (info) bucket.slots[info.day] = col;
+    else      bucket.slots.push(col);
+  });
+  return [...buckets.values()];
 }
 
 function uniqueWeekKeys() {
@@ -145,17 +165,16 @@ async function loadEarlierWeeks() {
   const unloaded = cols.filter(c => !loadedFormIds.has(c.id));
   if (!unloaded.length) return;
   const byKey = new Map();
-  const NODATE = '__nodate__';
   unloaded.forEach(c => {
     const info = colWeekInfo(c);
-    const key  = info ? info.key : NODATE;
+    const key  = info ? info.key : NODATE_WEEK;
     if (!byKey.has(key)) byKey.set(key, []);
     byKey.get(key).push(c.id);
   });
   // Newest weeks first; the undated bucket always sorts to the very end.
   const keys = [...byKey.keys()].sort((a, b) => {
-    if (a === NODATE) return 1;
-    if (b === NODATE) return -1;
+    if (a === NODATE_WEEK) return 1;
+    if (b === NODATE_WEEK) return -1;
     return a < b ? 1 : a > b ? -1 : 0;
   });
   // customLoad ON → next 2 weeks; toggled OFF this session → all remaining.

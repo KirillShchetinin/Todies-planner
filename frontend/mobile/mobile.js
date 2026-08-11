@@ -10,6 +10,7 @@
 let expandedDays = new Set();
 let overlay = null;
 let _vpResizeListener = null;
+let _docScrollListener = null;
 let _didInitialScroll = false;
 let _didStripScroll = false;
 let _lastTapTaskId = null;
@@ -26,6 +27,7 @@ registerView('mobile', {
 
 function renderMobile() {
   _initMobileState();
+  _lockDocumentScroll();
   _renderMobileHeader();
   _renderMobileBoard();
   _renderQuickAdd();
@@ -33,6 +35,20 @@ function renderMobile() {
   // The first render runs before forms/tasks land, so today's hero doesn't
   // exist yet — keep trying until it does, then never again for this session.
   if (!_didInitialScroll) _scrollToToday();
+}
+
+// The shell is exactly viewport-tall, so a scrolled document takes the header
+// off the top *and* pulls the board's bottom edge above the fold, leaving a
+// dead strip under it. overflow: hidden doesn't stop every scroll — iOS moves
+// the document itself to reveal a focused input — and once moved, nothing the
+// user can do brings it back. Snap it home whenever it drifts.
+function _lockDocumentScroll() {
+  if (_docScrollListener) return;
+  _docScrollListener = () => {
+    const doc = document.scrollingElement;
+    if (doc && doc.scrollTop !== 0) doc.scrollTop = 0;
+  };
+  window.addEventListener('scroll', _docScrollListener, { passive: true });
 }
 
 function _scrollToToday() {
@@ -55,6 +71,10 @@ function teardownMobile() {
   document.getElementById('mob-quick-add')?.remove();
   document.getElementById('mob-overlay')?.remove();
   _removeVpListener();
+  if (_docScrollListener) {
+    window.removeEventListener('scroll', _docScrollListener);
+    _docScrollListener = null;
+  }
   _didInitialScroll = false;
   _didStripScroll = false;
 }

@@ -169,7 +169,8 @@ body[data-view="mobile"] #board {
 .mob-scroll-area {
   display: flex;
   flex-direction: column;
-  padding-bottom: calc(80px * var(--ui-scale));
+  /* Just enough room for the last tasks to clear the floating quick-add. */
+  padding-bottom: calc(64px * var(--ui-scale));
   flex: 1;
 }
 
@@ -433,14 +434,16 @@ body[data-view="mobile"] .task:active {
   transform: none;
 }
 
-/* ── Quick-add (fixed bottom) ─────────────────────────────── */
+/* ── Quick-add (floats over the board) ────────────────────── */
 #mob-quick-add {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   padding: calc(10px * var(--ui-scale)) calc(14px * var(--ui-scale)) calc(16px * var(--ui-scale));
-  background: linear-gradient(to top, rgba(216,194,152,1) 40%, rgba(216,194,152,0));
+  /* No backdrop: a filled strip here reads as a separate field pinned under
+     the board, and its flat colour sits visibly on top of the page texture.
+     The button's own surface + shadow is what lifts it off the board. */
   z-index: 100;
   pointer-events: none;
 }

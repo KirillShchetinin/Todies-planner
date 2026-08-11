@@ -20,17 +20,16 @@ def test_create_missing_secret(client):
 
 # ── POST /api/account/token ───────────────────────────────────────────────
 
-def test_rotate_returns_new_token(client, token):
-    r = client.post('/api/account/token', query_string={'token': token})
+def test_rotate_returns_new_token(token, api):
+    r = api.post(token, '/api/account/token')
     assert r.status_code == 200
     assert r.get_json()['token'] != token
 
 
-def test_rotate_invalidates_old_token(client, token):
-    new = client.post('/api/account/token',
-                      query_string={'token': token}).get_json()['token']
-    assert client.get('/api/v2/forms', query_string={'token': token}).status_code == 401
-    assert client.get('/api/v2/forms', query_string={'token': new}).status_code == 200
+def test_rotate_invalidates_old_token(token, api):
+    new = api.post(token, '/api/account/token').get_json()['token']
+    assert api.get(token, '/api/v2/forms').status_code == 401
+    assert api.get(new, '/api/v2/forms').status_code == 200
 
 
 def test_rotate_missing_param(client):
@@ -44,9 +43,9 @@ def test_rotate_invalid_token(client):
 
 # ── DELETE /api/account ───────────────────────────────────────────────────
 
-def test_delete(client, token):
-    assert client.delete('/api/account', query_string={'token': token}).status_code == 204
-    assert client.get('/api/v2/forms', query_string={'token': token}).status_code == 401
+def test_delete(token, api):
+    assert api.delete(token, '/api/account').status_code == 204
+    assert api.get(token, '/api/v2/forms').status_code == 401
 
 
 def test_delete_missing_token(client):

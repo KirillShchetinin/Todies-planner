@@ -17,6 +17,7 @@ import json
 import os
 import sqlite3
 import sys
+from contextlib import closing
 
 import pytest
 
@@ -46,22 +47,16 @@ def db(db_path):
         @staticmethod
         def exec(sql, *params):
             """Run a write. Returns the new row id."""
-            conn = sqlite3.connect(db_path)
-            try:
-                cur = conn.execute(sql, params)
+            with closing(sqlite3.connect(db_path)) as conn:
+                row_id = conn.execute(sql, params).lastrowid
                 conn.commit()
-                return cur.lastrowid
-            finally:
-                conn.close()
+                return row_id
 
         @staticmethod
         def one(sql, *params):
             """First row, or None."""
-            conn = sqlite3.connect(db_path)
-            try:
+            with closing(sqlite3.connect(db_path)) as conn:
                 return conn.execute(sql, params).fetchone()
-            finally:
-                conn.close()
 
     return _Db
 
@@ -161,30 +156,44 @@ def two_tokens(seed):
 
 @pytest.fixture
 def api(client):
-    """
-    Board building through the public API, for tests whose subject is
-    something else. Each call asserts nothing — a failed create surfaces as a
-    KeyError on the response body.
-    """
+    """Requests to the app, with the token folded in."""
     class _Api:
+        # Raw requests with the token folded into the query string. Query
+        # params for GET/DELETE, JSON body for POST/PUT.
+        @staticmethod
+        def get(token, path, **params):
+            return client.get(path, query_string={'token': token, **params})
+
+        @staticmethod
+        def post(token, path, **body):
+            return client.post(path, query_string={'token': token}, json=body)
+
+        @staticmethod
+        def put(token, path, **body):
+            return client.put(path, query_string={'token': token}, json=body)
+
+        @staticmethod
+        def delete(token, path):
+            return client.delete(path, query_string={'token': token})
+
+        # Board building for tests whose subject is something else. These
+        # assert nothing — a failed create surfaces as a KeyError on the body.
         @staticmethod
         def form(token, **kw):
-            return client.post('/api/v2/forms', query_string={'token': token},
-                               json={'label': 'Mon', **kw}).get_json()['id']
+            return _Api.post(token, '/api/v2/forms',
+                             **{'label': 'Mon', **kw}).get_json()['id']
 
         @staticmethod
         def task(token, form_id, **kw):
-            return client.post('/api/v2/tasks', query_string={'token': token},
-                               json={'form_id': form_id, **kw}).get_json()['id']
+            return _Api.post(token, '/api/v2/tasks',
+                             **{'form_id': form_id, **kw}).get_json()['id']
 
         @staticmethod
         def tasks(token):
-            return client.get('/api/v2/tasks',
-                              query_string={'token': token}).get_json()['tasks']
+            return _Api.get(token, '/api/v2/tasks').get_json()['tasks']
 
         @staticmethod
         def forms(token):
-            return client.get('/api/v2/forms',
-                              query_string={'token': token}).get_json()
+            return _Api.get(token, '/api/v2/forms').get_json()
 
     return _Api

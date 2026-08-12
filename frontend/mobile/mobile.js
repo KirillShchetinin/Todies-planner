@@ -542,6 +542,7 @@ function _renderOverlay() {
   container.id = 'mob-overlay';
 
   if      (overlay.kind === 'action') _buildActionSheet(container);
+  else if (overlay.kind === 'details') _buildDetailsSheet(container);
   else if (overlay.kind === 'add')    _buildAddSheet(container);
   else if (overlay.kind === 'menu')   _buildSideMenu(container);
   else if (overlay.kind === 'unsched') _buildUnschedDrawer(container);
@@ -605,6 +606,7 @@ function _buildActionSheet(container) {
 
   // Action rows — use captured taskId, not overlay.taskId
   [
+    { icon: '≡', label: t('mobDetails'), cls: '', action: () => _openTaskDetails(taskId) },
     { icon: '✓', label: t('mobMarkDone'), cls: '', action: () => { overlay = null; toggleDone(taskId); } },
     { icon: '!',  label: t('mobMarkImportant'), cls: 'mob-action-important',
       action: () => { overlay = null; toggleImportant(taskId); render(); } },
@@ -642,6 +644,80 @@ function _moveTaskToCol(taskId, targetColId) {
   overlay = null;
   if (findTaskCol(taskId) === targetColId) { render(); return; }
   moveTaskToCol(taskId, targetColId);
+}
+
+// ── Details sheet ──────────────────────────────────────────────────────────────
+
+// Swaps the action sheet for the details editor. The body is fetched lazily, so
+// the sheet opens in a disabled "loading" state and re-renders once it lands —
+// unless the user has already moved on to another overlay.
+function _openTaskDetails(taskId) {
+  const task = findTask(taskId);
+  if (!task || task.pending) { overlay = null; render(); return; }
+  overlay = { kind: 'details', taskId, draft: null };
+  render();
+  loadTaskContent(taskId).then(() => {
+    if (overlay && overlay.kind === 'details' && overlay.taskId === taskId) render();
+  });
+}
+
+function _buildDetailsSheet(container) {
+  const task = findTask(overlay.taskId);
+  if (!task) { overlay = null; return; }
+
+  const scrim = mkEl('div', 'mob-scrim');
+  scrim.onclick = () => { overlay = null; render(); };
+  container.appendChild(scrim);
+
+  const card = mkEl('div', 'mob-sheet');
+
+  const handle = mkEl('div', 'mob-grab-handle');
+  card.appendChild(handle);
+
+  // Task preview
+  const preview = mkEl('div', 'task');
+  applyTaskStyle(preview, task.type, task.done, task.cancelled);
+  const previewTxt = mkEl('span', 'task-text', task.text);
+  preview.appendChild(previewTxt);
+  card.appendChild(preview);
+
+  const label = mkEl('div', 'mob-sheet-section-label', t('detailsTitle'));
+  card.appendChild(label);
+
+  // undefined means "never fetched"; '' is a real, cached empty body.
+  const loaded = task.content !== undefined;
+
+  const area = mkEl('textarea', 'mob-details-area');
+  area.placeholder = loaded ? t('detailsPh') : t('detailsLoading');
+  area.disabled    = !loaded;
+  // Any render() rebuilds this sheet from scratch, so keep what was typed on
+  // the overlay — same reason the add sheet carries `typedText`.
+  area.value = overlay.draft !== null ? overlay.draft : (task.content || '');
+  area.addEventListener('input', () => { if (overlay) overlay.draft = area.value; });
+  card.appendChild(area);
+
+  const btns = mkEl('div', 'mob-details-btns');
+  const taskId = overlay.taskId;   // capture before overlay can be nulled
+
+  const cancelBtn = mkEl('button', 'mob-details-btn', t('modalCancel'));
+  cancelBtn.onclick = () => { overlay = null; render(); };
+  btns.appendChild(cancelBtn);
+
+  const saveBtn = mkEl('button', 'mob-details-btn mob-details-save', t('modalSave'));
+  saveBtn.disabled = !loaded;
+  saveBtn.onclick = () => {
+    const value = area.value;
+    overlay = null;
+    saveTaskContent(taskId, value);   // optimistic — ends in render()
+  };
+  btns.appendChild(saveBtn);
+
+  card.appendChild(btns);
+  container.appendChild(card);
+
+  // Not focused on open: reading the notes is as common as editing them, and
+  // focusing would raise the keyboard over the sheet either way.
+  _addVpListener(card);
 }
 
 // ── Add-task sheet ─────────────────────────────────────────────────────────────

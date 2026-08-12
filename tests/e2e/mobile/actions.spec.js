@@ -19,7 +19,7 @@ test('long-press opens the action sheet for that task', async ({ page, planner }
 
   await expect(sheet(page)).toBeVisible();
   await expect(sheet(page).locator('.task-text')).toHaveText('Buy milk');
-  await expect(sheet(page).locator('.mob-action-row')).toHaveCount(4);
+  await expect(sheet(page).locator('.mob-action-row')).toHaveCount(5);
 });
 
 test('marks done and important from the action sheet', async ({ page, planner }) => {
@@ -34,6 +34,20 @@ test('marks done and important from the action sheet', async ({ page, planner })
   await planner.reload();
   await expect(task(hero(page), 'Buy milk')).toHaveClass(/done/);
   expect(await planner.task('Call bank')).toMatchObject({ important: true });
+});
+
+test('saves task details and reads them back', async ({ page, planner }) => {
+  // Details are fetched lazily per task rather than loaded with the board, so
+  // this covers both halves of the round trip.
+  await longPress(page, task(hero(page), 'Buy milk'));
+  await sheet(page).locator('.mob-action-row', { hasText: 'Details' }).click();
+  await sheet(page).locator('.mob-details-area').fill('two litres, oat');
+  await sheet(page).locator('.mob-details-save').click();
+
+  await planner.reload();
+  await longPress(page, task(hero(page), 'Buy milk'));
+  await sheet(page).locator('.mob-action-row', { hasText: 'Details' }).click();
+  await expect(sheet(page).locator('.mob-details-area')).toHaveValue('two litres, oat');
 });
 
 test('deletes from the action sheet', async ({ page, planner }) => {

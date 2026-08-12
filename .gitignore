@@ -4,3 +4,9 @@ __pycache__/
 .env
 .claude/
 gunicorn.log
+# Virtualenvs. Production keeps one INSIDE the repo dir
+# (docs/operations-runbook.md), where deploys run git pull.
+venv/
+.venv/
+.venv-*/
+.pytest_cache/

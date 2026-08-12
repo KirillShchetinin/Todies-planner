@@ -48,6 +48,16 @@ def test_delete(token, api):
     assert api.get(token, '/api/v2/forms').status_code == 401
 
 
+def test_delete_wipes_task_content(token, api, db):
+    """The forms -> tasks -> task_content cascade must run all the way down."""
+    tid = api.task(token, api.form(token), name='x')
+    api.put(token, f'/api/v2/tasks/{tid}/content', content='secret body')
+    assert db.one('SELECT COUNT(*) FROM task_content')[0] == 1
+
+    api.delete(token, '/api/account')
+    assert db.one('SELECT COUNT(*) FROM task_content')[0] == 0
+
+
 def test_delete_missing_token(client):
     assert client.delete('/api/account').status_code == 400
 

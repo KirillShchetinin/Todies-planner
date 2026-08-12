@@ -1085,17 +1085,40 @@ function _buildUnschedDrawer(container) {
 
 // ── Visual viewport keyboard adjustment ────────────────────────────────────────
 
+// Breathing room left above a sheet that has been capped to the visible area.
+const VP_SHEET_GAP = 12;
+
+// iOS never resizes the layout viewport for the keyboard: only the visual
+// viewport shrinks, and it also shifts down inside the layout viewport when
+// Safari scrolls a focused field into view. innerHeight - height - offsetTop is
+// therefore the gap the sheet has to clear. While the keyboard is up the sheet
+// is also capped to what remains visible, so a tall one scrolls inside itself
+// instead of running off the top of the screen.
 function _addVpListener(sheet) {
   if (!window.visualViewport || !sheet) return;
   _vpResizeListener = () => {
-    const inset = window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop;
-    sheet.style.bottom = Math.max(0, inset) + 'px';
+    const vp    = window.visualViewport;
+    const inset = window.innerHeight - vp.height - vp.offsetTop;
+    if (inset > 0) {
+      sheet.style.bottom    = inset + 'px';
+      sheet.style.maxHeight = Math.max(0, vp.height - VP_SHEET_GAP) + 'px';
+    } else {
+      sheet.style.bottom    = '';            // keyboard down: back to the stylesheet
+      sheet.style.maxHeight = '';
+    }
   };
   window.visualViewport.addEventListener('resize', _vpResizeListener);
+  // The keyboard can move the visual viewport without resizing it, which shifts
+  // where the sheet belongs with no resize to react to.
+  window.visualViewport.addEventListener('scroll', _vpResizeListener);
+  // Position once now: a render() while the keyboard is already open rebuilds
+  // the sheet at its CSS spot, and no further event need follow to correct it.
+  _vpResizeListener();
 }
 
 function _removeVpListener() {
   if (!window.visualViewport || !_vpResizeListener) return;
   window.visualViewport.removeEventListener('resize', _vpResizeListener);
+  window.visualViewport.removeEventListener('scroll', _vpResizeListener);
   _vpResizeListener = null;
 }

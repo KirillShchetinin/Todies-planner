@@ -12,6 +12,27 @@
 // to it instead of stopping short.
 
 const { test, expect } = require('../fixtures/test');
+const { hero, task, sheet, longPress } = require('../fixtures/mobile');
+
+/**
+ * Chromium has no soft keyboard, so stand in for one the way iOS behaves:
+ * the visual viewport shrinks while innerHeight (the layout viewport) does not.
+ * Must run before the sheet is built — the listener binds whatever
+ * window.visualViewport is at that moment.
+ */
+function stubKeyboard(page) {
+  return page.evaluate(() => {
+    const vp = new EventTarget();
+    window.__kbd = 0;
+    Object.defineProperties(vp, {
+      height:    { get: () => window.innerHeight - window.__kbd },
+      width:     { get: () => window.innerWidth },
+      offsetTop: { get: () => 0 },
+    });
+    Object.defineProperty(window, 'visualViewport', { get: () => vp, configurable: true });
+    window.__keyboard = px => { window.__kbd = px; vp.dispatchEvent(new Event('resize')); };
+  });
+}
 
 test('the mobile shell is exactly viewport-tall, so the document cannot scroll', async ({ page, planner }) => {
   const m = await page.evaluate(() => ({
@@ -55,6 +76,56 @@ test('a document scroll from anywhere is snapped back', async ({ page, planner }
     () => document.scrollingElement.scrollTop)).toBe(0);
   expect(await page.evaluate(
     () => document.getElementById('mobile-header').getBoundingClientRect().top)).toBe(0);
+});
+
+test('a sheet lifts clear of the on-screen keyboard, and drops back after', async ({ page, planner }) => {
+  // The details sheet is the case that matters: its textarea is the last thing
+  // above the buttons, so a sheet that stays put is a sheet the keyboard covers.
+  await stubKeyboard(page);
+  await longPress(page, task(hero(page), 'Buy milk'));
+  await sheet(page).locator('.mob-action-row', { hasText: 'Details' }).click();
+  await expect(sheet(page).locator('.mob-details-area')).toBeEnabled();
+
+  const viewportH = await page.evaluate(() => window.innerHeight);
+  const KEYBOARD = 340;
+  const sheetBottom = async () => {
+    const box = await sheet(page).boundingBox();
+    return Math.round(box.y + box.height);
+  };
+
+  await page.evaluate(kb => window.__keyboard(kb), KEYBOARD);
+
+  // .mob-sheet transitions `bottom`, so poll rather than measure immediately.
+  await expect.poll(sheetBottom).toBeLessThanOrEqual(viewportH - KEYBOARD);
+  await expect(sheet(page).locator('.mob-details-area')).toBeVisible();
+  await expect(sheet(page).locator('.mob-details-save')).toBeVisible();
+
+  // Every mutation ends in a full render(), which rebuilds the sheet from
+  // scratch at its CSS position. Re-attaching the listener is not enough — the
+  // keyboard is already open, so no further resize event is coming to correct
+  // it, and the fresh sheet has to be placed at once or it lands under the keys.
+  await page.evaluate(() => render());
+  await expect.poll(sheetBottom).toBeLessThanOrEqual(viewportH - KEYBOARD);
+
+  await page.evaluate(() => window.__keyboard(0));
+  await expect.poll(sheetBottom).toBe(viewportH);
+});
+
+test('a sheet taller than the space left over scrolls instead of running off the top', async ({ page, planner }) => {
+  await stubKeyboard(page);
+  await longPress(page, task(hero(page), 'Buy milk'));
+  await sheet(page).locator('.mob-action-row', { hasText: 'Details' }).click();
+  await expect(sheet(page).locator('.mob-details-area')).toBeEnabled();
+
+  // Leave less room than the sheet needs: lifting alone would push its top off
+  // the screen, taking the task preview and the details label with it.
+  const viewportH = await page.evaluate(() => window.innerHeight);
+  const sheetH = (await sheet(page).boundingBox()).height;
+  await page.evaluate(kb => window.__keyboard(kb), Math.round(viewportH - sheetH / 2));
+
+  await expect.poll(async () => Math.round((await sheet(page).boundingBox()).y))
+    .toBeGreaterThanOrEqual(0);
+  expect(await sheet(page).evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
 });
 
 test('the quick-add floats over the board instead of sitting on a strip of its own', async ({ page, planner }) => {

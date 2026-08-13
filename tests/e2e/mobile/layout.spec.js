@@ -111,21 +111,28 @@ test('a sheet lifts clear of the on-screen keyboard, and drops back after', asyn
   await expect.poll(sheetBottom).toBe(viewportH);
 });
 
-test('a sheet taller than the space left over scrolls instead of running off the top', async ({ page, planner }) => {
+test('the details field and its save button stay fully visible above the keyboard', async ({ page, planner }) => {
+  // The point of the whole exercise: you tap the field, the keyboard comes up,
+  // and you can still see what you are typing and the button that saves it.
   await stubKeyboard(page);
   await longPress(page, task(hero(page), 'Buy milk'));
   await sheet(page).locator('.mob-action-row', { hasText: 'Details' }).click();
   await expect(sheet(page).locator('.mob-details-area')).toBeEnabled();
 
-  // Leave less room than the sheet needs: lifting alone would push its top off
-  // the screen, taking the task preview and the details label with it.
+  // Deliberately leave the sheet less room than it naturally wants, so the
+  // textarea has to shrink rather than the buttons being pushed off screen.
   const viewportH = await page.evaluate(() => window.innerHeight);
-  const sheetH = (await sheet(page).boundingBox()).height;
-  await page.evaluate(kb => window.__keyboard(kb), Math.round(viewportH - sheetH / 2));
+  const sheetH    = (await sheet(page).boundingBox()).height;
+  const KEYBOARD  = Math.round(viewportH - sheetH * 0.7);
+  await page.evaluate(kb => window.__keyboard(kb), KEYBOARD);
 
-  await expect.poll(async () => Math.round((await sheet(page).boundingBox()).y))
-    .toBeGreaterThanOrEqual(0);
-  expect(await sheet(page).evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true);
+  const visibleBottom = viewportH - KEYBOARD;
+  for (const sel of ['.mob-details-area', '.mob-details-save']) {
+    await expect.poll(async () => {
+      const b = await sheet(page).locator(sel).boundingBox();
+      return b.y >= 0 && b.y + b.height <= visibleBottom + 1;
+    }, { message: `${sel} is not fully above the keyboard` }).toBe(true);
+  }
 });
 
 test('the quick-add floats over the board instead of sitting on a strip of its own', async ({ page, planner }) => {

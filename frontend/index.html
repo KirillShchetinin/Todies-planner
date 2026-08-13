@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- interactive-widget: without it the browser default is resizes-visual, which
+     leaves the layout viewport (and every position: fixed sheet) sitting behind
+     the on-screen keyboard. resizes-content shrinks the layout viewport instead,
+     so sheets clear the keyboard natively. mobile.js still does it by hand for
+     the browsers that ignore this. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 <title>Weekly Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

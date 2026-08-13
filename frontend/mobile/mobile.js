@@ -669,7 +669,7 @@ function _buildDetailsSheet(container) {
   scrim.onclick = () => { overlay = null; render(); };
   container.appendChild(scrim);
 
-  const card = mkEl('div', 'mob-sheet');
+  const card = mkEl('div', 'mob-sheet mob-sheet-details');
 
   const handle = mkEl('div', 'mob-grab-handle');
   card.appendChild(handle);
@@ -694,6 +694,10 @@ function _buildDetailsSheet(container) {
   // the overlay — same reason the add sheet carries `typedText`.
   area.value = overlay.draft !== null ? overlay.draft : (task.content || '');
   area.addEventListener('input', () => { if (overlay) overlay.draft = area.value; });
+  // Tapping the field is what raises the keyboard, and the resize that follows
+  // can land late or not at all. Re-sync across the animation so the sheet is
+  // never left sitting under the keys.
+  area.addEventListener('focus', _syncViewportSoon);
   card.appendChild(area);
 
   const btns = mkEl('div', 'mob-details-btns');
@@ -1100,11 +1104,17 @@ function _addVpListener(sheet) {
     const vp    = window.visualViewport;
     const inset = window.innerHeight - vp.height - vp.offsetTop;
     if (inset > 0) {
+      const avail = Math.max(0, vp.height - VP_SHEET_GAP);
       sheet.style.bottom    = inset + 'px';
-      sheet.style.maxHeight = Math.max(0, vp.height - VP_SHEET_GAP) + 'px';
+      sheet.style.maxHeight = avail + 'px';
+      // Landscape leaves so little above the keyboard that the sheet's own
+      // chrome fills it. Shed the parts that are only context (the task
+      // preview, the section label) so the field and its buttons still fit.
+      if (sheet.scrollHeight > avail) sheet.classList.add('is-tight');
     } else {
       sheet.style.bottom    = '';            // keyboard down: back to the stylesheet
       sheet.style.maxHeight = '';
+      sheet.classList.remove('is-tight');
     }
   };
   window.visualViewport.addEventListener('resize', _vpResizeListener);
@@ -1114,6 +1124,12 @@ function _addVpListener(sheet) {
   // Position once now: a render() while the keyboard is already open rebuilds
   // the sheet at its CSS spot, and no further event need follow to correct it.
   _vpResizeListener();
+}
+
+// Re-runs the positioning across a keyboard animation (~300ms on iOS), for the
+// browsers that fire no resize at the end of it — or none at all.
+function _syncViewportSoon() {
+  [50, 250, 500].forEach(ms => setTimeout(() => _vpResizeListener?.(), ms));
 }
 
 function _removeVpListener() {

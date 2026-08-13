@@ -680,10 +680,24 @@ body[data-view="mobile"] .task:active {
 .mob-action-delete    { color: #c0392b; }
 
 /* ── Details sheet ────────────────────────────────────────── */
+/* Everything but the textarea keeps its size when the keyboard squeezes the
+   sheet, so the save button can never be the thing that gets pushed off. */
+.mob-sheet-details > * { flex-shrink: 0; }
+
+/* Set by _addVpListener when even the shrunken textarea would not fit — i.e.
+   landscape. Context goes; the field and the buttons stay. */
+.mob-sheet-details.is-tight > .task,
+.mob-sheet-details.is-tight > .mob-sheet-section-label { display: none; }
+
 .mob-details-area {
   width: 100%;
   box-sizing: border-box;
-  min-height: calc(120px * var(--ui-scale));
+  /* When the keyboard caps the sheet, the textarea is what gives: it shrinks
+     toward min-height so the preview and the save button stay on screen,
+     instead of the sheet overflowing and scrolling the field out of view. */
+  flex: 1 1 auto;
+  height: calc(120px * var(--ui-scale));
+  min-height: calc(44px * var(--ui-scale));
   resize: none;
   background: var(--surface2);
   border: 1px solid var(--border);
@@ -702,6 +716,7 @@ body[data-view="mobile"] .task:active {
   display: flex;
   justify-content: flex-end;
   gap: calc(8px * var(--ui-scale));
+  flex-shrink: 0;
 }
 
 .mob-details-btn {

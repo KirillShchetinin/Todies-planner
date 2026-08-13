@@ -669,10 +669,11 @@ function _buildDetailsSheet(container) {
   scrim.onclick = () => { overlay = null; render(); };
   container.appendChild(scrim);
 
-  const card = mkEl('div', 'mob-sheet mob-sheet-details');
-
-  const handle = mkEl('div', 'mob-grab-handle');
-  card.appendChild(handle);
+  // Anchored to the top of the screen, not the bottom: the keyboard rises from
+  // the bottom, so a top-anchored panel is out of its reach by construction —
+  // the viewport maths below only refines the fit, it is not what keeps the
+  // field visible. No grab handle: that is a bottom-sheet affordance.
+  const card = mkEl('div', 'mob-sheet mob-sheet-top mob-sheet-details');
 
   // Task preview
   const preview = mkEl('div', 'task');
@@ -1103,9 +1104,12 @@ function _addVpListener(sheet) {
   _vpResizeListener = () => {
     const vp    = window.visualViewport;
     const inset = window.innerHeight - vp.height - vp.offsetTop;
+    // A top-anchored sheet is already clear of the keyboard; it only needs to be
+    // kept short enough to fit the strip that is left.
+    const topAnchored = sheet.classList.contains('mob-sheet-top');
     if (inset > 0) {
       const avail = Math.max(0, vp.height - VP_SHEET_GAP);
-      sheet.style.bottom    = inset + 'px';
+      if (!topAnchored) sheet.style.bottom = inset + 'px';
       sheet.style.maxHeight = avail + 'px';
       // Landscape leaves so little above the keyboard that the sheet's own
       // chrome fills it. Shed the parts that are only context (the task

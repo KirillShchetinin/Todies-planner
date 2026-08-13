@@ -78,13 +78,12 @@ test('a document scroll from anywhere is snapped back', async ({ page, planner }
     () => document.getElementById('mobile-header').getBoundingClientRect().top)).toBe(0);
 });
 
-test('a sheet lifts clear of the on-screen keyboard, and drops back after', async ({ page, planner }) => {
-  // The details sheet is the case that matters: its textarea is the last thing
-  // above the buttons, so a sheet that stays put is a sheet the keyboard covers.
+test('a bottom sheet lifts clear of the on-screen keyboard, and drops back after', async ({ page, planner }) => {
+  // The add sheet stays bottom-anchored, so it is the one that has to move.
   await stubKeyboard(page);
-  await longPress(page, task(hero(page), 'Buy milk'));
-  await sheet(page).locator('.mob-action-row', { hasText: 'Details' }).click();
-  await expect(sheet(page).locator('.mob-details-area')).toBeEnabled();
+  await page.locator('.mob-qa-main').click();
+  await sheet(page).locator('.mob-label-pill').first().click();
+  await expect(sheet(page).locator('.mob-name-input')).toBeVisible();
 
   const viewportH = await page.evaluate(() => window.innerHeight);
   const KEYBOARD = 340;
@@ -97,8 +96,7 @@ test('a sheet lifts clear of the on-screen keyboard, and drops back after', asyn
 
   // .mob-sheet transitions `bottom`, so poll rather than measure immediately.
   await expect.poll(sheetBottom).toBeLessThanOrEqual(viewportH - KEYBOARD);
-  await expect(sheet(page).locator('.mob-details-area')).toBeVisible();
-  await expect(sheet(page).locator('.mob-details-save')).toBeVisible();
+  await expect(sheet(page).locator('.mob-name-input')).toBeVisible();
 
   // Every mutation ends in a full render(), which rebuilds the sheet from
   // scratch at its CSS position. Re-attaching the listener is not enough — the
@@ -109,6 +107,21 @@ test('a sheet lifts clear of the on-screen keyboard, and drops back after', asyn
 
   await page.evaluate(() => window.__keyboard(0));
   await expect.poll(sheetBottom).toBe(viewportH);
+});
+
+test('the details editor opens at the top of the screen, out of the keyboard\'s reach', async ({ page, planner }) => {
+  // Anchoring is what makes this safe, so pin it: a panel that starts at the
+  // top cannot be covered by a keyboard that rises from the bottom, whatever
+  // the visual-viewport maths does or fails to do.
+  await longPress(page, task(hero(page), 'Buy milk'));
+  await sheet(page).locator('.mob-action-row', { hasText: 'Details' }).click();
+  await expect(sheet(page).locator('.mob-details-area')).toBeEnabled();
+
+  const box = await sheet(page).boundingBox();
+  const viewportH = await page.evaluate(() => window.innerHeight);
+  expect(box.y).toBe(0);
+  // And it stays in the top half, so even a tall keyboard cannot reach it.
+  expect(box.y + box.height).toBeLessThan(viewportH / 2);
 });
 
 test('the details field and its save button stay fully visible above the keyboard', async ({ page, planner }) => {

@@ -680,6 +680,24 @@ body[data-view="mobile"] .task:active {
 .mob-action-delete    { color: #c0392b; }
 
 /* ── Details sheet ────────────────────────────────────────── */
+/* Anchored to the top of the screen. The keyboard rises from the bottom, so
+   nothing up here can be covered by it — this, not the JS in _addVpListener,
+   is what guarantees the field stays visible. */
+.mob-sheet-top {
+  top: 0;
+  bottom: auto;
+  border-radius: 0 0 var(--sheet-radius) var(--sheet-radius);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.22);
+  /* Clears the status bar / notch, since this panel reaches the screen edge. */
+  padding-top: calc(14px * var(--ui-scale) + env(safe-area-inset-top, 0px));
+  animation: mob-sheet-down 200ms ease-out;
+}
+
+@keyframes mob-sheet-down {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(0); }
+}
+
 /* Everything but the textarea keeps its size when the keyboard squeezes the
    sheet, so the save button can never be the thing that gets pushed off. */
 .mob-sheet-details > * { flex-shrink: 0; }

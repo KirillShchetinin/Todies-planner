@@ -584,6 +584,23 @@ body[data-view="mobile"] .task:active {
   to   { transform: translateY(0); }
 }
 
+/* A focused field inside a bottom sheet means the keyboard is up. Reserve room
+   for it in the sheet's own padding, which grows the sheet upward and carries
+   the field clear — no measurement, no events, so it holds even where
+   visualViewport reports nothing. The sheet stays anchored to the bottom; only
+   its content rides above the keys. Deliberately generous: an iOS keyboard is
+   36-44% of the screen, and over-reserving costs empty space, while
+   under-reserving hides the field.
+   _addVpListener sets .kb-handled once it can see the keyboard has already been
+   accounted for, and then this reserve gets out of the way.
+   Driven by a class set on first focus and kept for the life of the sheet, not
+   by :focus-within — focus leaves the field the moment you tap "add", and a
+   reserve that collapsed then would yank the button out from under the tap. */
+.mob-sheet.kb-reserve:not(.kb-handled) {
+  padding-bottom: calc(48vh + 18px * var(--ui-scale));
+  padding-bottom: calc(48dvh + 18px * var(--ui-scale));
+}
+
 /* ── Side menu (slide from right) ────────────────────────── */
 .mob-side-menu {
   position: absolute;

@@ -109,6 +109,34 @@ test('a bottom sheet lifts clear of the on-screen keyboard, and drops back after
   await expect.poll(sheetBottom).toBe(viewportH);
 });
 
+test('the add-task field clears the keyboard even when the viewport reports nothing', async ({ page, planner }) => {
+  // The add sheet stays at the bottom, so it cannot rely on anchoring the way
+  // the details editor does. Kill visualViewport outright — _addVpListener
+  // bails on its first line — and the field must still be reachable.
+  await page.evaluate(() => {
+    Object.defineProperty(window, 'visualViewport', { get: () => undefined, configurable: true });
+  });
+
+  await page.locator('.mob-qa-main').click();
+  await sheet(page).locator('.mob-label-pill').first().click();
+  const input = sheet(page).locator('.mob-name-input');
+  await expect(input).toBeVisible();
+  await input.click();
+
+  // A tall iOS keyboard, ~46% of the screen.
+  const viewportH = await page.evaluate(() => window.innerHeight);
+  const visibleBottom = viewportH * 0.54;
+  await expect.poll(async () => {
+    const b = await input.boundingBox();
+    return b.y >= 0 && b.y + b.height <= visibleBottom;
+  }, { message: 'the add-task input is not above the keyboard' }).toBe(true);
+
+  // ...but it is still a bottom sheet, not moved to the top of the screen.
+  const sheetBox = await sheet(page).boundingBox();
+  expect(Math.round(sheetBox.y + sheetBox.height)).toBe(viewportH);
+  expect(sheetBox.y).toBeGreaterThan(viewportH * 0.2);
+});
+
 test('the details editor opens at the top of the screen, out of the keyboard\'s reach', async ({ page, planner }) => {
   // Anchoring is what makes this safe, so pin it: a panel that starts at the
   // top cannot be covered by a keyboard that rises from the bottom, whatever

@@ -779,6 +779,10 @@ function _buildAddSheet(container) {
     inp.maxLength   = 60;
     inp.value       = overlay.typedText || '';
     inp.addEventListener('input', () => { overlay.typedText = inp.value; });
+    // Focusing this field is what raises the keyboard. Reserve room for it in
+    // the sheet's padding so the row rides up out of the way even on browsers
+    // that report no visual-viewport change at all (see mobile.css).
+    inp.addEventListener('focus', () => sheet.classList.add('kb-reserve'));
 
     const addBtn = mkEl('button', 'mob-name-add-btn', t('addDayConfirm'));
 
@@ -1101,6 +1105,10 @@ const VP_SHEET_GAP = 12;
 // instead of running off the top of the screen.
 function _addVpListener(sheet) {
   if (!window.visualViewport || !sheet) return;
+  // Baseline for spotting the other way a browser can handle the keyboard:
+  // honouring interactive-widget=resizes-content by shrinking the layout
+  // viewport, which moves the sheet for us and needs no inset at all.
+  const baseInnerHeight = window.innerHeight;
   _vpResizeListener = () => {
     const vp    = window.visualViewport;
     const inset = window.innerHeight - vp.height - vp.offsetTop;
@@ -1115,10 +1123,13 @@ function _addVpListener(sheet) {
       // chrome fills it. Shed the parts that are only context (the task
       // preview, the section label) so the field and its buttons still fit.
       if (sheet.scrollHeight > avail) sheet.classList.add('is-tight');
+      sheet.classList.add('kb-handled');     // measured: CSS reserve stands down
     } else {
       sheet.style.bottom    = '';            // keyboard down: back to the stylesheet
       sheet.style.maxHeight = '';
       sheet.classList.remove('is-tight');
+      // The layout viewport shrinking IS the browser handling the keyboard.
+      sheet.classList.toggle('kb-handled', window.innerHeight < baseInnerHeight - VP_SHEET_GAP);
     }
   };
   window.visualViewport.addEventListener('resize', _vpResizeListener);

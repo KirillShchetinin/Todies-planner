@@ -1,7 +1,12 @@
 # Mobile Rescheduling — Problems and Proposed Design
 
-Analysis only; no code changed. All references are to `frontend/mobile/mobile.js`
-unless stated otherwise.
+**Status: Tier 1 shipped.** The move grid described below has been replaced by
+four fixed targets — Tomorrow, Later, Next week, Date — resolved from dates
+rather than array indices, which closes problems 1, 2, 3, 4 and 9 and part of 6
+(the target day now expands). Tiers 2 and 3 are still open. Everything below is
+the original analysis, kept as the rationale.
+
+All references are to `frontend/mobile/mobile.js` unless stated otherwise.
 
 ## How it works today
 

@@ -59,18 +59,67 @@ test('deletes from the action sheet', async ({ page, planner }) => {
   expect(planner.rows().map(r => r.name)).not.toContain('Buy milk');
 });
 
-test('moves a task to another day', async ({ page, planner }) => {
-  await longPress(page, task(hero(page), 'Buy milk'));
-  await sheet(page).locator('.mob-day-grid-btn', { hasText: 'Thu' }).click();
+// The sheet offers the same four targets wherever the task sits: tomorrow, its
+// own week's unscheduled box, next week's, and a picked date.
 
-  await expect(task(hero(page), 'Buy milk')).toHaveCount(0);
-  await expect(dayRow(page, 'Thu').locator('.mob-dot')).toHaveCount(1);
+test('moves a task to tomorrow', async ({ page, planner }) => {
+  await longPress(page, task(hero(page), 'Buy milk'));
+  await sheet(page).locator('.mob-day-grid-btn', { hasText: 'Tomorrow' }).click();
+
+  // The clock is pinned to Wed 11 Mar, so tomorrow is Thu — which expands, so
+  // the task is visible where it landed.
+  await expect(task(hero(page, 'Thu'), 'Buy milk')).toBeVisible();
 
   await planner.reload();
   expect(await planner.formOf('Buy milk')).toBe(planner.formIds.thu);
 });
 
-test('the task\'s own day is not offered as a move target', async ({ page, planner }) => {
+test('"later" drops a task into its own week\'s unscheduled box', async ({ page, planner }) => {
   await longPress(page, task(hero(page), 'Buy milk'));
-  await expect(sheet(page).locator('.mob-day-grid-btn', { hasText: 'Wed' })).toBeDisabled();
+  await sheet(page).locator('.mob-day-grid-btn', { hasText: 'Later' }).click();
+
+  await expect(page.locator('.mob-unsched-chip .mob-unsched-label')).toHaveText('unscheduled · 3');
+  await planner.reload();
+  expect(await planner.formOf('Buy milk')).toBe(planner.formIds.unscheduled);
+});
+
+test('a target the task already sits in is disabled', async ({ page, planner }) => {
+  await longPress(page, task(hero(page), 'Buy milk'));
+  await sheet(page).locator('.mob-day-grid-btn', { hasText: 'Tomorrow' }).click();
+
+  await longPress(page, task(hero(page, 'Thu'), 'Buy milk'));
+  await expect(sheet(page).locator('.mob-day-grid-btn', { hasText: 'Tomorrow' })).toBeDisabled();
+});
+
+test('"next week" files the task in next week\'s unscheduled box, creating it', async ({ page, planner }) => {
+  await longPress(page, task(hero(page), 'Buy milk'));
+  await sheet(page).locator('.mob-day-grid-btn', { hasText: 'Next week' }).click();
+
+  // Next week has no column at all, so its Monday is created to give the
+  // unscheduled container a week row to pair with.
+  await expect(page.locator('.mob-unsched-chip')).toHaveCount(2);
+  await expect(dayRow(page, 'Mon')).toHaveCount(2);
+  const target = await page.evaluate(() => weekUnscheduled[1].id);
+
+  await planner.reload();
+  expect(await planner.formOf('Buy milk')).toBe(target);
+  // Containers pair with weeks by position, so the new one must still be second.
+  expect(await page.evaluate(() => weekUnscheduled[1].id)).toBe(target);
+});
+
+test('a custom date creates the day it names and moves the task there', async ({ page, planner }) => {
+  await longPress(page, task(hero(page), 'Buy milk'));
+
+  // Sunday is deliberately absent from the fixture board. The picker closing —
+  // not each `change` — is what commits the move.
+  const picker = sheet(page).locator('.mob-day-grid-btn--date .mob-target-input');
+  await picker.fill('2026-03-15');
+  await picker.blur();
+
+  await expect(task(hero(page, 'Sun'), 'Buy milk')).toBeVisible();
+
+  await planner.reload();
+  const sunId = await page.evaluate(() => cols.find(c => c.date === '03/15/2026')?.id ?? null);
+  expect(sunId).not.toBeNull();
+  expect(await planner.formOf('Buy milk')).toBe(sunId);
 });

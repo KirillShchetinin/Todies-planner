@@ -581,23 +581,36 @@ function _buildActionSheet(container) {
   const fromColId = overlay.fromColId;
   const taskId    = overlay.taskId;  // capture before overlay can be nulled
 
-  // Unscheduled buttons — show at most 2 (current + next), labeled "Later"
-  weekUnscheduled.slice(0, 2).forEach((unschedCol, i) => {
-    const lbl = weekUnscheduled.length > 1 ? `${t('mobLater')} ${i + 1}` : t('mobLater');
-    const btn = _dayGridBtn(lbl, unschedCol.id === fromColId, () => _moveTaskToCol(taskId, unschedCol.id));
-    grid.appendChild(btn);
-  });
+  // Four fixed targets, the same four wherever the task sits. Everything
+  // resolved here is READ-ONLY: a button whose day column or unscheduled
+  // container doesn't exist yet creates it when tapped, never on render. A
+  // button is disabled only when its target is where the task already is.
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = colDateStr(tomorrow);
 
-  // Nearby day cols — ±3 around the task's current column
-  const fromIdx = cols.findIndex(c => c.id === fromColId);
-  const nearbyCols = fromIdx === -1
-    ? cols.slice(0, 7)
-    : cols.slice(Math.max(0, fromIdx - 3), fromIdx + 4);
-  nearbyCols.forEach(col => {
-    const lbl = (col.label || '').slice(0, 3);
-    const btn = _dayGridBtn(lbl, col.id === fromColId, () => _moveTaskToCol(taskId, col.id));
-    grid.appendChild(btn);
-  });
+  const weekKey = _sourceWeekKey(fromColId);
+  const nextKey = _weekKeyAfter(weekKey);
+
+  grid.appendChild(_dayGridBtn(
+    t('mobTomorrow'),
+    colForDate(tomorrowStr)?.id === fromColId,
+    () => _moveTaskToDate(taskId, tomorrowStr),
+  ));
+
+  grid.appendChild(_dayGridBtn(
+    t('mobLater'),
+    !weekKey || _unschedIdForWeek(weekKey) === fromColId,
+    () => _moveTaskToWeekUnsched(taskId, weekKey),
+  ));
+
+  grid.appendChild(_dayGridBtn(
+    t('mobNextWeek'),
+    !nextKey || _unschedIdForWeek(nextKey) === fromColId,
+    () => _moveTaskToWeekUnsched(taskId, nextKey),
+  ));
+
+  grid.appendChild(_dateGridCell(taskId));
 
   card.appendChild(grid);
 
@@ -634,6 +647,111 @@ function _dayGridBtn(label, isSource, onclick) {
     btn.onclick = onclick;
   }
   return btn;
+}
+
+// The fourth cell: a transparent date input over a chip, the same trick the add
+// sheet's target chip uses. A span, not a button — an input nested in a button
+// swallows the tap. The move waits for the picker to CLOSE (blur) rather than
+// for `change`, which iOS fires on every wheel settle: committing on change
+// would file the task under a date the wheel merely passed through.
+function _dateGridCell(taskId) {
+  const cell = mkEl('span', 'mob-day-grid-btn mob-day-grid-btn--date');
+
+  const txt = document.createElement('span');
+  txt.textContent = t('mobCustomDate');
+  cell.appendChild(txt);
+
+  const inp = document.createElement('input');
+  inp.type      = 'date';
+  inp.className = 'mob-target-input';
+  inp.setAttribute('aria-label', t('mobPickDay'));
+
+  let picked = null;
+  inp.addEventListener('change', () => {
+    const date = isoToDateStr(inp.value);
+    if (!date) return;
+    picked = date;
+    txt.textContent = _targetLabel(date);
+  });
+  inp.addEventListener('blur', () => { if (picked) _moveTaskToDate(taskId, picked); });
+  cell.appendChild(inp);
+
+  return cell;
+}
+
+// ── Move targets ───────────────────────────────────────────────────────────────
+
+// The week row a move source belongs to, as an ISO week key, or null. A day
+// column answers from its date; an unscheduled container answers from its
+// position, since weekUnscheduled[i] is what weekBuckets()[i] pairs with.
+function _sourceWeekKey(colId) {
+  const col = cols.find(c => c.id === colId);
+  if (col) return colWeekInfo(col)?.key || null;
+  const i = weekUnscheduled.findIndex(u => u.id === colId);
+  return i === -1 ? null : (weekBuckets()[i]?.key || null);
+}
+
+function _weekKeyAfter(weekKey) {
+  const monday = weekKey ? weekKeyToMonday(weekKey) : null;
+  if (!monday) return null;
+  monday.setDate(monday.getDate() + 7);
+  return colWeekInfo({ date: colDateStr(monday) })?.key || null;
+}
+
+// The unscheduled container already paired with a week, or null. Never creates.
+function _unschedIdForWeek(weekKey) {
+  if (!weekKey) return null;
+  const order = weekBuckets().findIndex(b => b.key === weekKey);
+  return order === -1 ? null : (weekUnscheduled[order]?.id ?? null);
+}
+
+// The day column for a date, creating it when that day has no form yet.
+// Returns null when it neither exists nor could be created — the caller must
+// then leave the task where it is.
+async function _resolveDayIdForDate(dateStr) {
+  const existing = colForDate(dateStr);
+  if (existing) return existing.id;
+  const d = parseColDate(dateStr);
+  if (!d) return null;
+  return addCol(d.toLocaleDateString('en-US', { weekday: 'short' }), dateStr);
+}
+
+// The unscheduled container for a week, creating what's missing. A week with no
+// day column has no bucket for a container to pair with, so its Monday is
+// created first — addCol re-sorts and self-heals the containers behind it.
+async function _resolveUnschedIdForWeek(weekKey) {
+  if (!weekKey) return null;
+  let order = weekBuckets().findIndex(b => b.key === weekKey);
+  if (order === -1) {
+    const monday = weekKeyToMonday(weekKey);
+    if (!monday) return null;
+    const created = await addCol(monday.toLocaleDateString('en-US', { weekday: 'short' }), colDateStr(monday));
+    if (!created) return null;
+    order = weekBuckets().findIndex(b => b.key === weekKey);
+    if (order === -1) return null;
+  }
+  await ensureUnscheduledForWeeks();
+  return weekUnscheduled[order]?.id ?? null;
+}
+
+// Move onto a calendar day. The target day is expanded so the task is visible
+// where it landed, the same way the add sheet reveals a new task.
+function _moveTaskToDate(taskId, dateStr) {
+  const task = findTask(taskId);
+  if (!task || task.pending) return;
+  _resolveDayIdForDate(dateStr).then(id => {
+    if (id == null) return;        // day couldn't be created → no move
+    _expandDay(id);
+    _moveTaskToCol(taskId, id);
+  });
+}
+
+function _moveTaskToWeekUnsched(taskId, weekKey) {
+  const task = findTask(taskId);
+  if (!task || task.pending) return;
+  _resolveUnschedIdForWeek(weekKey).then(id => {
+    if (id != null) _moveTaskToCol(taskId, id);
+  });
 }
 
 // Closes the sheet and hands the move to the common mutation. A pending task
@@ -851,13 +969,7 @@ function _buildTargetRow() {
 async function _resolveAddDayId(dayId, targetDate) {
   if (dayId) { _expandDay(dayId); return dayId; }
   if (!targetDate) return null;
-
-  const existing = colForDate(targetDate);
-  if (existing) { _expandDay(existing.id); return existing.id; }
-
-  const d = parseColDate(targetDate);
-  if (!d) return null;
-  const id = await addCol(d.toLocaleDateString('en-US', { weekday: 'short' }), targetDate);
+  const id = await _resolveDayIdForDate(targetDate);
   if (id) _expandDay(id);
   return id;
 }

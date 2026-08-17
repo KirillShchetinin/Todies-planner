@@ -240,9 +240,11 @@ precisely the write that has no token yet.
   rest as type-coloured dots, faded for done. `docs/collapse-flow.md` has the
   decision tree.
 - **Mobile-specific:** day strip header, expandable day heroes, a quick-add bar,
-  a long-press action sheet with a "move to day" grid (2 unscheduled + ±3 nearby
-  days), a side menu and an unscheduled drawer. Drag-and-drop is desktop only;
-  mobile moves tasks through the sheet.
+  a long-press action sheet whose "move to" row holds four fixed targets
+  (tomorrow, the task's own week's unscheduled box, next week's, and a picked
+  date — each creating the column or container it needs, and greyed out when the
+  task is already there), a side menu and an unscheduled drawer. Drag-and-drop is
+  desktop only; mobile moves tasks through the sheet.
 
 ## Translation rule
 

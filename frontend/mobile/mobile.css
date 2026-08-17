@@ -656,6 +656,10 @@ body[data-view="mobile"] .task:active {
 .mob-day-grid-btn:hover:not(:disabled) { background: var(--surface); color: var(--text); }
 .mob-day-grid-btn:disabled { opacity: 0.55; cursor: default; }
 
+/* The custom-date cell: a span, so it can host the transparent date input that
+   .mob-target-input positions against it. */
+.mob-day-grid-btn--date { position: relative; display: flex; align-items: center; justify-content: center; }
+
 /* ── Action rows ──────────────────────────────────────────── */
 .mob-action-row {
   display: flex;

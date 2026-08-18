@@ -569,7 +569,7 @@ function _buildActionSheet(container) {
   // server id yet, so it stays read-only until the create lands.
   const editing = !!overlay.editingName && !task.pending;
   card.appendChild(editing ? _buildNameEditRow(task, card)
-                           : _buildActionPreview(task, !task.pending));
+                           : _buildActionPreview(task));
 
   // MOVE TO section
   const moveLabel = mkEl('div', 'mob-sheet-section-label', t('mobMoveTo'));
@@ -644,22 +644,17 @@ function _buildActionSheet(container) {
 
 // ── Rename (action sheet preview) ──────────────────────────────────────────────
 
-function _buildActionPreview(task, editable) {
+function _buildActionPreview(task) {
   const preview = mkEl('div', 'task');
   applyTaskStyle(preview, task.type, task.done, task.cancelled);
   const previewTxt = mkEl('span', 'task-text', task.text);
   preview.appendChild(previewTxt);
-  if (editable) {
+  if (!task.pending) {
     preview.classList.add('mob-preview-editable');
     preview.title = t('mobRename');
-    const pencil = mkEl('span', 'mob-preview-edit-icon', '\u270E');
+    const pencil = mkEl('span', 'mob-preview-edit-icon', '✎');
     preview.appendChild(pencil);
-    preview.onclick = () => {
-      if (!overlay) return;
-      overlay.editingName = true;
-      overlay.nameDraft   = task.text;
-      render();
-    };
+    preview.onclick = () => { if (overlay) { overlay.editingName = true; render(); } };
   }
   return preview;
 }
@@ -676,18 +671,21 @@ function _buildNameEditRow(task, card) {
   row.style.borderColor = cfg.border || '';
   row.style.color       = cfg.text   || '';
 
+  // No draft yet means this is the first build, not a rebuild mid-edit: only
+  // then is the name preselected, so a render() can't eat what was typed.
+  const fresh = overlay.nameDraft == null;
+
   const inp = document.createElement('input');
   inp.type        = 'text';
   inp.className   = 'mob-name-input';
   inp.placeholder = t('addTaskPh');
-  inp.maxLength   = 60;
   inp.setAttribute('aria-label', t('mobRename'));
-  inp.value = overlay.nameDraft != null ? overlay.nameDraft : task.text;
+  inp.value = fresh ? task.text : overlay.nameDraft;
   inp.addEventListener('input', () => { if (overlay) overlay.nameDraft = inp.value; });
   inp.addEventListener('focus', () => card.classList.add('kb-reserve'));
   inp.addEventListener('keydown', e => {
     if (e.key === 'Enter')  { e.preventDefault(); _commitTaskRename(taskId, inp.value); }
-    if (e.key === 'Escape') { e.preventDefault(); _cancelTaskRename(); }
+    if (e.key === 'Escape') { e.preventDefault(); overlay = null; render(); }
   });
 
   const saveBtn = mkEl('button', 'mob-name-add-btn', t('modalSave'));
@@ -696,7 +694,7 @@ function _buildNameEditRow(task, card) {
   row.appendChild(inp);
   row.appendChild(saveBtn);
 
-  requestAnimationFrame(() => { inp.focus(); inp.select(); });
+  requestAnimationFrame(() => { inp.focus(); if (fresh) inp.select(); });
 
   return row;
 }
@@ -709,11 +707,6 @@ function _commitTaskRename(taskId, value) {
   if (overlay) { overlay.editingName = false; overlay.nameDraft = null; }
   if (!name || !task || task.pending || name === task.text) { render(); return; }
   renameTask(taskId, name);   // optimistic — ends in render()
-}
-
-function _cancelTaskRename() {
-  if (overlay) { overlay.editingName = false; overlay.nameDraft = null; }
-  render();
 }
 
 function _dayGridBtn(label, isSource, onclick) {

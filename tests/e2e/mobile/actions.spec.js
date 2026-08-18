@@ -36,6 +36,20 @@ test('marks done and important from the action sheet', async ({ page, planner })
   expect(await planner.task('Call bank')).toMatchObject({ important: true });
 });
 
+test('renames a task from the action sheet', async ({ page, planner }) => {
+  await longPress(page, task(hero(page), 'Buy milk'));
+  await sheet(page).locator('.task-text').click();
+  await sheet(page).locator('.mob-name-input').fill('Buy oat milk');
+  await sheet(page).locator('.mob-name-add-btn').click();
+
+  // The sheet stays open on the renamed task.
+  await expect(sheet(page).locator('.task-text')).toHaveText('Buy oat milk');
+
+  await planner.reload();
+  await expect(task(hero(page), 'Buy oat milk')).toBeVisible();
+  expect(planner.rows().map(r => r.name)).not.toContain('Buy milk');
+});
+
 test('saves task details and reads them back', async ({ page, planner }) => {
   // Details are fetched lazily per task rather than loaded with the board, so
   // this covers both halves of the round trip.

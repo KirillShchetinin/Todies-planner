@@ -565,12 +565,11 @@ function _buildActionSheet(container) {
   const handle = mkEl('div', 'mob-grab-handle');
   card.appendChild(handle);
 
-  // Task preview
-  const preview = mkEl('div', 'task');
-  applyTaskStyle(preview, task.type, task.done, task.cancelled);
-  const previewTxt = mkEl('span', 'task-text', task.text);
-  preview.appendChild(previewTxt);
-  card.appendChild(preview);
+  // Task preview — tap the name to rename it in place. A pending task has no
+  // server id yet, so it stays read-only until the create lands.
+  const editing = !!overlay.editingName && !task.pending;
+  card.appendChild(editing ? _buildNameEditRow(task, card)
+                           : _buildActionPreview(task, !task.pending));
 
   // MOVE TO section
   const moveLabel = mkEl('div', 'mob-sheet-section-label', t('mobMoveTo'));
@@ -637,6 +636,84 @@ function _buildActionSheet(container) {
   });
 
   container.appendChild(card);
+
+  // Only the rename field raises the keyboard from this sheet, so the viewport
+  // maths is wired up only while it is open (same handling as the add sheet).
+  if (editing) _addVpListener(card);
+}
+
+// ── Rename (action sheet preview) ──────────────────────────────────────────────
+
+function _buildActionPreview(task, editable) {
+  const preview = mkEl('div', 'task');
+  applyTaskStyle(preview, task.type, task.done, task.cancelled);
+  const previewTxt = mkEl('span', 'task-text', task.text);
+  preview.appendChild(previewTxt);
+  if (editable) {
+    preview.classList.add('mob-preview-editable');
+    preview.title = t('mobRename');
+    const pencil = mkEl('span', 'mob-preview-edit-icon', '\u270E');
+    preview.appendChild(pencil);
+    preview.onclick = () => {
+      if (!overlay) return;
+      overlay.editingName = true;
+      overlay.nameDraft   = task.text;
+      render();
+    };
+  }
+  return preview;
+}
+
+// The preview swapped for an editable field, styled like the add sheet's name
+// row so both name-entry surfaces look the same. Any render() rebuilds the
+// sheet, so what was typed is kept on the overlay, like `draft`/`typedText`.
+function _buildNameEditRow(task, card) {
+  const cfg    = typeConfig[task.type] || {};
+  const taskId = task.id;
+
+  const row = mkEl('div', 'mob-name-input-row');
+  row.style.background  = cfg.bg     || '';
+  row.style.borderColor = cfg.border || '';
+  row.style.color       = cfg.text   || '';
+
+  const inp = document.createElement('input');
+  inp.type        = 'text';
+  inp.className   = 'mob-name-input';
+  inp.placeholder = t('addTaskPh');
+  inp.maxLength   = 60;
+  inp.setAttribute('aria-label', t('mobRename'));
+  inp.value = overlay.nameDraft != null ? overlay.nameDraft : task.text;
+  inp.addEventListener('input', () => { if (overlay) overlay.nameDraft = inp.value; });
+  inp.addEventListener('focus', () => card.classList.add('kb-reserve'));
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); _commitTaskRename(taskId, inp.value); }
+    if (e.key === 'Escape') { e.preventDefault(); _cancelTaskRename(); }
+  });
+
+  const saveBtn = mkEl('button', 'mob-name-add-btn', t('modalSave'));
+  saveBtn.onclick = () => _commitTaskRename(taskId, inp.value);
+
+  row.appendChild(inp);
+  row.appendChild(saveBtn);
+
+  requestAnimationFrame(() => { inp.focus(); inp.select(); });
+
+  return row;
+}
+
+// Commits the rename and drops back to the preview, leaving the sheet open so
+// the new name is visible. An empty or unchanged name is just a cancel.
+function _commitTaskRename(taskId, value) {
+  const name = value.trim();
+  const task = findTask(taskId);
+  if (overlay) { overlay.editingName = false; overlay.nameDraft = null; }
+  if (!name || !task || task.pending || name === task.text) { render(); return; }
+  renameTask(taskId, name);   // optimistic — ends in render()
+}
+
+function _cancelTaskRename() {
+  if (overlay) { overlay.editingName = false; overlay.nameDraft = null; }
+  render();
 }
 
 function _dayGridBtn(label, isSource, onclick) {

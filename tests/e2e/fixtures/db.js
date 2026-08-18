@@ -42,11 +42,17 @@ function seedBoard() {
 
     const formIds = {};
     const taskIds = {};
+    // Day columns and unscheduled containers are numbered independently, the
+    // way the app writes them (sort_order = cols.length / weekUnscheduled.length).
+    // Sharing one counter would give the seeded container a sort_order higher
+    // than any the app creates later, and since week↔container pairing is by
+    // position, a container added during a test would sort in front of it.
     let order = 0;
+    let unschedOrder = 0;
 
     for (const [key, form] of Object.entries(FORMS)) {
       const formId = insForm.run(userId, key, form.label, form.date,
-        form.unscheduled ? 1 : 0, order++).lastInsertRowid;
+        form.unscheduled ? 1 : 0, form.unscheduled ? unschedOrder++ : order++).lastInsertRowid;
       formIds[key] = Number(formId);
 
       form.tasks.forEach(([name, type, done], i) => {

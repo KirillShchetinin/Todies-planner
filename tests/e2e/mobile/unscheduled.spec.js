@@ -19,11 +19,22 @@ test('schedules an unscheduled task onto a day', async ({ page, planner }) => {
   await drawer(page).locator('.mob-unsched-task-row', { hasText: 'Fix bike' })
     .locator('.mob-sched-btn').click();
 
-  await sheet(page).locator('.mob-day-grid-btn', { hasText: 'Thu' }).click();
+  await sheet(page).locator('.mob-day-grid-btn', { hasText: 'Tomorrow' }).click();
 
   await expect(page.locator('.mob-unsched-chip .mob-unsched-label')).toHaveText('unscheduled · 1');
   await planner.reload();
   expect(await planner.formOf('Fix bike')).toBe(planner.formIds.thu);
+});
+
+// "Later" means this task's own week row, which for an unscheduled task is
+// where it already is — so it greys out while next week's box stays reachable.
+test('"later" is disabled for a task that is already unscheduled', async ({ page, planner }) => {
+  await page.locator('.mob-unsched-chip').click();
+  await drawer(page).locator('.mob-unsched-task-row', { hasText: 'Fix bike' })
+    .locator('.mob-sched-btn').click();
+
+  await expect(sheet(page).locator('.mob-day-grid-btn', { hasText: 'Later' })).toBeDisabled();
+  await expect(sheet(page).locator('.mob-day-grid-btn', { hasText: 'Next week' })).toBeEnabled();
 });
 
 test('adds a task straight into the drawer', async ({ page, planner }) => {

@@ -651,6 +651,18 @@ body[data-view="mobile"] .task:active {
   background: var(--border);
 }
 
+/* ── Rename (action sheet preview) ────────────────────────── */
+.mob-preview-editable {
+  cursor: pointer;
+}
+
+.mob-preview-edit-icon {
+  flex-shrink: 0;
+  align-self: center;
+  opacity: 0.5;
+  font-size: calc(12px * var(--ui-scale));
+}
+
 /* ── Day grid (move-to in action sheet) ───────────────────── */
 .mob-day-grid {
   display: grid;

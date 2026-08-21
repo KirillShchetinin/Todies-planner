@@ -580,10 +580,11 @@ function _buildActionSheet(container) {
   const fromColId = overlay.fromColId;
   const taskId    = overlay.taskId;  // capture before overlay can be nulled
 
-  // Four fixed targets, the same four wherever the task sits. Everything
-  // resolved here is READ-ONLY: a button whose day column or unscheduled
-  // container doesn't exist yet creates it when tapped, never on render. A
-  // button is disabled only when its target is where the task already is.
+  // Four fixed targets, the second of which depends on where the task sits
+  // (see below). Everything resolved here is READ-ONLY: a button whose day
+  // column or unscheduled container doesn't exist yet creates it when tapped,
+  // never on render. A button is disabled only when its target is where the
+  // task already is.
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = colDateStr(tomorrow);
@@ -597,11 +598,22 @@ function _buildActionSheet(container) {
     () => _moveTaskToDate(taskId, tomorrowStr),
   ));
 
-  grid.appendChild(_dayGridBtn(
-    t('mobLater'),
-    !weekKey || _unschedIdForWeek(weekKey) === fromColId,
-    () => _moveTaskToWeekUnsched(taskId, weekKey),
-  ));
+  // "Later" is the way off the calendar and into this week's unscheduled box —
+  // meaningless for a task that already sits in one, so that slot flips to the
+  // way back: "Today".
+  const inUnsched = weekUnscheduled.some(u => u.id === fromColId);
+
+  grid.appendChild(inUnsched
+    ? _dayGridBtn(
+        t('mobMoveToday'),
+        false,
+        () => _moveTaskToDate(taskId, todayDateStr()),
+      )
+    : _dayGridBtn(
+        t('mobLater'),
+        !weekKey || _unschedIdForWeek(weekKey) === fromColId,
+        () => _moveTaskToWeekUnsched(taskId, weekKey),
+      ));
 
   grid.appendChild(_dayGridBtn(
     t('mobNextWeek'),

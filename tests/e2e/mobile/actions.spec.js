@@ -73,8 +73,9 @@ test('deletes from the action sheet', async ({ page, planner }) => {
   expect(planner.rows().map(r => r.name)).not.toContain('Buy milk');
 });
 
-// The sheet offers the same four targets wherever the task sits: tomorrow, its
-// own week's unscheduled box, next week's, and a picked date.
+// The sheet offers four targets: tomorrow, next week's unscheduled box, a
+// picked date, and — depending on where the task sits — either its own week's
+// unscheduled box ("later") or today (see unscheduled.spec.js).
 
 test('moves a task to tomorrow', async ({ page, planner }) => {
   await longPress(page, task(hero(page), 'Buy milk'));

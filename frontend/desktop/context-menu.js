@@ -93,7 +93,10 @@ function _buildTypeSubmenu(taskId) {
 
   // Opened by class rather than :hover so the panel can be measured and
   // flipped/shifted before the pointer reaches it.
+  let closeTimer = null;
   const openSub = () => {
+    clearTimeout(closeTimer);
+    if (typeRow.classList.contains('open')) return;
     typeRow.classList.add('open');
     typePanel.classList.remove('flip-left');
     typePanel.style.transform = '';
@@ -105,10 +108,13 @@ function _buildTypeSubmenu(taskId) {
     const shift = Math.min(r.bottom - (window.innerHeight - 8), r.top - 8);
     if (shift > 0) typePanel.style.transform = `translateY(${-shift}px)`;
   };
-  const closeSub = () => typeRow.classList.remove('open');
+  const closeSub = () => { clearTimeout(closeTimer); typeRow.classList.remove('open'); };
+  // The pointer briefly leaves the row while crossing to the panel, so closing
+  // is deferred; re-entering the row (or the panel, its child) cancels it.
+  const closeSubSoon = () => { clearTimeout(closeTimer); closeTimer = setTimeout(closeSub, 300); };
 
   typeRow.addEventListener('mouseenter', openSub);
-  typeRow.addEventListener('mouseleave', closeSub);
+  typeRow.addEventListener('mouseleave', closeSubSoon);
   typeTrigger.onclick = e => {
     e.stopPropagation();
     typeRow.classList.contains('open') ? closeSub() : openSub();

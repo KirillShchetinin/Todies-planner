@@ -298,13 +298,19 @@ header h1 { font-family: var(--mono); font-size: calc(17px * var(--ui-scale)); f
 .ctx-submenu-trigger::after { content: '›'; float: right; margin-left: calc(10px * var(--ui-scale)); }
 .ctx-submenu-panel {
   /* +6px = the parent menu's 5px padding and 1px border, so the panel sits
-     flush against its outer edge — adjacent, with no hover dead zone. */
+     flush against its outer edge; the ::before below bridges that gap. */
   display: none; position: absolute; top: -6px; left: calc(100% + 6px);
   background: var(--surface); border: 1px solid var(--border-hover);
   border-radius: 8px; padding: 5px; min-width: 150px;
   box-shadow: 0 4px 18px rgba(0,0,0,0.13);
 }
 .ctx-submenu-panel.flip-left { left: auto; right: calc(100% + 6px); }
+/* Transparent bridge over the 6px gap, so the pointer stays inside the panel's
+   hit area while crossing to it. */
+.ctx-submenu-panel::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: -6px; width: 6px;
+}
+.ctx-submenu-panel.flip-left::before { left: auto; right: -6px; }
 .ctx-submenu.open > .ctx-submenu-panel { display: block; }
 
 /* ── activity bar ── */

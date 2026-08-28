@@ -88,6 +88,29 @@ test('change type opens as a submenu beside the context menu', async ({ page, pl
   expect(besideMenu).toBe(true);
 });
 
+test('submenu survives the pointer crossing over to it', async ({ page, planner }) => {
+  // Playwright's hover() teleports; a real mouse travels through the gap
+  // between the trigger and the panel, which used to close the submenu.
+  await task(col(page, '03/11'), 'Buy milk').click({ button: 'right' });
+  const menu = page.locator('#ctxMenu');
+  await menu.waitFor();
+
+  const trigger = menu.locator('.ctx-submenu-trigger');
+  await trigger.hover();
+  const panel = menu.locator('.ctx-submenu-panel');
+  await expect(panel).toBeVisible();
+
+  const from = await trigger.boundingBox();
+  const to = await panel.locator('.ctx-type-item').first().boundingBox();
+  await page.mouse.move(from.x + from.width - 2, from.y + from.height / 2);
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 20 });
+  await expect(panel).toBeVisible();
+
+  await panel.locator('.ctx-type-item', { hasText: 'Home' }).first().click();
+  await planner.reload();
+  expect(await planner.task('Buy milk')).toMatchObject({ type: 't-custom-1' });
+});
+
 test('saves task details and reads them back', async ({ page, planner }) => {
   // Details are fetched lazily per task rather than loaded with the board, so
   // this covers both halves of the round trip.

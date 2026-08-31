@@ -24,18 +24,22 @@ function findTaskCol(id) {
 
 // Hand-rolled optimistic create: insert a card with a negative temp id and
 // `pending: true`, then swap in the real id once the POST answers.
-function addTask(colId, text, type) {
+function addTask(colId, text, type, important) {
   const name = text.trim();
   if (!name) return;
   const temp = tempId();
   UndoHistory.push();
   if (!state[colId]) state[colId] = [];
   const task = { id: temp, text: name, type, locked: false, done: false, pending: true };
+  if (important) task.important = true;
   state[colId].push(task);
   render();
 
+  const meta = { type, locked: false };
+  if (important) meta.important = true;
+
   return Promise.resolve()
-    .then(() => taskApiCreate(colId, name, { type, locked: false }))
+    .then(() => taskApiCreate(colId, name, meta))
     .then(created => {
       task.id = created.id;             // reconcile temp id with the server id
       delete task.pending;

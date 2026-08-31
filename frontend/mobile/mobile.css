@@ -835,6 +835,32 @@ body[data-view="mobile"] .task:active {
   min-width: 0;
 }
 
+/* Sits under the name row in step 2 of the add sheet. A <label>, so the word
+   is as big a tap target as the box itself. */
+.mob-add-important {
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--ui-scale));
+  font-family: var(--mono);
+  font-size: calc(11px * var(--ui-scale));
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  cursor: pointer;
+  align-self: flex-start;
+  padding: calc(4px * var(--ui-scale)) 0;
+}
+
+.mob-add-important-box {
+  width: calc(16px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+  accent-color: #c0392b;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.mob-add-important-text { color: inherit; }
+
 .mob-name-add-btn {
   background: var(--accent);
   color: #fff;

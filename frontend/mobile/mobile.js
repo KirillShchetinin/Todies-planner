@@ -424,7 +424,7 @@ function _buildDayHero(col) {
   // Add task button
   const addBtn = mkEl('button', 'add-btn', t('addTask'));
   addBtn.onclick = () => {
-    overlay = { kind: 'add', step: 1, dayId: col.id, targetDate: col.date || null, selectedType: null, typedText: '' };
+    overlay = { kind: 'add', step: 1, dayId: col.id, targetDate: col.date || null, selectedType: null, typedText: '', important: false };
     render();
   };
   hero.appendChild(addBtn);
@@ -507,7 +507,7 @@ function _renderQuickAdd() {
       dayId: todayCol()?.id || null,
       targetDate: today,
       pickDate,
-      selectedType: null, typedText: '',
+      selectedType: null, typedText: '', important: false,
     };
     render();
   };
@@ -999,12 +999,30 @@ function _buildAddSheet(container) {
     inputRow.appendChild(inp);
     inputRow.appendChild(addBtn);
     sheet.appendChild(inputRow);
+    sheet.appendChild(_buildImportantRow());
 
     requestAnimationFrame(() => inp.focus());
     _addVpListener(sheet);
   }
 
   container.appendChild(sheet);
+}
+
+// Flags the task at creation time, so it doesn't have to be marked afterwards
+// through the action sheet. The tick lives on the overlay, like `typedText`,
+// so a render() (a date pick, a label change) doesn't drop it.
+function _buildImportantRow() {
+  const row = mkEl('label', 'mob-add-important');
+
+  const box = document.createElement('input');
+  box.type      = 'checkbox';
+  box.className = 'mob-add-important-box';
+  box.checked   = !!overlay.important;
+  box.addEventListener('change', () => { if (overlay) overlay.important = box.checked; });
+  row.appendChild(box);
+
+  row.appendChild(mkEl('span', 'mob-add-important-text', '! ' + t('mobImportant')));
+  return row;
 }
 
 function _targetLabel(dateStr) {
@@ -1075,12 +1093,13 @@ function _submitAddSheet(text, keepOpen) {
   const dayId = overlay.dayId;
   const date  = overlay.targetDate;
   const type  = overlay.selectedType;
+  const imp   = !!overlay.important;
 
   if (keepOpen) overlay.typedText = '';
   else          overlay = null;
   render();
 
-  _resolveAddDayId(dayId, date).then(id => { if (id) addTask(id, text, type); });
+  _resolveAddDayId(dayId, date).then(id => { if (id) addTask(id, text, type, imp); });
 }
 
 // ── Side menu ──────────────────────────────────────────────────────────────────
@@ -1252,7 +1271,7 @@ function _buildUnschedDrawer(container) {
 
   const addBtn = mkEl('button', 'mob-unsched-add-btn', '+ ' + t('addTask').replace(/^\+\s*/, ''));
   addBtn.onclick = () => {
-    overlay = { kind: 'add', step: 1, dayId: colId, targetDate: null, selectedType: null, typedText: '' };
+    overlay = { kind: 'add', step: 1, dayId: colId, targetDate: null, selectedType: null, typedText: '', important: false };
     render();
   };
   hdrBlock.appendChild(addBtn);

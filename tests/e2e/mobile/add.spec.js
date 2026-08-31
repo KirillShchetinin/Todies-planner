@@ -56,3 +56,23 @@ test('dismissing the sheet adds nothing', async ({ page, planner }) => {
   await planner.reload();
   expect(planner.rows().map(r => r.name)).not.toContain('Never saved');
 });
+
+test('the important checkbox flags the task at creation', async ({ page, planner }) => {
+  await page.locator('.mob-qa-main').click();
+  await sheet(page).locator('.mob-label-pill', { hasText: 'Work' }).click();
+  await sheet(page).locator('.mob-name-input').fill('Renew passport');
+  await sheet(page).locator('.mob-add-important').click();
+  await sheet(page).locator('.mob-name-add-btn').click();
+
+  await expect(task(hero(page, 'Wed'), 'Renew passport').locator('.task-important')).toBeVisible();
+  await planner.reload();
+  expect(await planner.task('Renew passport')).toMatchObject({ important: true });
+});
+
+test('leaving the checkbox alone adds an ordinary task', async ({ page, planner }) => {
+  await page.locator('.mob-qa-main').click();
+  await fillAddSheet(page, 'Work', 'Buy milk');
+
+  await planner.reload();
+  expect(await planner.task('Buy milk')).not.toMatchObject({ important: true });
+});

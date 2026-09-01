@@ -138,3 +138,14 @@ function weekKeyToMonday(key) {
   monday.setDate(jan4.getDate() - dow + (week - 1) * 7);
   return monday;
 }
+
+// Short month/year tag for an ISO week key, e.g. "Aug'26". A week that spans
+// two months is attributed to the month holding its Thursday — the same rule
+// that gives the week its ISO number.
+function weekMonthTag(weekKey) {
+  const monday = weekKeyToMonday(weekKey);
+  if (!monday) return '';
+  const thu = new Date(monday);
+  thu.setDate(monday.getDate() + 3);
+  return `${monthShort(thu.getMonth())}'${String(thu.getFullYear() % 100).padStart(2, '0')}`;
+}

@@ -328,6 +328,8 @@ function renderDesktop() {
     const unschedTasks = state[unschedCol.id] || [];
     if (unschedTasks.length > 0) bar.classList.add('has-tasks');
     bar.appendChild(buildColEl(unschedCol));
+    const tag = weekMonthTag(week.key);
+    if (tag) bar.appendChild(mkEl('span', 'unsched-week-tag', tag));
     weekRow.appendChild(bar);
 
     const daysGrid = mkEl('div', 'week-days');

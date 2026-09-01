@@ -206,6 +206,14 @@ const DAY_LABEL_RU = {
   'Thursday':'Четверг', 'Friday':'Пятница', 'Saturday':'Суббота', 'Sunday':'Воскресенье',
 };
 
+const MONTH_SHORT = {
+  en: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+  ru: ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'],
+};
+
+// Short month name (0=Jan) in the current language.
+function monthShort(idx) { return (MONTH_SHORT[lang] || MONTH_SHORT.en)[idx]; }
+
 function translateLabel(label) {
   if (lang === 'ru' && DAY_LABEL_RU[label]) return DAY_LABEL_RU[label];
   return label;

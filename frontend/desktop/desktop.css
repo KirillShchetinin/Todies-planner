@@ -186,6 +186,20 @@ header h1 { font-family: var(--mono); font-size: calc(17px * var(--ui-scale)); f
   flex-shrink: 0;
 }
 
+/* month/year of the week this unscheduled box belongs to */
+.unsched-week-tag {
+  font-family: var(--mono);
+  font-size: calc(10px * var(--ui-scale));
+  letter-spacing: 0.06em;
+  color: var(--sky-text);
+  opacity: 0.75;
+  align-self: center;
+  flex-shrink: 0;
+  margin-left: calc(6px * var(--ui-scale));
+  white-space: nowrap;
+  user-select: none;
+}
+
 /* day grid inside each week row */
 .week-days {
   display: grid;

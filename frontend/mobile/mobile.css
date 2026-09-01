@@ -226,6 +226,16 @@ body[data-view="mobile"] #board {
   flex-shrink: 0;
 }
 
+.mob-unsched-week-tag {
+  font-family: var(--mono);
+  font-size: calc(10px * var(--ui-scale));
+  letter-spacing: 0.06em;
+  color: var(--sky-text);
+  opacity: 0.75;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .mob-unsched-arrow {
   font-family: var(--mono);
   font-size: calc(13px * var(--ui-scale));

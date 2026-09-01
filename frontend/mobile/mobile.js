@@ -253,7 +253,7 @@ function _renderMobileBoard() {
 
   weeks.forEach((week) => {
     const unschedCol = weekUnscheduled[week.order] || weekUnscheduled[weekUnscheduled.length - 1];
-    if (unschedCol) area.appendChild(_buildUnschedChip(unschedCol));
+    if (unschedCol) area.appendChild(_buildUnschedChip(unschedCol, week.key));
 
     const dayList = mkEl('div', 'mob-day-list');
 
@@ -276,7 +276,7 @@ function _renderMobileBoard() {
 
 // ── Unscheduled chip ───────────────────────────────────────────────────────────
 
-function _buildUnschedChip(col) {
+function _buildUnschedChip(col, weekKey) {
   const tasks = state[col.id] || [];
 
   const chip = mkEl('div', 'mob-unsched-chip');
@@ -300,6 +300,9 @@ function _buildUnschedChip(col) {
   const spacer = document.createElement('span');
   spacer.style.flex = '1';
   chip.appendChild(spacer);
+
+  const tag = weekKey ? weekMonthTag(weekKey) : '';
+  if (tag) chip.appendChild(mkEl('span', 'mob-unsched-week-tag', tag));
 
   const arrow = mkEl('span', 'mob-unsched-arrow', '›');
   chip.appendChild(arrow);

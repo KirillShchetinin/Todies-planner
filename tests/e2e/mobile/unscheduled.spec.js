@@ -14,6 +14,10 @@ test('the chip summarises and opens the drawer', async ({ page, planner }) => {
   await expect(drawer(page).locator('.task-text')).toHaveText(['Fix bike', 'Renew passport']);
 });
 
+test("the chip tags its week's month and year", async ({ page, planner }) => {
+  await expect(page.locator('.mob-unsched-chip .mob-unsched-week-tag')).toHaveText("Mar'26");
+});
+
 test('schedules an unscheduled task onto a day', async ({ page, planner }) => {
   await page.locator('.mob-unsched-chip').click();
   await drawer(page).locator('.mob-unsched-task-row', { hasText: 'Fix bike' })

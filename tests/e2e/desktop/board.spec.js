@@ -12,6 +12,10 @@ test('renders the seeded week in date order, with a ghost for the missing day', 
   await expect(unscheduledCol(page)).toHaveCount(1);
 });
 
+test("tags the unscheduled box with its week's month and year", async ({ page, planner }) => {
+  await expect(page.locator('.unscheduled-bar .unsched-week-tag')).toHaveText("Mar'26");
+});
+
 test('marks today', async ({ page, planner }) => {
   await expect(page.locator('.col.today')).toHaveCount(1);
   await expect(col(page, '03/11')).toHaveClass(/today/);

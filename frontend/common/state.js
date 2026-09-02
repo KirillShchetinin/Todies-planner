@@ -9,10 +9,11 @@ let typeConfig  = structuredClone(DEFAULT_TYPE_CONFIG);
 let legendOrder = [...DEFAULT_LEGEND_ORDER];
 let uiScale = 1;                 // desktop view scale
 let uiScaleMobile = 1;           // mobile view scale — independent of desktop
-let customLoad = false;          // live setting: button label, persistence, earlier-weeks fetch scope
+let customLoad = false;          // live setting: button label, persistence, load-more fetch scope
 let customLoadActive = false;    // customLoad frozen at page load — governs rendering; toggling never changes the view until refresh
 let loadedFormIds = new Set();   // forms whose tasks have been fetched (customLoad ON)
-let loadingEarlier = false;      // one in-flight guard for batch fetches
+let loadingEarlier = false;      // in-flight guard for the earlier-weeks batch fetch
+let loadingLater   = false;      // in-flight guard for the later-weeks batch fetch
 
 // Replaces the whole board: every form's tasks come from this one response.
 function applyTasksData(tasksData) {

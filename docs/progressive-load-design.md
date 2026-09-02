@@ -431,3 +431,30 @@ account: 6 weekly forms = 3 recent + 3 older, plus an unscheduled container):
 
 This verification surfaced and fixed the §7.4 blank-board regression and the
 mid-session-toggle leak (§4.7).
+
+
+## 8. Follow-up: the forward edge (current week + 2)
+
+The original design bounded the window only on the past side, so every future
+week loaded and rendered upfront. The window is now bounded on both sides, and
+the two edges work identically.
+
+- **Backend** — `get_recent_forms` takes an optional `ahead_weeks`; `None`
+  (the default, and what `?latest=N` still passes) keeps the old unbounded
+  forward behaviour. `?mark_recent=1` passes `RECENT_WEEKS_AHEAD = 2`, so a col
+  is `recent` only when it also falls on or before the Sunday of the week two
+  after the one containing today.
+- **Frontend** — `_unloadedWeekIds(later)` splits the unloaded cols by
+  direction against today's ISO week key (the undated bucket always counts as
+  earlier, since it has no place on the timeline). `_loadWeeks(later)` is the
+  old `loadEarlierWeeks` body generalised: nearest weeks first (ascending going
+  forward, descending going back), 2 per click, all remaining when `customLoad`
+  has been toggled OFF this session. `loadEarlierWeeks` / `loadLaterWeeks` are
+  thin wrappers, and `loadingEarlier` / `loadingLater` label the two controls
+  independently while one shared guard keeps a single fetch in flight.
+- **Scroll anchoring** differs by direction: rows prepended above grow
+  `scrollHeight` from the top and need `scrollTop + (newHeight − oldHeight)`;
+  rows appended below leave `scrollTop` valid, so it is simply restored.
+- **Views** — desktop draws the same `.earlier-weeks-row` below the last week
+  row; mobile appends the same `.mob-earlier-chip` at the end of the day strip.
+  New translation key `loadMore` ("↓ load more" / "↓ загрузить ещё").

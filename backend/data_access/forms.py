@@ -12,12 +12,16 @@ def get_forms(user_id):
     return [dict(r) for r in rows]
 
 
-def get_recent_forms(user_id, latest_days, today=None):
+def get_recent_forms(user_id, latest_days, today=None, ahead_weeks=None):
     """Scheduled forms dated on or after a recent lower bound.
 
     The lower bound is the earlier of:
       - the start of the week before ``today``, and
       - the start of the week containing (latest dated form - ``latest_days``).
+
+    ``ahead_weeks`` optionally caps the window forward at the end (Sunday) of
+    the week ``ahead_weeks`` after the one containing ``today``; ``None`` means
+    no upper bound.
 
     Unscheduled forms are always included. Forms with unparseable dates are
     excluded from the scheduled window (they have no position on the timeline).
@@ -37,7 +41,11 @@ def get_recent_forms(user_id, latest_days, today=None):
     else:
         lower = prev_week_start
 
-    cols = sorted((f for f, d in dated if d >= lower),
+    upper = (week_start(today) + datetime.timedelta(days=7 * ahead_weeks + 6)
+             if ahead_weeks is not None else None)
+
+    cols = sorted((f for f, d in dated
+                   if d >= lower and (upper is None or d <= upper)),
                   key=lambda f: f['sort_order'])
     unscheduled = [f for f in forms if f['is_unscheduled']]
     return cols, unscheduled

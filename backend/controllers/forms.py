@@ -6,6 +6,7 @@ from backend.date_utils import is_valid_form_date
 _INT_RE = re.compile(r'-?\d+')
 _MAX_LATEST = 999999999  # datetime.timedelta.max.days; larger overflows in get_recent_forms
 RECENT_DAYS = 14
+RECENT_WEEKS_AHEAD = 2  # current week + 2 ahead; later weeks load on demand
 
 
 def register(bp, require_user):
@@ -27,7 +28,8 @@ def register(bp, require_user):
 
         recent_ids = set()
         if mark_recent:
-            recent_cols, _ = DA.get_recent_forms(user_id, RECENT_DAYS)
+            recent_cols, _ = DA.get_recent_forms(
+                user_id, RECENT_DAYS, ahead_weeks=RECENT_WEEKS_AHEAD)
             recent_ids = {f['id'] for f in recent_cols}
 
         col_entries = []

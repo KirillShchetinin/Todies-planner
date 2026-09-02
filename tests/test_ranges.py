@@ -76,6 +76,29 @@ def test_recent_forms_lower_bound_uses_earlier_of_two(seed, app_ctx, uid):
     assert 'Edge out' not in labels
 
 
+def test_recent_forms_no_ahead_cap_by_default(seed, app_ctx, uid):
+    seed.form(uid, 'a', 'Far', date='08/17/2026', sort_order=0)  # 8 weeks out
+    cols, _ = DA_forms.get_recent_forms(uid, 14, today=TODAY)
+    assert {c['label'] for c in cols} == {'Far'}
+
+
+def test_recent_forms_ahead_weeks_caps_the_future(seed, app_ctx, uid):
+    # TODAY is Mon 06/22/2026; +2 weeks ends Sun 07/12/2026.
+    seed.form(uid, 'a', 'ThisWeek', date='06/24/2026', sort_order=0)
+    seed.form(uid, 'b', 'PlusTwoEnd', date='07/12/2026', sort_order=1)
+    seed.form(uid, 'c', 'PlusThree', date='07/13/2026', sort_order=2)
+
+    cols, _ = DA_forms.get_recent_forms(uid, 14, today=TODAY, ahead_weeks=2)
+    assert {c['label'] for c in cols} == {'ThisWeek', 'PlusTwoEnd'}
+
+
+def test_recent_forms_ahead_cap_keeps_past_window(seed, app_ctx, uid):
+    seed.form(uid, 'a', 'PrevWeek', date='06/16/2026', sort_order=0)
+    seed.form(uid, 'b', 'Old', date='05/04/2026', sort_order=1)
+    cols, _ = DA_forms.get_recent_forms(uid, 14, today=TODAY, ahead_weeks=2)
+    assert {c['label'] for c in cols} == {'PrevWeek'}
+
+
 def test_recent_forms_preserves_sort_order(seed, app_ctx, uid):
     seed.form(uid, 'a', 'Second', date='06/18', sort_order=5)
     seed.form(uid, 'b', 'First', date='06/16', sort_order=2)

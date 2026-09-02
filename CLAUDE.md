@@ -137,7 +137,8 @@ Routes:
 
 `GET /api/v2/forms` and `GET /api/v2/tasks` accept the range params that
 progressive load is built on: `?latest=N`, `?mark_recent=1` (annotates each col
-with `recent`, window = 14 days), `?form_ids=1,2,3`, `?from=&to=` (ISO). Bad
+with `recent`; the window reaches 14 days back and ends at the Sunday of the
+week 2 ahead of today), `?form_ids=1,2,3`, `?from=&to=` (ISO). Bad
 input must return 400, never 500 — several past bugs were exactly that
 (`--5` passing `lstrip('-')` validation, >64-bit ids overflowing the sqlite
 bind); `tests/test_ranges.py` guards them.
@@ -193,9 +194,12 @@ full `render()`**, which rebuilds the whole board DOM from those globals.
 `customLoadActive`; toggling the setting changes persistence and the button, but
 never the current view. When active: all forms are fetched (they're tiny) but
 only recent weeks' tasks, and **a column renders iff its id is in
-`loadedFormIds`**. "Earlier weeks" (`loadEarlierWeeks`) pulls the next 2 unloaded
-weeks by `?form_ids=`, merges, clears undo history (a pre-merge snapshot would
-delete the merged tasks) and restores scroll position. `docs/progressive-load-design.md`
+`loadedFormIds`**. The window is bounded on both
+sides — current week + 2 ahead, recent weeks back — and revealed by two mirror
+controls: "earlier weeks" (`loadEarlierWeeks`, above the board) and "load more"
+(`loadLaterWeeks`, below it). Each pulls the next 2 unloaded weeks in its
+direction by `?form_ids=`, merges, clears undo history (a pre-merge snapshot
+would delete the merged tasks) and restores scroll position. `docs/progressive-load-design.md`
 is the plan of record (it predates the layer split, so its file paths are stale).
 
 ### Writes

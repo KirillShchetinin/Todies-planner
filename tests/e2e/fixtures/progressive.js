@@ -61,14 +61,14 @@ const MONDAY = monday(TODAY);
 //   W+1, W+2  inside ahead  → loaded
 //   W+3, W+4, W+5  beyond   → hidden until "load more"
 const WEEKS = [
-  { key: 'W-3', weeks: -3, loaded: false, dir: 'earlier' },
+  { key: 'W-3', weeks: -3, loaded: false },
   { key: 'W-1', weeks: -1, loaded: true },
   { key: 'W0', weeks: 0, loaded: true },
   { key: 'W+1', weeks: 1, loaded: true },
   { key: 'W+2', weeks: 2, loaded: true },
-  { key: 'W+3', weeks: 3, loaded: false, dir: 'later' },
-  { key: 'W+4', weeks: 4, loaded: false, dir: 'later' },
-  { key: 'W+5', weeks: 5, loaded: false, dir: 'later' },
+  { key: 'W+3', weeks: 3, loaded: false },
+  { key: 'W+4', weeks: 4, loaded: false },
+  { key: 'W+5', weeks: 5, loaded: false },
 ].map(w => {
   const date = w.weeks === 0 ? TODAY : shift(MONDAY, w.weeks * 7 + 2);
   return { ...w, date, mmdd: mmdd(date), stored: mmddyyyy(date) };
@@ -80,8 +80,6 @@ const taskOf = key => `task ${key}`;
 const ANCHOR = taskOf('W0');   // on today's column, so always in the first batch
 
 const LOADED = WEEKS.filter(w => w.loaded);
-const EARLIER = WEEKS.filter(w => w.dir === 'earlier');
-const LATER = WEEKS.filter(w => w.dir === 'later');
 
 function seedProgressiveBoard(customLoad) {
   const token = randomUUID().replace(/-/g, '');
@@ -104,20 +102,16 @@ function seedProgressiveBoard(customLoad) {
       'INSERT INTO tasks (user_id, form_id, client_id, name, done, sort_order, metadata)' +
       ' VALUES (?, ?, ?, ?, ?, ?, ?)');
 
-    const formIds = {};
     WEEKS.forEach((w, i) => {
-      const id = Number(insForm.run(userId, w.key, w.key, w.stored, 0, i).lastInsertRowid);
-      formIds[w.key] = id;
+      const id = insForm.run(userId, w.key, w.key, w.stored, 0, i).lastInsertRowid;
       insTask.run(userId, id, `${w.key}-0`, taskOf(w.key), 0, 0, JSON.stringify({ type: 'Random' }));
     });
     // One unscheduled container per week, so ensureUnscheduledForWeeks() has
     // nothing to create and the board is stable on first paint.
-    WEEKS.forEach((w, i) => {
-      formIds[`unsched-${w.key}`] =
-        Number(insForm.run(userId, `u-${w.key}`, 'Unscheduled', '', 1, i).lastInsertRowid);
-    });
+    WEEKS.forEach((w, i) =>
+      insForm.run(userId, `u-${w.key}`, 'Unscheduled', '', 1, i));
 
-    return { token, userId: Number(userId), formIds };
+    return { token };
   } finally {
     db.close();
   }
@@ -129,39 +123,18 @@ const test = base.test.extend({
   customLoad: [true, { option: true }],
 
   planner: async ({ page, customLoad }, use) => {
-    const seeded = seedProgressiveBoard(customLoad);
+    const { token } = seedProgressiveBoard(customLoad);
 
     await page.clock.setFixedTime(TODAY);
     await page.route(/fonts\.(googleapis|gstatic)\.com/, route => route.abort());
 
-    const ready = async () => {
-      await page.addStyleTag({ content: KILL_ANIMATIONS });
-      await page.locator('.task', { hasText: ANCHOR }).first().waitFor();
-    };
-
-    const planner = {
-      ...seeded,
-      async open() {
-        await page.goto(`/?token=${seeded.token}`);
-        await ready();
-      },
-      async reload() {
-        await page.waitForLoadState('networkidle');
-        await page.reload();
-        await ready();
-      },
-      /** Form ids whose tasks the page has actually fetched. */
-      loadedIds() {
-        return page.evaluate(() => [...loadedFormIds]);
-      },
-    };
-
-    await planner.open();
-    await use(planner);
+    await page.goto(`/?token=${token}`);
+    await page.addStyleTag({ content: KILL_ANIMATIONS });
+    // Tasks land in the last of the three load phases, so the anchor being
+    // painted means metadata, forms and tasks have all been applied.
+    await page.locator('.task', { hasText: ANCHOR }).first().waitFor();
+    await use({ token });
   },
 });
 
-module.exports = {
-  test, expect: base.expect,
-  WEEKS, LOADED, EARLIER, LATER, byKey, taskOf, ANCHOR, TODAY,
-};
+module.exports = { test, expect: base.expect, WEEKS, LOADED, byKey, taskOf };

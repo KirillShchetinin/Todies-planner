@@ -145,44 +145,63 @@ async function ensureUnscheduledForWeeks() {
 
 // ── progressive load ──────────────────────────────────────────────────────
 
-// True when at least one scheduled form's tasks have not been fetched yet.
-// Gated on the session-frozen flag (a session that started with full load has
-// nothing unloaded); the control's presence must not change when customLoad is
-// toggled mid-session.
-function hasUnloadedWeeks() {
-  return customLoadActive && cols.some(c => !loadedFormIds.has(c.id));
-}
-
-// Reveal older unloaded weeks. Shared by desktop button + mobile chip. Fetches
-// those forms' tasks by ID, merges, clears undo (a stale snapshot predates the
-// merged tasks), and re-renders with scroll preserved. Normally loads the 2
-// newest unloaded weeks, but if customLoad has been toggled OFF this session,
-// a click loads ALL remaining weeks at once (catch up to full immediately).
-async function loadEarlierWeeks() {
-  if (loadingEarlier) return;
-
-  // Group unloaded scheduled forms by week key; undated forms load last.
-  const unloaded = cols.filter(c => !loadedFormIds.has(c.id));
-  if (!unloaded.length) return;
+// Unloaded weeks split by direction: `later` picks weeks after the current
+// one, `!later` picks the current week and everything before it (plus the
+// undated bucket, which has no place on the timeline).
+function _unloadedWeekIds(later) {
+  const todayKey = colWeekInfo({ date: todayDateStr() })?.key || '';
   const byKey = new Map();
-  unloaded.forEach(c => {
+  cols.forEach(c => {
+    if (loadedFormIds.has(c.id)) return;
     const info = colWeekInfo(c);
     const key  = info ? info.key : NODATE_WEEK;
+    if ((key !== NODATE_WEEK && key > todayKey) !== later) return;
     if (!byKey.has(key)) byKey.set(key, []);
     byKey.get(key).push(c.id);
   });
-  // Newest weeks first; the undated bucket always sorts to the very end.
+  return byKey;
+}
+
+// True when a scheduled form in that direction has no fetched tasks yet.
+// Gated on the session-frozen flag (a session that started with full load has
+// nothing unloaded); the controls' presence must not change when customLoad is
+// toggled mid-session.
+function hasUnloadedEarlierWeeks() {
+  return customLoadActive && _unloadedWeekIds(false).size > 0;
+}
+
+function hasUnloadedLaterWeeks() {
+  return customLoadActive && _unloadedWeekIds(true).size > 0;
+}
+
+function loadEarlierWeeks() { return _loadWeeks(false); }
+function loadLaterWeeks()   { return _loadWeeks(true); }
+
+// Reveal unloaded weeks in one direction. Shared by desktop rows + mobile
+// chips. Fetches those forms' tasks by ID, merges, clears undo (a stale
+// snapshot predates the merged tasks), and re-renders with scroll preserved.
+// Normally loads the 2 nearest unloaded weeks, but if customLoad has been
+// toggled OFF this session, a click loads ALL remaining weeks in that
+// direction at once (catch up to full immediately).
+async function _loadWeeks(later) {
+  if (loadingEarlier || loadingLater) return;
+
+  const byKey = _unloadedWeekIds(later);
+  if (!byKey.size) return;
+  // Nearest weeks first: ascending going forward, descending going back. The
+  // undated bucket only ever appears going back, and sorts to the very end.
   const keys = [...byKey.keys()].sort((a, b) => {
     if (a === NODATE_WEEK) return 1;
     if (b === NODATE_WEEK) return -1;
-    return a < b ? 1 : a > b ? -1 : 0;
+    const cmp = a < b ? -1 : a > b ? 1 : 0;
+    return later ? cmp : -cmp;
   });
   // customLoad ON → next 2 weeks; toggled OFF this session → all remaining.
   const take = customLoad ? 2 : keys.length;
   const ids = keys.slice(0, take).flatMap(k => byKey.get(k));
   if (!ids.length) return;
 
-  loadingEarlier = true;
+  if (later) loadingLater = true; else loadingEarlier = true;
   render();  // re-render so the control shows its loading label
 
   const scroller = viewScrollEl();
@@ -190,18 +209,19 @@ async function loadEarlierWeeks() {
   const prevHeight = scroller ? scroller.scrollHeight : 0;
 
   try {
-    const res  = await apiFetch(withParam(TASKS_URL, `form_ids=${ids.join(',')}`), undefined, 'load earlier tasks');
-    if (!res.ok) throw new Error('load earlier tasks failed');
+    const res  = await apiFetch(withParam(TASKS_URL, `form_ids=${ids.join(',')}`), undefined, 'load more tasks');
+    if (!res.ok) throw new Error('load more tasks failed');
     const data = await res.json();
     mergeTasksData(data, ids);
     UndoHistory.clear();      // a pre-merge snapshot would drop the merged tasks
-    loadingEarlier = false;
+    loadingLater = loadingEarlier = false;
     render();
-    // Keep the viewport anchored: prepended rows grow scrollHeight from the top.
+    // Keep the viewport anchored: rows prepended above grow scrollHeight from
+    // the top, so scrollTop must absorb the delta; rows appended below don't.
     const s = viewScrollEl();
-    if (s) s.scrollTop = prevTop + (s.scrollHeight - prevHeight);
+    if (s) s.scrollTop = later ? prevTop : prevTop + (s.scrollHeight - prevHeight);
   } catch (e) {
-    loadingEarlier = false;   // loaded data untouched — retry = click again
+    loadingLater = loadingEarlier = false;   // loaded data untouched — retry = click again
     render();
   }
 }

@@ -7,6 +7,10 @@ def _days_ago(n):
     return (datetime.date.today() - datetime.timedelta(days=n)).strftime('%m/%d/%Y')
 
 
+def _days_ahead(n):
+    return (datetime.date.today() + datetime.timedelta(days=n)).strftime('%m/%d/%Y')
+
+
 # ── GET /api/v2/forms ─────────────────────────────────────────────────────
 
 def test_get_empty(token, api):
@@ -80,6 +84,17 @@ def test_mark_recent_adds_flag(token, api):
     assert by_label['Recent']['recent'] is True
     assert by_label['Old']['recent'] is False
     assert by_label['Undated']['recent'] is False
+
+
+def test_mark_recent_caps_far_future(token, api):
+    # Window is the current week + 2 ahead; 5 weeks out is beyond it.
+    api.form(token, label='Soon', date=_days_ahead(3))
+    api.form(token, label='Far', date=_days_ahead(35))
+
+    data = api.get(token, '/api/v2/forms', mark_recent='1').get_json()
+    by_label = {c['label']: c for c in data['cols']}
+    assert by_label['Soon']['recent'] is True
+    assert by_label['Far']['recent'] is False
 
 
 def test_mark_recent_ignored_with_latest(token, api):

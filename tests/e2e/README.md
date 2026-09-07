@@ -46,6 +46,26 @@ Helpers: `planner.reload()` (re-open and wait for the board), `planner.rows()`
 (what actually reached the database), `planner.task(name)` / `planner.formOf(name)`
 / `planner.settings()` (in-page model, for state with no clean DOM form).
 
+### The progressive-load board
+
+`fixtures/progressive.js` is a **second** fixture, used only by the two
+`progressive-load.spec.js` files, and it is the one place the pinned clock does
+not apply. Progressive load is the one feature where the backend decides what
+the frontend may render, and `get_recent_forms` windows on the server's own
+`date.today()` — which no query param can pin. A board seeded around 11 Mar 2026
+would be flagged wholly out-of-window and nothing would render. So that fixture
+seeds relative to the **real current week** and pins the browser to that same
+date instead.
+
+It lays down one mid-week day column per week from three weeks back to five
+ahead, labelled `W-3` … `W+5`, each with one task and its own unscheduled
+container. `W-1` … `W+2` fall inside the default window; the rest are what the
+two controls reveal. `test.use({ customLoad: false })` re-seeds the same board
+with progressive load off, which is the control case for every gating
+assertion. Address weeks by their **label** on mobile — the strip renders all
+seven slots of every visible week, and two weeks four apart share a
+day-of-month in February.
+
 ## Conventions
 
 - **Assert after a reload.** Every mutation is optimistic — the DOM updates
@@ -64,7 +84,4 @@ Helpers: `planner.reload()` (re-open and wait for the board), `planner.rows()`
   fixtures is the natural next step if that becomes a problem.
 - **Account endpoints** (create / rotate / delete token). Creation is rate
   limited to 3/min, which does not survive a parallel suite.
-- **`customLoad` (progressive load) rendering.** The setting is frozen at page
-  load and only shows up on boards with weeks older than 14 days, so it needs
-  its own fixture rather than the shared one.
 - **Browsers other than Chromium**, and real touch/iOS behaviour.

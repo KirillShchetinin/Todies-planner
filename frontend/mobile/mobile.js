@@ -140,25 +140,30 @@ function _renderMobileHeader() {
   if (prevScroll) strip.scrollLeft = prevScroll;
 }
 
+// The progressive-load control: a chip at the start of the day strip for
+// earlier weeks, and at its end for later ones.
+function _buildMoreWeeksChip(later) {
+  const loading = later ? loadingLater : loadingEarlier;
+  const chip = mkEl('button', 'mob-earlier-chip', loading ? '…' : t(later ? 'loadMore' : 'earlierWeeks'));
+  chip.disabled = loadingEarlier || loadingLater;
+  chip.onclick = later ? loadLaterWeeks : loadEarlierWeeks;
+  return chip;
+}
+
 function _buildDayStrip(container) {
   if (cols.length === 0) return;
 
   const weekKeys = weekBuckets().map(w => w.key).filter(k => k !== NODATE_WEEK);
 
-  // customLoad ON: strip only lists loaded weeks; older weeks are revealed
-  // via the "earlier weeks" chip prepended below. Frozen at load — toggling
+  // customLoad ON: strip only lists loaded weeks; unloaded ones are revealed
+  // via the chips added at either end below. Frozen at load — toggling
   // customLoad never changes the view until refresh.
   const _loadedKeys = customLoadActive
     ? new Set(cols.filter(c => loadedFormIds.has(c.id)).map(c => colWeekInfo(c)?.key).filter(Boolean))
     : null;
   const visibleWeekKeys = _loadedKeys ? weekKeys.filter(k => _loadedKeys.has(k)) : weekKeys;
 
-  if (hasUnloadedWeeks()) {
-    const chip = mkEl('button', 'mob-earlier-chip', loadingEarlier ? '…' : t('earlierWeeks'));
-    chip.disabled = loadingEarlier;
-    chip.onclick = loadEarlierWeeks;
-    container.appendChild(chip);
-  }
+  if (hasUnloadedEarlierWeeks()) container.appendChild(_buildMoreWeeksChip(false));
 
   const INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   const now = new Date();
@@ -221,6 +226,8 @@ function _buildDayStrip(container) {
       if (isToday) todayChip = chip;
     });
   });
+
+  if (hasUnloadedLaterWeeks()) container.appendChild(_buildMoreWeeksChip(true));
 
   // Centre today's chip on the first build only — re-centring on every render
   // would drag the strip back to today each time a day is tapped.

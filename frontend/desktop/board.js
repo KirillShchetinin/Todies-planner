@@ -290,11 +290,14 @@ function buildAddForm(col, isUnscheduled) {
 
 // ── board ─────────────────────────────────────────────────────────────────
 
-function _buildEarlierWeeksRow() {
+// The progressive-load control: one full-width row, above the first week row
+// for earlier weeks and below the last one for later weeks.
+function _buildMoreWeeksRow(later) {
+  const loading = later ? loadingLater : loadingEarlier;
   const row = mkEl('div', 'earlier-weeks-row');
-  const btn = mkEl('button', 'earlier-weeks-btn', loadingEarlier ? '…' : t('earlierWeeks'));
-  btn.disabled = loadingEarlier;
-  btn.onclick = loadEarlierWeeks;
+  const btn = mkEl('button', 'earlier-weeks-btn', loading ? '…' : t(later ? 'loadMore' : 'earlierWeeks'));
+  btn.disabled = loadingEarlier || loadingLater;
+  btn.onclick = later ? loadLaterWeeks : loadEarlierWeeks;
   row.appendChild(btn);
   return row;
 }
@@ -316,7 +319,7 @@ function renderDesktop() {
     : allWeeks;
 
   // Desktop "earlier weeks" control — one full-width row above the first week.
-  if (hasUnloadedWeeks()) board.appendChild(_buildEarlierWeeksRow());
+  if (hasUnloadedEarlierWeeks()) board.appendChild(_buildMoreWeeksRow(false));
 
   weeks.forEach(week => {
     const unschedCol = weekUnscheduled[week.order] || weekUnscheduled[weekUnscheduled.length - 1];
@@ -352,6 +355,9 @@ function renderDesktop() {
     weekRow.appendChild(daysGrid);
     board.appendChild(weekRow);
   });
+
+  // "Load more" — the same control below the last week, for future weeks.
+  if (hasUnloadedLaterWeeks()) board.appendChild(_buildMoreWeeksRow(true));
 
   if (!_didInitialDesktopScroll) {
     const todayEl = board.querySelector('.col.today');

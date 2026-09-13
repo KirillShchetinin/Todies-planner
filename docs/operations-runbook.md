@@ -8,14 +8,16 @@ how to deploy new code, how to restart, and how backups actually behave.
 - **Host:** Azure VM (`openclaw-vm`), user `azureuser`.
 - **App directory:** `/home/azureuser/Todoies/Todies-planner`
 - **Virtualenv:** `/home/azureuser/Todoies/Todies-planner/venv`
-- **Server:** gunicorn, bound to `0.0.0.0:5000`, 1 worker, app target `server:app`.
+- **Server:** gunicorn, bound to `0.0.0.0:5000`, 1 worker, 4 threads, app target `server:app`.
 
-Full start command (as observed in `ps aux`):
+Start/restart with `./servicestart.sh`, which runs:
 
 ```bash
-/home/azureuser/Todoies/Todies-planner/venv/bin/gunicorn \
-  --bind 0.0.0.0:5000 --workers 1 server:app
+venv/bin/gunicorn --bind 0.0.0.0:5000 --workers 1 --threads 4 server:app
 ```
+
+Keep 1 worker: each worker runs the boot-time backup, and SQLite has one writer
+anyway. Threads give the request concurrency.
 
 ## Identifying the running process
 
@@ -71,21 +73,17 @@ worker boots**:
 
 - On restart / reload (`HUP`), or when gunicorn recycles/respawns a worker, the
   new worker re-imports `server.py` → one backup is written.
-- `backup()` copies `planner_db.db` to `backups/planner_db_backup_<timestamp>.db`
-  (`backend/data_access/connections.py:67`).
-- `_prune_old_backups()` deletes any backup older than **3 days**
-  (`connections.py:79`), so only ~3 days of history is ever retained.
+- `backup()` copies `planner_db.db` via SQLite's backup API to
+  `backups/planner_db_backup_<timestamp>.db` (`backend/data_access/db_mgmt.py`).
+  If that second's file already exists it does nothing.
+- `_prune_old_backups()` deletes any backup older than **3 days**, so only ~3
+  days of history is ever retained.
 
 **Consequence:** backup cadence == worker-restart cadence, which is incidental,
 not scheduled. If the server stays up for several days without a worker
 restart, backups silently stop and older ones age out — leaving no backup at
 all. Recent backups seen on the VM are the byproduct of workers being
 respawned, not of a scheduled job.
-
-**Also:** `backup()` uses `shutil.copy2` on a live WAL database. At startup this
-is safe (no traffic yet). It is **not** safe to call on a running server as-is —
-a WAL-safe backup would need SQLite's backup API (`sqlite3 planner_db.db
-".backup ..."`) instead.
 
 ### Manual on-demand backup (WAL-safe)
 

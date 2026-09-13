@@ -79,6 +79,8 @@ def backup(backup_dir):
     now = datetime.datetime.now()
     ts = now.strftime('%Y%m%d_%H%M%S')
     dest = os.path.join(backup_dir, f'planner_db_backup_{ts}.db')
+    if os.path.exists(dest):
+        return None
     tmp_dest = dest + '.tmp'
     src_conn = sqlite3.connect(connections.DB_PATH)
     dest_conn = sqlite3.connect(tmp_dest)

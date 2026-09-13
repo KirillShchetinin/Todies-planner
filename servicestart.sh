@@ -39,7 +39,7 @@ else
     echo "not running"
 fi
 
-nohup venv/bin/gunicorn --bind 0.0.0.0:5000 --workers 2 --threads 4 server:app >> "$LOG" 2>&1 &
+nohup venv/bin/gunicorn --bind 0.0.0.0:5000 --workers 1 --threads 4 server:app >> "$LOG" 2>&1 &
 sleep 1
 
 if [ -z "$(find_master)" ]; then

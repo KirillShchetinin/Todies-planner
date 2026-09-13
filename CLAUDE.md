@@ -98,19 +98,22 @@ CSS follows the same split and must be linked in this order: `common/base.css`
 ## How it runs in production
 
 Azure VM (`openclaw-vm`, user `azureuser`), gunicorn `--bind 0.0.0.0:5000
---workers 1 server:app`, out of `/home/azureuser/Todoies/Todies-planner` with a
-venv alongside. Deploy = `git pull` + `kill -HUP <gunicorn master pid>`, which
-re-imports `server:app` in a fresh worker with no downtime. `docs/operations-runbook.md`
-has the full procedure and the gotchas (notably: `pkill -f server.py` matches
-nothing — the process is named `gunicorn`).
+--workers 1 --threads 4 server:app` (started by `servicestart.sh`), out of
+`/home/azureuser/Todoies/Todies-planner` with a venv alongside. Deploy =
+`git pull` + `kill -HUP <gunicorn master pid>`, which re-imports `server:app` in
+a fresh worker with no downtime. `docs/operations-runbook.md` has the full
+procedure and the gotchas (notably: `pkill -f server.py` matches nothing — the
+process is named `gunicorn`).
 
 Two consequences of the gunicorn path that bite:
 
 - **`server.py`'s `if __name__ == '__main__'` block never runs.** The browser
   auto-open *and* the periodic `run_backup_loop` thread are dev-only. Under
   gunicorn the only backup is the module-level `backup()` call at import — i.e.
-  one per worker boot. Since `_prune_old_backups` drops anything older than 3
-  days, a long-lived worker means backups silently stop and then age out.
+  one per worker boot, skipped if that second's backup already
+  exists. Keep `--workers 1`: more workers each run it. Since
+  `_prune_old_backups` drops anything older than 3 days, a long-lived worker
+  means backups silently stop and then age out.
 - `init_db()` also runs at import, so schema creation and the additive column
   migrations (`db_mgmt.apply_migrations`) happen on every worker boot. Migrations
   never raise — a column that can't be added is printed and skipped.

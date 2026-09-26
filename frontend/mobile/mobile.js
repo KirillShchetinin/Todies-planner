@@ -704,7 +704,6 @@ function _buildNameEditRow(task, card) {
   inp.setAttribute('aria-label', t('mobRename'));
   inp.value = fresh ? task.text : overlay.nameDraft;
   inp.addEventListener('input', () => { if (overlay) overlay.nameDraft = inp.value; });
-  inp.addEventListener('focus', () => card.classList.add('kb-reserve'));
   inp.addEventListener('keydown', e => {
     if (e.key === 'Enter')  { e.preventDefault(); _commitTaskRename(taskId, inp.value); }
     if (e.key === 'Escape') { e.preventDefault(); overlay = null; render(); }
@@ -989,10 +988,6 @@ function _buildAddSheet(container) {
     inp.maxLength   = 60;
     inp.value       = overlay.typedText || '';
     inp.addEventListener('input', () => { overlay.typedText = inp.value; });
-    // Focusing this field is what raises the keyboard. Reserve room for it in
-    // the sheet's padding so the row rides up out of the way even on browsers
-    // that report no visual-viewport change at all (see mobile.css).
-    inp.addEventListener('focus', () => sheet.classList.add('kb-reserve'));
 
     const addBtn = mkEl('button', 'mob-name-add-btn', t('addDayConfirm'));
 
@@ -1012,10 +1007,10 @@ function _buildAddSheet(container) {
     sheet.appendChild(_buildImportantRow());
 
     requestAnimationFrame(() => inp.focus());
-    _addVpListener(sheet);
   }
 
   container.appendChild(sheet);
+  if (overlay.step !== 1) _addVpListener(sheet);
 }
 
 // Flags the task at creation time, so it doesn't have to be marked afterwards
@@ -1317,50 +1312,46 @@ function _buildUnschedDrawer(container) {
 
 // ── Visual viewport keyboard adjustment ────────────────────────────────────────
 
-// Breathing room left above a sheet that has been capped to the visible area.
+// Breathing room left above a sheet squeezed by the keyboard (landscape).
 const VP_SHEET_GAP = 12;
 
-// iOS never resizes the layout viewport for the keyboard: only the visual
-// viewport shrinks, and it also shifts down inside the layout viewport when
-// Safari scrolls a focused field into view. innerHeight - height - offsetTop is
-// therefore the gap the sheet has to clear. While the keyboard is up the sheet
-// is also capped to what remains visible, so a tall one scrolls inside itself
-// instead of running off the top of the screen.
+// Pins the overlay — scrim and sheet together — to the visual viewport, i.e.
+// exactly the part of the screen the keyboard leaves visible. A bottom sheet
+// then sits on top of the keyboard, and a top sheet at the top of what is
+// visible, with no keyboard maths at all.
+//
+// Only visualViewport's own offsetTop + height are used. Never innerHeight:
+// iOS (26) can shrink innerHeight while fixed boxes stay put, which made the
+// old `innerHeight - vv.height - vv.offsetTop` inset read 0 and leave the field
+// under the keys. offsetTop matters too: Safari pans the visual viewport to
+// reveal a focused field, and ignoring the pan puts the sheet in the wrong
+// place (the Vaul drawer bug). With the keyboard down this is inset: 0.
 function _addVpListener(sheet) {
   if (!window.visualViewport || !sheet) return;
-  // Baseline for spotting the other way a browser can handle the keyboard:
-  // honouring interactive-widget=resizes-content by shrinking the layout
-  // viewport, which moves the sheet for us and needs no inset at all.
-  const baseInnerHeight = window.innerHeight;
+  const overlayEl = sheet.parentElement;
+  let tightAt = 0;   // visual-viewport height at which .is-tight went on
   _vpResizeListener = () => {
-    const vp    = window.visualViewport;
-    const inset = window.innerHeight - vp.height - vp.offsetTop;
-    // A top-anchored sheet is already clear of the keyboard; it only needs to be
-    // kept short enough to fit the strip that is left.
-    const topAnchored = sheet.classList.contains('mob-sheet-top');
-    if (inset > 0) {
-      const avail = Math.max(0, vp.height - VP_SHEET_GAP);
-      if (!topAnchored) sheet.style.bottom = inset + 'px';
-      sheet.style.maxHeight = avail + 'px';
-      // Landscape leaves so little above the keyboard that the sheet's own
-      // chrome fills it. Shed the parts that are only context (the task
-      // preview, the section label) so the field and its buttons still fit.
-      if (sheet.scrollHeight > avail) sheet.classList.add('is-tight');
-      sheet.classList.add('kb-handled');     // measured: CSS reserve stands down
-    } else {
-      sheet.style.bottom    = '';            // keyboard down: back to the stylesheet
-      sheet.style.maxHeight = '';
+    const vp = window.visualViewport;
+    overlayEl.style.top    = vp.offsetTop + 'px';
+    overlayEl.style.height = vp.height + 'px';
+    overlayEl.style.bottom = 'auto';
+    // Landscape leaves so little above the keyboard that the sheet's own
+    // chrome fills it. Shed the parts that are only context (the task preview,
+    // the section label) so the field and its buttons still fit.
+    if (!tightAt && sheet.scrollHeight > vp.height - VP_SHEET_GAP) {
+      tightAt = vp.height;
+      sheet.classList.add('is-tight');
+    } else if (tightAt && vp.height > tightAt) {
+      tightAt = 0;
       sheet.classList.remove('is-tight');
-      // The layout viewport shrinking IS the browser handling the keyboard.
-      sheet.classList.toggle('kb-handled', window.innerHeight < baseInnerHeight - VP_SHEET_GAP);
     }
   };
   window.visualViewport.addEventListener('resize', _vpResizeListener);
-  // The keyboard can move the visual viewport without resizing it, which shifts
-  // where the sheet belongs with no resize to react to.
+  // Safari pans the visual viewport without resizing it, which moves where the
+  // sheet belongs with no resize to react to.
   window.visualViewport.addEventListener('scroll', _vpResizeListener);
   // Position once now: a render() while the keyboard is already open rebuilds
-  // the sheet at its CSS spot, and no further event need follow to correct it.
+  // the overlay at inset: 0, and no further event need follow to correct it.
   _vpResizeListener();
 }
 

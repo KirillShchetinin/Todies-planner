@@ -28,6 +28,13 @@ Define success criteria.
 Loop until verified.
 Don't tell Claude what steps to follow, tell it what success looks like and let it iterate.
 
+### Rule 5. Research Before Solving.
+When a problem is reported without an explicit solution, first act as a senior
+engineer who cares about quality: research how the industry already solves it
+(established libraries, known browser/platform bugs, write-ups) before
+designing a fix. Only then implement. Never invent a workaround, or change the
+UX, to dodge a problem that has a known proper solution.
+
 ## What Todies is
 
 A single-page weekly task planner. The board is a vertical stack of **week rows**;
@@ -252,6 +259,13 @@ precisely the write that has no token yet.
   date — each creating the column or container it needs, and greyed out when the
   task is already there), a side menu and an unscheduled drawer. Drag-and-drop is
   desktop only; mobile moves tasks through the sheet.
+- **Mobile text fields vs the keyboard.** `_addVpListener` pins `#mob-overlay`
+  to the visual viewport (`offsetTop` + `height`, on its `resize` and `scroll`),
+  so a bottom sheet rests on the keyboard. Never derive the keyboard from
+  `innerHeight` (unreliable on iOS 26) and don't add CSS reserves that compete
+  with it. `tests/e2e/mobile/keyboard.spec.js` checks every text field against
+  several keyboard models, including where the sheet is anchored, and fails if
+  mobile.js gains a text field it doesn't cover.
 
 ## Translation rule
 

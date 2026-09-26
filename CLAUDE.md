@@ -28,6 +28,13 @@ Define success criteria.
 Loop until verified.
 Don't tell Claude what steps to follow, tell it what success looks like and let it iterate.
 
+### Rule 5. Research Before Solving.
+When a problem is reported without an explicit solution, first act as a senior
+engineer who cares about quality: research how the industry already solves it
+(established libraries, known browser/platform bugs, write-ups) before
+designing a fix. Only then implement. Never invent a workaround, or change the
+UX, to dodge a problem that has a known proper solution.
+
 ## What Todies is
 
 A single-page weekly task planner. The board is a vertical stack of **week rows**;

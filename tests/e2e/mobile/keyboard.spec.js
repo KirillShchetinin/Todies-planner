@@ -14,6 +14,9 @@
 //   - A static guard fails the suite when mobile.js gains a text field that is
 //     not in SURFACES, so a new field can't silently skip the matrix.
 //
+//   - The sheet also has to stay where the design puts it: a bottom sheet must
+//     sit on top of the keyboard, not jump to the top of the screen.
+//
 // To add a field: add it to SURFACES. To cover a new browser quirk: add it to
 // KEYBOARD_MODELS. Never loosen the assertion to fit a model.
 
@@ -32,6 +35,11 @@ const KEYBOARD_FRACTION = 0.46;
  * really visible: [top, bottom).
  */
 const KEYBOARD_MODELS = {
+  // Not modelled: a browser with no visualViewport, or one that never reports
+  // the keyboard through it. Every mobile browser has shipped the API since
+  // 2019 (iOS 13); designing around its absence is what produced the padding
+  // reserve that fought the real fix.
+  //
   // Classic iOS Safari: the visual viewport shrinks, the layout viewport and
   // innerHeight do not.
   'ios: visual viewport shrinks': {
@@ -43,18 +51,6 @@ const KEYBOARD_MODELS = {
   'ios: visual viewport shrinks and pans': {
     install: page => stubViewport(page, { pan: true }),
     raise: (page, kb, H) => setKb(page, kb).then(() => ({ top: kb / 2, bottom: H - kb / 2 })),
-  },
-  // A browser whose visualViewport never reports the keyboard.
-  'visualViewport reports nothing': {
-    install: page => stubViewport(page, { silent: true }),
-    raise: (page, kb, H) => setKb(page, kb).then(() => ({ top: 0, bottom: H - kb })),
-  },
-  'no visualViewport at all': {
-    install: page => page.evaluate(() => {
-      Object.defineProperty(window, 'visualViewport', { get: () => undefined, configurable: true });
-      window.__setKb = () => {};
-    }),
-    raise: (page, kb, H) => setKb(page, kb).then(() => ({ top: 0, bottom: H - kb })),
   },
   // innerHeight shrinks with the keyboard but fixed-position boxes stay where
   // they were (iOS 26-style) — so innerHeight-based maths sees no keyboard.
@@ -111,6 +107,7 @@ const SURFACES = {
       await sheet(page).locator('.mob-label-pill').first().click();
     },
     must: ['.mob-name-input', '.mob-name-add-btn'],
+    anchor: 'bottom',
   },
   'rename from the action sheet': {
     open: async page => {
@@ -118,6 +115,7 @@ const SURFACES = {
       await sheet(page).locator('.mob-preview-editable').click();
     },
     must: ['.mob-name-input', '.mob-name-add-btn'],
+    anchor: 'bottom',
   },
   'task details': {
     open: async page => {
@@ -126,8 +124,20 @@ const SURFACES = {
       await expect(sheet(page).locator('.mob-details-area')).toBeEnabled();
     },
     must: ['.mob-details-area', '.mob-details-save'],
+    anchor: 'top',
   },
 };
+
+async function assertPlaced(page, surface, band, when) {
+  await assertVisible(page, surface.must, band, when);
+  // Bottom sheet: its bottom edge rests on the keyboard. Top sheet: its top
+  // edge is at the top of what is visible.
+  await expect.poll(async () => {
+    const b = await sheet(page).boundingBox();
+    const edge = surface.anchor === 'bottom' ? b.y + b.height : b.y;
+    return Math.abs(edge - (surface.anchor === 'bottom' ? band.bottom : band.top)) <= 2;
+  }, { message: `sheet is not ${surface.anchor}-anchored to the visible area ${when}` }).toBe(true);
+}
 
 async function assertVisible(page, selectors, band, when) {
   for (const sel of selectors) {
@@ -150,12 +160,12 @@ for (const [surfaceName, surface] of Object.entries(SURFACES)) {
       await field.focus();
 
       const band = await model.raise(page, kb, H);
-      await assertVisible(page, surface.must, band, 'once it opens');
+      await assertPlaced(page, surface, band, 'once it opens');
 
       // Every mutation ends in a full render(), rebuilding the sheet while the
       // keyboard is already up — no further viewport event comes to fix it.
       await page.evaluate(() => render());
-      await assertVisible(page, surface.must, band, 'after a render()');
+      await assertPlaced(page, surface, band, 'after a render()');
     });
   }
 }

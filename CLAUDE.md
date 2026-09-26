@@ -252,11 +252,13 @@ precisely the write that has no token yet.
   date — each creating the column or container it needs, and greyed out when the
   task is already there), a side menu and an unscheduled drawer. Drag-and-drop is
   desktop only; mobile moves tasks through the sheet.
-- **Mobile text fields vs the keyboard.** Any sheet holding a text field is
-  anchored to the top of the screen (`.mob-sheet-top`) — never dodge the keyboard
-  from a bottom sheet by measuring it; that broke on real iOS repeatedly.
-  `tests/e2e/mobile/keyboard.spec.js` checks every field against several keyboard
-  models and fails if mobile.js gains a text field it doesn't cover.
+- **Mobile text fields vs the keyboard.** `_addVpListener` pins `#mob-overlay`
+  to the visual viewport (`offsetTop` + `height`, on its `resize` and `scroll`),
+  so a bottom sheet rests on the keyboard. Never derive the keyboard from
+  `innerHeight` (unreliable on iOS 26) and don't add CSS reserves that compete
+  with it. `tests/e2e/mobile/keyboard.spec.js` checks every text field against
+  several keyboard models, including where the sheet is anchored, and fails if
+  mobile.js gains a text field it doesn't cover.
 
 ## Translation rule
 

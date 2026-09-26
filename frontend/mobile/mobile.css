@@ -594,23 +594,6 @@ body[data-view="mobile"] .task:active {
   to   { transform: translateY(0); }
 }
 
-/* A focused field inside a bottom sheet means the keyboard is up. Reserve room
-   for it in the sheet's own padding, which grows the sheet upward and carries
-   the field clear — no measurement, no events, so it holds even where
-   visualViewport reports nothing. The sheet stays anchored to the bottom; only
-   its content rides above the keys. Deliberately generous: an iOS keyboard is
-   36-44% of the screen, and over-reserving costs empty space, while
-   under-reserving hides the field.
-   _addVpListener sets .kb-handled once it can see the keyboard has already been
-   accounted for, and then this reserve gets out of the way.
-   Driven by a class set on first focus and kept for the life of the sheet, not
-   by :focus-within — focus leaves the field the moment you tap "add", and a
-   reserve that collapsed then would yank the button out from under the tap. */
-.mob-sheet.kb-reserve:not(.kb-handled) {
-  padding-bottom: calc(48vh + 18px * var(--ui-scale));
-  padding-bottom: calc(48dvh + 18px * var(--ui-scale));
-}
-
 /* ── Side menu (slide from right) ────────────────────────── */
 .mob-side-menu {
   position: absolute;
@@ -722,10 +705,15 @@ body[data-view="mobile"] .task:active {
 .mob-action-cancel    { color: #8a2020; }
 .mob-action-delete    { color: #c0392b; }
 
-/* ── Details sheet ────────────────────────────────────────── */
-/* Anchored to the top of the screen. The keyboard rises from the bottom, so
-   nothing up here can be covered by it — this, not the JS in _addVpListener,
-   is what guarantees the field stays visible. */
+/* ── Top-anchored sheets (anything with a text field) ────── */
+/* Any sheet holding a text field — the details editor, the add sheet's name
+   step, the rename field — is anchored to the top of the screen. The keyboard
+   rises from the bottom, so nothing up here can be covered by it — this, not
+   the JS in _addVpListener, is what guarantees the field stays visible.
+   Bottom sheets that dodged the keyboard by measuring it (visualViewport
+   insets, a padding reserve, interactive-widget) each broke on some real iOS
+   version; tests/e2e/mobile/keyboard.spec.js guards this across keyboard
+   models. Don't move a text field back into a bottom sheet. */
 .mob-sheet-top {
   top: 0;
   bottom: auto;
@@ -735,6 +723,9 @@ body[data-view="mobile"] .task:active {
   padding-top: calc(14px * var(--ui-scale) + env(safe-area-inset-top, 0px));
   animation: mob-sheet-down 200ms ease-out;
 }
+
+/* A grab handle is a bottom-sheet affordance. */
+.mob-sheet-top > .mob-grab-handle { display: none; }
 
 @keyframes mob-sheet-down {
   from { transform: translateY(-100%); }

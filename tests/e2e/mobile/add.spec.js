@@ -48,9 +48,10 @@ test('dismissing the sheet adds nothing', async ({ page, planner }) => {
   await page.locator('.mob-qa-main').click();
   await sheet(page).locator('.mob-label-pill', { hasText: 'Work' }).click();
   await sheet(page).locator('.mob-name-input').fill('Never saved');
-  // Near the top: with the field focused the sheet reserves keyboard room and
-  // grows upward, so the middle of the scrim is behind it.
-  await page.locator('#mob-overlay .mob-scrim').click({ position: { x: 10, y: 10 } });
+  // Near the bottom: at the name step the sheet sits at the top of the screen.
+  const scrim = page.locator('#mob-overlay .mob-scrim');
+  const { height } = await scrim.boundingBox();
+  await scrim.click({ position: { x: 10, y: height - 10 } });
 
   await expect(page.locator('#mob-overlay')).toHaveCount(0);
   await planner.reload();

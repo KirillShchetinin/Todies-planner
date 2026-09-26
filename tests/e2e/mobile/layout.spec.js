@@ -78,65 +78,6 @@ test('a document scroll from anywhere is snapped back', async ({ page, planner }
     () => document.getElementById('mobile-header').getBoundingClientRect().top)).toBe(0);
 });
 
-test('a bottom sheet lifts clear of the on-screen keyboard, and drops back after', async ({ page, planner }) => {
-  // The add sheet stays bottom-anchored, so it is the one that has to move.
-  await stubKeyboard(page);
-  await page.locator('.mob-qa-main').click();
-  await sheet(page).locator('.mob-label-pill').first().click();
-  await expect(sheet(page).locator('.mob-name-input')).toBeVisible();
-
-  const viewportH = await page.evaluate(() => window.innerHeight);
-  const KEYBOARD = 340;
-  const sheetBottom = async () => {
-    const box = await sheet(page).boundingBox();
-    return Math.round(box.y + box.height);
-  };
-
-  await page.evaluate(kb => window.__keyboard(kb), KEYBOARD);
-
-  // .mob-sheet transitions `bottom`, so poll rather than measure immediately.
-  await expect.poll(sheetBottom).toBeLessThanOrEqual(viewportH - KEYBOARD);
-  await expect(sheet(page).locator('.mob-name-input')).toBeVisible();
-
-  // Every mutation ends in a full render(), which rebuilds the sheet from
-  // scratch at its CSS position. Re-attaching the listener is not enough — the
-  // keyboard is already open, so no further resize event is coming to correct
-  // it, and the fresh sheet has to be placed at once or it lands under the keys.
-  await page.evaluate(() => render());
-  await expect.poll(sheetBottom).toBeLessThanOrEqual(viewportH - KEYBOARD);
-
-  await page.evaluate(() => window.__keyboard(0));
-  await expect.poll(sheetBottom).toBe(viewportH);
-});
-
-test('the add-task field clears the keyboard even when the viewport reports nothing', async ({ page, planner }) => {
-  // The add sheet stays at the bottom, so it cannot rely on anchoring the way
-  // the details editor does. Kill visualViewport outright — _addVpListener
-  // bails on its first line — and the field must still be reachable.
-  await page.evaluate(() => {
-    Object.defineProperty(window, 'visualViewport', { get: () => undefined, configurable: true });
-  });
-
-  await page.locator('.mob-qa-main').click();
-  await sheet(page).locator('.mob-label-pill').first().click();
-  const input = sheet(page).locator('.mob-name-input');
-  await expect(input).toBeVisible();
-  await input.click();
-
-  // A tall iOS keyboard, ~46% of the screen.
-  const viewportH = await page.evaluate(() => window.innerHeight);
-  const visibleBottom = viewportH * 0.54;
-  await expect.poll(async () => {
-    const b = await input.boundingBox();
-    return b.y >= 0 && b.y + b.height <= visibleBottom;
-  }, { message: 'the add-task input is not above the keyboard' }).toBe(true);
-
-  // ...but it is still a bottom sheet, not moved to the top of the screen.
-  const sheetBox = await sheet(page).boundingBox();
-  expect(Math.round(sheetBox.y + sheetBox.height)).toBe(viewportH);
-  expect(sheetBox.y).toBeGreaterThan(viewportH * 0.2);
-});
-
 test('the details editor opens at the top of the screen, out of the keyboard\'s reach', async ({ page, planner }) => {
   // Anchoring is what makes this safe, so pin it: a panel that starts at the
   // top cannot be covered by a keyboard that rises from the bottom, whatever

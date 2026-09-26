@@ -570,14 +570,17 @@ function _buildActionSheet(container) {
   scrim.onclick = () => { overlay = null; render(); };
   container.appendChild(scrim);
 
-  const card = mkEl('div', 'mob-sheet');
+  // Task preview — tap the name to rename it in place. A pending task has no
+  // server id yet, so it stays read-only until the create lands.
+  const editing = !!overlay.editingName && !task.pending;
+
+  // Renaming raises the keyboard, so the sheet moves to the top of the screen
+  // for it — same reason as the add sheet's name step (see mobile.css).
+  const card = mkEl('div', editing ? 'mob-sheet mob-sheet-top' : 'mob-sheet');
 
   const handle = mkEl('div', 'mob-grab-handle');
   card.appendChild(handle);
 
-  // Task preview — tap the name to rename it in place. A pending task has no
-  // server id yet, so it stays read-only until the create lands.
-  const editing = !!overlay.editingName && !task.pending;
   card.appendChild(editing ? _buildNameEditRow(task, card)
                            : _buildActionPreview(task));
 
@@ -704,7 +707,6 @@ function _buildNameEditRow(task, card) {
   inp.setAttribute('aria-label', t('mobRename'));
   inp.value = fresh ? task.text : overlay.nameDraft;
   inp.addEventListener('input', () => { if (overlay) overlay.nameDraft = inp.value; });
-  inp.addEventListener('focus', () => card.classList.add('kb-reserve'));
   inp.addEventListener('keydown', e => {
     if (e.key === 'Enter')  { e.preventDefault(); _commitTaskRename(taskId, inp.value); }
     if (e.key === 'Escape') { e.preventDefault(); overlay = null; render(); }
@@ -942,7 +944,11 @@ function _buildAddSheet(container) {
   scrim.onclick = () => { overlay = null; render(); };
   container.appendChild(scrim);
 
-  const sheet = mkEl('div', 'mob-sheet');
+  // Step 2 is the name field, which raises the keyboard: from then on the
+  // sheet sits at the top of the screen, out of the keyboard's reach by
+  // construction. Every bottom-anchored attempt to dodge the keyboard broke on
+  // some real browser; see mobile.css at .mob-sheet-top.
+  const sheet = mkEl('div', overlay.step === 1 ? 'mob-sheet' : 'mob-sheet mob-sheet-top');
 
   const handle = mkEl('div', 'mob-grab-handle');
   sheet.appendChild(handle);
@@ -989,10 +995,6 @@ function _buildAddSheet(container) {
     inp.maxLength   = 60;
     inp.value       = overlay.typedText || '';
     inp.addEventListener('input', () => { overlay.typedText = inp.value; });
-    // Focusing this field is what raises the keyboard. Reserve room for it in
-    // the sheet's padding so the row rides up out of the way even on browsers
-    // that report no visual-viewport change at all (see mobile.css).
-    inp.addEventListener('focus', () => sheet.classList.add('kb-reserve'));
 
     const addBtn = mkEl('button', 'mob-name-add-btn', t('addDayConfirm'));
 
@@ -1328,16 +1330,15 @@ const VP_SHEET_GAP = 12;
 // instead of running off the top of the screen.
 function _addVpListener(sheet) {
   if (!window.visualViewport || !sheet) return;
-  // Baseline for spotting the other way a browser can handle the keyboard:
-  // honouring interactive-widget=resizes-content by shrinking the layout
-  // viewport, which moves the sheet for us and needs no inset at all.
-  const baseInnerHeight = window.innerHeight;
   _vpResizeListener = () => {
     const vp    = window.visualViewport;
     const inset = window.innerHeight - vp.height - vp.offsetTop;
     // A top-anchored sheet is already clear of the keyboard; it only needs to be
     // kept short enough to fit the strip that is left.
     const topAnchored = sheet.classList.contains('mob-sheet-top');
+    // If Safari pans the visual viewport down, the top of the layout viewport
+    // is off screen: follow the visible top so the sheet doesn't go with it.
+    if (topAnchored) sheet.style.top = vp.offsetTop > 0 ? vp.offsetTop + 'px' : '';
     if (inset > 0) {
       const avail = Math.max(0, vp.height - VP_SHEET_GAP);
       if (!topAnchored) sheet.style.bottom = inset + 'px';
@@ -1346,13 +1347,10 @@ function _addVpListener(sheet) {
       // chrome fills it. Shed the parts that are only context (the task
       // preview, the section label) so the field and its buttons still fit.
       if (sheet.scrollHeight > avail) sheet.classList.add('is-tight');
-      sheet.classList.add('kb-handled');     // measured: CSS reserve stands down
     } else {
       sheet.style.bottom    = '';            // keyboard down: back to the stylesheet
       sheet.style.maxHeight = '';
       sheet.classList.remove('is-tight');
-      // The layout viewport shrinking IS the browser handling the keyboard.
-      sheet.classList.toggle('kb-handled', window.innerHeight < baseInnerHeight - VP_SHEET_GAP);
     }
   };
   window.visualViewport.addEventListener('resize', _vpResizeListener);

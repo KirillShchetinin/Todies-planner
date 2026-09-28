@@ -1,0 +1,17 @@
+{
+  "name": "todies-app",
+  "version": "1.0.0",
+  "description": "Todies weekly planner \u2014 iOS app (React Native + Expo)",
+  "scripts": {
+    "sync-core": "node scripts/sync-core.mjs",
+    "check-core": "node scripts/sync-core.mjs --check",
+    "analyze-core": "node scripts/analyze-core.mjs",
+    "check-dates": "node scripts/check-date-parity.mjs",
+    "test": "node --test src/__tests__/*.test.mjs && npm run check-core && npm run check-dates"
+  },
+  "dependencies": {
+    "acorn": "^8.18.0",
+    "acorn-walk": "^8.3.5"
+  },
+  "private": true
+}
